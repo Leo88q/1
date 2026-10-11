@@ -80,6 +80,11 @@ jobs:
             gradle --version 2>&1 | head -8
           } | tee environment.log
 
+      - name: Тест-векторы в модуль приложения
+        run: |
+          mkdir -p app-android/app/src/test/resources
+          cp packages/engine/vectors/levels.json app-android/app/src/test/resources/levels.json
+
       - name: Kotlin-ядро против TS-канона (unit-тесты)
         working-directory: app-android
         run: |

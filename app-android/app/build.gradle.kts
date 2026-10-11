@@ -1,6 +1,6 @@
 plugins {
+    // Kotlin-компиляция встроена в AGP 9 (built-in Kotlin): отдельный плагин не нужен.
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -73,19 +73,6 @@ kotlin {
         jvmTarget.set(JvmTarget.JVM_17)
     }
 }
-
-// Тест-векторы из TS-канона (packages/engine/vectors/levels.json).
-// Генерируются командой `npm run vectors` в корне репозитория; если файла нет,
-// задача ничего не делает, а Kotlin-тест скажет, что нужно выполнить.
-val vectorsSource = rootProject.projectDir.parentFile.resolve("packages/engine/vectors/levels.json")
-val vectorsOutput = layout.buildDirectory.dir("engineVectors")
-val syncEngineVectors = tasks.register<Copy>("syncEngineVectors") {
-    from(vectorsSource)
-    into(vectorsOutput)
-    onlyIf { vectorsSource.exists() }
-}
-android.sourceSets.getByName("test").resources.srcDir(vectorsOutput)
-tasks.withType<Test>().configureEach { dependsOn(syncEngineVectors) }
 
 dependencies {
     // Кошелёк: Solana Mobile Wallet Adapter (Phantom, Seed Vault, Solflare, Backpack — все MWA-кошельки)
