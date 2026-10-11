@@ -40,6 +40,10 @@ jobs:
           git config user.email ci@ampergrad.local
           git checkout -b ci-wrapper
           git add -f app-android/gradlew app-android/gradlew.bat app-android/gradle/wrapper/
+          if git diff --cached --quiet; then
+            echo "wrapper не изменился с прошлого раза"
+            exit 0
+          fi
           git commit -q -m "ci: gradle wrapper 9.8.1"
           git push -f -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-wrapper
           echo "wrapper в ветке ci-wrapper"
