@@ -11,9 +11,9 @@ jobs:
     name: Ядро правил (TS)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -30,7 +30,7 @@ jobs:
       - name: Тест-векторы для Kotlin
         run: npm run vectors
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: level-vectors
           path: packages/engine/vectors/levels.json
@@ -43,31 +43,45 @@ jobs:
     env:
       KEYSTORE_B64: ${{ secrets.AMPERGRAD_KEYSTORE_B64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
-
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: level-vectors
           path: packages/engine/vectors
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '8.14.3'
 
-      - name: Сверка Kotlin-ядра с TS-каноном (unit-тесты)
+      - name: Окружение (SDK, JDK, Gradle)
+        run: |
+          {
+            echo "ANDROID_HOME=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-<не задан>}}"
+            echo "platforms:"
+            ls "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/nonexistent}}/platforms" || true
+            echo "build-tools:"
+            ls "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/nonexistent}}/build-tools" || true
+            java -version 2>&1 | head -3
+            gradle --version 2>&1 | head -8
+          } | tee environment.log
+
+      - name: Kotlin-ядро против TS-канона (unit-тесты)
         working-directory: app-android
-        run: gradle :app:testDebugUnitTest --stacktrace
+        run: |
+          set -o pipefail
+          gradle :app:testDebugUnitTest --stacktrace --console=plain 2>&1 | tee ../build-test.log
 
       - name: Debug APK
         working-directory: app-android
-        run: gradle :app:assembleDebug
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --stacktrace --console=plain 2>&1 | tee ../build-apk.log
 
       - name: Релизный ключ подписи (если задан в секретах)
         if: env.KEYSTORE_B64 != ''
@@ -86,18 +100,45 @@ jobs:
       - name: Release APK (подписанный)
         if: env.KEYSTORE_B64 != ''
         working-directory: app-android
-        run: gradle :app:assembleRelease
+        run: |
+          set -o pipefail
+          gradle :app:assembleRelease --stacktrace --console=plain 2>&1 | tee ../build-release.log
+
+      # Логи недоступны из внешних сетей, поэтому выкладываем их в summary job'а:
+      # читаются через API check-runs и остаются в истории сборок.
+      - name: Диагностика в summary
+        if: always()
+        run: |
+          {
+            echo "## Сборка Амперграда"
+            echo ""
+            echo "### Окружение"
+            echo '```'
+            cat environment.log 2>/dev/null || echo "нет данных"
+            echo '```'
+            for log in build-test.log build-apk.log build-release.log; do
+              if [ -f "$log" ]; then
+                echo "### $log"
+                echo '```'
+                grep -E "^(e: |w: |FAILURE|BUILD |\\* What went wrong|> Task .*FAILED|Caused by|error:|Exception|.* error: )" "$log" | head -n 120 || true
+                echo "..."
+                tail -n 40 "$log"
+                echo '```'
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Отчёт о тестах
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-report
           path: app-android/app/build/reports/tests/
           if-no-files-found: ignore
 
       - name: APK
-        uses: actions/upload-artifact@v4
+        if: success()
+        uses: actions/upload-artifact@v5
         with:
           name: ampergrad-apk
           path: |
