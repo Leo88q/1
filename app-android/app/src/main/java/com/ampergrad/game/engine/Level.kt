@@ -24,7 +24,7 @@ class Tile(
 )
 
 class Level(
-    val level: Int,
+    var level: Int,
     val seed: Int,
     val size: Int,
     val tiles: MutableList<Tile>,

@@ -7,7 +7,7 @@ import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.Solana
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
-import com.solana.mobilewalletadapter.clientlib.signMessagesDetached
+import com.solana.mobilewalletadapter.clientlib.successPayload
 
 /** Ошибка кошелька с человекочитаемым текстом для интерфейса. */
 class WalletException(message: String, cause: Throwable? = null) : Exception(message, cause)
