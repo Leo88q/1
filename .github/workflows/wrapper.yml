@@ -1,9 +1,12 @@
 name: Gradle wrapper
 
-# Одноразовая генерация gradle wrapper для локальной сборки APK.
-# В CI сборка идёт системным Gradle 9.8.1, wrapper — удобство для разработчика.
+# Одноразовая генерация gradle wrapper (для локальной сборки APK без установки Gradle).
+# В CI сборка идёт системным Gradle 9.8.1. Готовые файлы выкладываются в ветку ci-wrapper.
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   wrapper:
@@ -24,12 +27,14 @@ jobs:
         working-directory: app-android
         run: gradle wrapper --gradle-version 9.8.1 --distribution-type bin
 
-      - uses: actions/upload-artifact@v5
-        with:
-          name: gradle-wrapper
-          if-no-files-found: error
-          path: |
-            app-android/gradlew
-            app-android/gradlew.bat
-            app-android/gradle/wrapper/gradle-wrapper.jar
-            app-android/gradle/wrapper/gradle-wrapper.properties
+      - name: Выложить wrapper в ветку ci-wrapper
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name ampergrad-ci
+          git config user.email ci@ampergrad.local
+          git checkout -b ci-wrapper
+          git add -f app-android/gradlew app-android/gradlew.bat app-android/gradle/wrapper/
+          git commit -q -m "ci: gradle wrapper 9.8.1"
+          git push -f -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-wrapper
+          echo "wrapper в ветке ci-wrapper"

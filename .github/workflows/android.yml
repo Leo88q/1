@@ -164,3 +164,19 @@ jobs:
             app-android/app/build/outputs/apk/debug/*.apk
             app-android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      # Артефакты лежат в blob-хранилище, недоступном из части сетей, поэтому тот же
+      # APK кладём в Release: оттуда файл открывается по обычной ссылке в браузере.
+      - name: APK в Releases (установка на телефон)
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=android-build
+          FILES=$(ls app-android/app/build/outputs/apk/debug/*.apk app-android/app/build/outputs/apk/release/*.apk 2>/dev/null || true)
+          if [ -z "$FILES" ]; then echo "APK не найдены"; exit 0; fi
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" \
+            --prerelease \
+            --title "Амперград — APK (автосборка)" \
+            --notes "Последняя автоматическая сборка Android-приложения (ветка arena/77b06826-1). Debug-APK ставится на устройство сразу; игра работает офлайн, кошелёк нужен только для клейма награды."
+          gh release upload "$TAG" $FILES --clobber
