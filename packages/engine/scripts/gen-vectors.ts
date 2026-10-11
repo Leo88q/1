@@ -8,7 +8,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENGINE_VERSION, Rng, dailySeed, generateLevel, levelSeed, toVector, type LevelVector } from '../src';
+import { DAILY_CONFIG_LEVEL, ENGINE_VERSION, Rng, dailySeed, generateLevel, levelSeed, toVector, type LevelVector } from '../src';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outFile = resolve(here, '..', 'vectors', 'levels.json');
@@ -34,8 +34,9 @@ const hashPins = [
 // Контрольные дни для daily-челленджа (пин, который проверит Kotlin-тест).
 const days: Array<{ day: number; seed: number; level: LevelVector }> = [20000, 20001, 20365].map((day) => {
   const seed = dailySeed(day);
-  const level = generateLevel(33, seed); // 6×6, как в челлендже дня
-  level.level = 0;
+  // В векторе храним конфигурацию дня (33), а не runtime-маркер 0:
+  // Kotlin-тест передаёт это поле прямо в generateLevel.
+  const level = generateLevel(DAILY_CONFIG_LEVEL, seed); // 6×6, как в челлендже дня
   return { day, seed, level: toVector(level) };
 });
 
