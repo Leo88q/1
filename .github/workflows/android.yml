@@ -60,7 +60,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
         with:
-          gradle-version: '8.14.3'
+          gradle-version: '9.8.1'
+
+      - name: Android SDK: платформа 37 и build-tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platforms;android-37" "build-tools;37.0.0" 2>&1 | tail -3 || \
+            echo "платформу 37 поставит сам AGP (android.builder.sdkDownload)"
 
       - name: Окружение (SDK, JDK, Gradle)
         run: |

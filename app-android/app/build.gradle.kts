@@ -13,12 +13,12 @@ val keystorePath: String? = System.getenv("AMPERGRAD_KEYSTORE")
 
 android {
     namespace = "com.ampergrad.game"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.ampergrad.game"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 36 // поведение Android 16; compileSdk 37 нужен библиотекам Compose 2026.09 и MWA 2.2.0
         versionCode = 1
         versionName = "0.1.0"
         // Адрес сервера клейма. Переопределяется: ./gradlew -PserverUrl=https://...
