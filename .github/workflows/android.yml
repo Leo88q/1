@@ -62,7 +62,7 @@ jobs:
         with:
           gradle-version: '9.8.1'
 
-      - name: Android SDK: платформа 37 и build-tools
+      - name: "Android SDK: платформа 37 и build-tools"
         run: |
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "platforms;android-37" "build-tools;37.0.0" 2>&1 | tail -3 || \
