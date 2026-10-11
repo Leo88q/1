@@ -5,6 +5,7 @@ plugins {
 }
 
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.File
 
 // Подпись релиза: ключи приходят из CI/локального окружения, в репозитории их нет.
 // Ожидаемые имена: AMPERGRAD_KEYSTORE (путь), AMPERGRAD_KEYSTORE_PASSWORD,
@@ -71,13 +72,13 @@ android {
 // Контент (лор, реестр) генерируется в репозитории командой `npm run content`.
 // Если файл есть — копируем его в assets приложения и в ресурсы unit-тестов.
 // В CI файл подкладывает workflow, локально достаточно выполнить npm run content.
-val loreSource = java.io.File(rootProject.projectDir.parentFile, "packages/engine/content/lore.json")
+val loreSource = File(rootProject.projectDir.parentFile, "packages/engine/content/lore.json")
 val loreTargets = listOf(
-    java.io.File(project.projectDir, "src/main/assets/lore.json"),
-    java.io.File(project.projectDir, "src/test/resources/lore.json"),
+    File(project.projectDir, "src/main/assets/lore.json"),
+    File(project.projectDir, "src/test/resources/lore.json"),
 )
 
-val syncContent by tasks.registering {
+val syncContent = tasks.register("syncContent") {
     group = "ampergrad"
     description = "Копирует контент (lore.json) в assets и тестовые ресурсы"
     inputs.files(loreSource).optional()
@@ -85,11 +86,11 @@ val syncContent by tasks.registering {
     doLast {
         if (!loreSource.exists()) {
             logger.lifecycle("lore.json не найден — шаг пропущен (выполните npm run content в корне репозитория)")
-            return@doLast
-        }
-        loreTargets.forEach { target ->
-            target.parentFile.mkdirs()
-            loreSource.copyTo(target, overwrite = true)
+        } else {
+            loreTargets.forEach { target ->
+                target.parentFile?.mkdirs()
+                loreSource.copyTo(target, overwrite = true)
+            }
         }
     }
 }
