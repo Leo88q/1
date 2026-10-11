@@ -1,5 +1,8 @@
 name: Android
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [main, arena/77b06826-1]
@@ -104,29 +107,34 @@ jobs:
           set -o pipefail
           gradle :app:assembleRelease --stacktrace --console=plain 2>&1 | tee ../build-release.log
 
-      # Логи недоступны из внешних сетей, поэтому выкладываем их в summary job'а:
-      # читаются через API check-runs и остаются в истории сборок.
-      - name: Диагностика в summary
+      # Логи сборки выкладываем в ветку ci-logs: blob-хранилище GitHub недоступно
+      # из внешних сетей, а содержимое файла читается через api.github.com.
+      - name: Лог сборки в ветку ci-logs
         if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          LOGDIR=$(mktemp -d)
           {
-            echo "## Сборка Амперграда"
-            echo ""
-            echo "### Окружение"
-            echo '```'
+            echo "Сборка: $(date -u +%FT%TZ)  sha=${{ github.sha }}"
+            echo
+            echo "===== окружение ====="
             cat environment.log 2>/dev/null || echo "нет данных"
-            echo '```'
             for log in build-test.log build-apk.log build-release.log; do
               if [ -f "$log" ]; then
-                echo "### $log"
-                echo '```'
-                grep -E "^(e: |w: |FAILURE|BUILD |\\* What went wrong|> Task .*FAILED|Caused by|error:|Exception|.* error: )" "$log" | head -n 120 || true
-                echo "..."
-                tail -n 40 "$log"
-                echo '```'
+                echo
+                echo "===== $log ====="
+                tail -n 400 "$log"
               fi
             done
-          } >> "$GITHUB_STEP_SUMMARY"
+          } > "$LOGDIR/last-build.log"
+
+          cd "$LOGDIR"
+          git init -q -b ci-logs
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git add last-build.log
+          git -c user.name=ampergrad-ci -c user.email=ci@ampergrad.local commit -q -m "ci: лог сборки"
+          git push -f -q origin ci-logs || echo "не удалось выложить лог"
 
       - name: Отчёт о тестах
         if: always()
