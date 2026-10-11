@@ -15,7 +15,8 @@
     "typecheck": "tsc -p packages/engine --noEmit && tsc -p packages/lab --noEmit && tsc -p server --noEmit",
     "vectors": "npm --workspace @ampergrad/engine run vectors",
     "server": "npm --workspace @ampergrad/server run start",
-    "server:dev": "npm --workspace @ampergrad/server run dev"
+    "server:dev": "npm --workspace @ampergrad/server run dev",
+    "content": "npm run content -w @ampergrad/engine"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

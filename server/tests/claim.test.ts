@@ -284,3 +284,59 @@ describe('метаданные наград', () => {
     expect(svg.headers.get('content-type')).toContain('image/svg+xml');
   });
 });
+
+describe('контент: магазин, реестр, названия кварталов', () => {
+  it('отдаёт каталог косметики и карточку предмета', async () => {
+    const { app } = buildApp();
+
+    const shop = await app.request('/shop');
+    expect(shop.status).toBe(200);
+    const catalog = (await shop.json()) as {
+      items: Array<{ id: string; channel: string; priceUsd: number | null; lore: string }>;
+    };
+    expect(catalog.items.length).toBeGreaterThanOrEqual(18);
+
+    const rewards = catalog.items.filter((i) => i.channel === 'reward');
+    expect(rewards.length).toBeGreaterThanOrEqual(6);
+    expect(rewards.every((i) => i.priceUsd === null)).toBe(true);
+    expect(catalog.items.every((i) => i.lore.length > 20)).toBe(true);
+
+    const one = await app.request('/shop/source-core');
+    expect(one.status).toBe(200);
+    expect(((await one.json()) as { name: string }).name).toContain('Ядро');
+    expect((await app.request('/shop/нет-такого')).status).toBe(404);
+  });
+
+  it('отдаёт реестр и полный текст записи', async () => {
+    const { app } = buildApp();
+
+    const registry = await app.request('/registry');
+    expect(registry.status).toBe(200);
+    const data = (await registry.json()) as { count: number; entries: Array<{ id: string }> };
+    expect(data.count).toBe(60);
+    expect(data.entries[0]?.id).toBe('reg-s1-01');
+
+    const entry = await app.request('/registry/reg-s3-20');
+    expect(entry.status).toBe(200);
+    expect(((await entry.json()) as { text: string }).text.length).toBeGreaterThan(30);
+    expect((await app.request('/registry/нет-такого')).status).toBe(404);
+  });
+
+  it('называет квартал и ярус уровня', async () => {
+    const { app } = buildApp();
+
+    const res = await app.request('/levels/16');
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as {
+      quarter: { code: string; name: string };
+      tier: { id: string };
+    };
+    expect(data.quarter.code).toBe('Р-01');
+    expect(data.quarter.name).toBe('Живой металл');
+    expect(data.tier.id).toBe('mercury');
+
+    expect((await app.request('/levels/0')).status).toBe(400);
+    expect((await app.request('/levels/76')).status).toBe(400);
+    expect((await app.request('/levels/абв')).status).toBe(400);
+  });
+});

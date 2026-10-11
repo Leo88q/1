@@ -68,6 +68,36 @@ android {
     }
 }
 
+// Контент (лор, реестр) генерируется в репозитории командой `npm run content`.
+// Если файл есть — копируем его в assets приложения и в ресурсы unit-тестов.
+// В CI файл подкладывает workflow, локально достаточно выполнить npm run content.
+val loreSource = java.io.File(rootProject.projectDir.parentFile, "packages/engine/content/lore.json")
+val loreTargets = listOf(
+    java.io.File(project.projectDir, "src/main/assets/lore.json"),
+    java.io.File(project.projectDir, "src/test/resources/lore.json"),
+)
+
+val syncContent by tasks.registering {
+    group = "ampergrad"
+    description = "Копирует контент (lore.json) в assets и тестовые ресурсы"
+    inputs.files(loreSource).optional()
+    outputs.files(loreTargets)
+    doLast {
+        if (!loreSource.exists()) {
+            logger.lifecycle("lore.json не найден — шаг пропущен (выполните npm run content в корне репозитория)")
+            return@doLast
+        }
+        loreTargets.forEach { target ->
+            target.parentFile.mkdirs()
+            loreSource.copyTo(target, overwrite = true)
+        }
+    }
+}
+
+tasks.named("preBuild") { dependsOn(syncContent) }
+tasks.matching { it.name.contains("UnitTest") && it.name.startsWith("compile") }
+    .configureEach { dependsOn(syncContent) }
+
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)

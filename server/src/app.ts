@@ -9,7 +9,16 @@
  */
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { ENGINE_VERSION } from '@ampergrad/engine';
+import {
+  COSMETICS,
+  ENGINE_VERSION,
+  QUARTERS,
+  REGISTRY,
+  cosmeticById,
+  quarterForLevel,
+  registryById,
+  tierForLevel,
+} from '@ampergrad/engine';
 import type { ServerEnv } from './env';
 import { buildMetadata, rewardSvg, type RewardMetadata } from './metadata';
 import { Minter } from './mint';
@@ -109,6 +118,53 @@ export function createApp(deps: AppDeps): Hono {
     const reward = rewardById(c.req.param('rewardId'));
     if (!reward) return c.json({ error: 'награда не найдена' }, 404);
     return c.json({ id: reward.id, name: reward.name, description: reward.description, lore: reward.lore });
+  });
+
+  // Каталог косметики: только внешний вид, цены витрины платформы.
+  app.get('/shop', (c) =>
+    c.json({
+      engine: ENGINE_VERSION,
+      items: COSMETICS,
+    }),
+  );
+
+  app.get('/shop/:itemId', (c) => {
+    const item = cosmeticById(c.req.param('itemId'));
+    if (!item) return c.json({ error: 'предмет не найден' }, 404);
+    return c.json(item);
+  });
+
+  // Лор: список записей и полный текст конкретной (она же — награда-страница).
+  app.get('/registry', (c) =>
+    c.json({
+      engine: ENGINE_VERSION,
+      count: REGISTRY.length,
+      entries: REGISTRY.map((r) => ({
+        id: r.id,
+        season: r.season,
+        title: r.title,
+        speaker: r.speaker,
+        source: r.source,
+        tiers: r.tiers,
+      })),
+    }),
+  );
+
+  app.get('/registry/:entryId', (c) => {
+    const entry = registryById(c.req.param('entryId'));
+    if (!entry) return c.json({ error: 'запись реестра не найдена' }, 404);
+    return c.json(entry);
+  });
+
+  // Название квартала и ярус для уровня — используется интерфейсом игры.
+  app.get('/levels/:level', (c) => {
+    const level = Number(c.req.param('level'));
+    if (!Number.isInteger(level) || level < 1 || level > QUARTERS.length) {
+      return c.json({ error: 'уровень вне диапазона' }, 400);
+    }
+    const quarter = quarterForLevel(level);
+    const tier = tierForLevel(level);
+    return c.json({ level, quarter, tier });
   });
 
   app.get('/metadata/:rewardId', (c) => {

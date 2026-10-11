@@ -62,6 +62,7 @@ import com.ampergrad.game.solana.MwaWallet
 import com.ampergrad.game.ui.Board
 import com.ampergrad.game.ui.Grad
 import com.ampergrad.game.ui.Tier
+import com.ampergrad.game.content.Lore
 import com.ampergrad.game.ui.tierOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -95,6 +96,7 @@ data class RewardState(
 fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit) {
     val context = LocalContext.current
     val store = remember { ProgressStore(context) }
+    val lore = remember { Lore.load(context) }
     val claimApi = remember { ClaimClient(BuildConfig.SERVER_URL) }
     val scope = rememberCoroutineScope()
 
@@ -223,6 +225,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         if (current == null || menuOpen) {
             MenuScreen(
                 store = store,
+                lore = lore,
                 walletAddress = walletAddress,
                 onPlay = { startLevel(store.level.coerceAtMost(75)) },
                 onDaily = { startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY) },
@@ -237,6 +240,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         } else {
             GameScreen(
                 session = current,
+                lore = lore,
                 banner = banner,
                 soundEnabled = sound.enabled,
                 onRotate = { index, dir -> rotate(current, index, dir) },
@@ -297,6 +301,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         current?.takeIf { it.finishedAt != null }?.let { finished ->
             WinOverlay(
                 session = finished,
+                lore = lore,
                 walletAddress = walletAddress,
                 onNext = {
                     if (finished.mode == Mode.DAILY) startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY)
@@ -315,6 +320,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
 @Composable
 private fun MenuScreen(
     store: ProgressStore,
+    lore: Lore?,
     walletAddress: String?,
     onPlay: () -> Unit,
     onDaily: () -> Unit,
@@ -352,6 +358,14 @@ private fun MenuScreen(
         ) {
             Text("НАЧАТЬ СМЕНУ · УРОВЕНЬ ${store.level.coerceAtMost(75)}")
         }
+        lore?.quarter(store.level.coerceAtMost(75))?.let { quarter ->
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "${quarter.code} · ${quarter.name}",
+                style = MaterialTheme.typography.labelSmall,
+                color = Grad.InkDim,
+            )
+        }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onDaily, modifier = Modifier.fillMaxWidth()) {
             Text("ЧЕЛЛЕНДЖ ДНЯ")
@@ -386,6 +400,7 @@ private fun MenuScreen(
 @Composable
 private fun GameScreen(
     session: GameSession,
+    lore: Lore?,
     banner: String?,
     soundEnabled: Boolean,
     onRotate: (Int, Int) -> Unit,
@@ -395,6 +410,7 @@ private fun GameScreen(
     onToggleSound: () -> Unit,
 ) {
     val tier: Tier = tierOf(session.levelNumber)
+    val quarter = lore?.quarter(session.levelNumber)
     val accent = if (session.mode == Mode.DAILY) Grad.Gold else tier.accent
     val powered = poweredCells(session.level)
 
@@ -416,10 +432,14 @@ private fun GameScreen(
                     color = accent,
                 )
                 Text(
-                    text = if (session.mode == Mode.DAILY) {
-                        "ОБЩИЙ КВАРТАЛ ${session.level.size}×${session.level.size}"
-                    } else {
-                        "УРОВЕНЬ ${session.levelNumber} · КВАРТАЛ ${session.level.size}×${session.level.size}"
+                    text = when {
+                        session.mode == Mode.DAILY ->
+                            "ОБЩИЙ КВАРТАЛ ${session.level.size}×${session.level.size}"
+
+                        quarter != null ->
+                            "УРОВЕНЬ ${session.levelNumber} · ${quarter.name}"
+
+                        else -> "УРОВЕНЬ ${session.levelNumber} · КВАРТАЛ ${session.level.size}×${session.level.size}"
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = Grad.InkDim,
@@ -484,6 +504,7 @@ private fun Stat(key: String, value: String) {
 @Composable
 private fun WinOverlay(
     session: GameSession,
+    lore: Lore?,
     walletAddress: String?,
     onNext: () -> Unit,
     onMenu: () -> Unit,
@@ -531,6 +552,36 @@ private fun WinOverlay(
                     color = Grad.InkDim,
                     textAlign = TextAlign.Center,
                 )
+
+                if (session.mode == Mode.LEVEL) {
+                    lore?.registryForLevel(session.levelNumber)?.let { entry ->
+                        Spacer(Modifier.height(16.dp))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF0A1018), RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                        ) {
+                            Text(
+                                entry.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Grad.Mint,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "«${entry.text}»",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Grad.Ink,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "Открыта как ${entry.id} · ${entry.title}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Grad.InkDim,
+                            )
+                        }
+                    }
+                }
 
                 Spacer(Modifier.height(18.dp))
                 if (walletAddress == null) {
