@@ -7,3 +7,10 @@ dist/
 *.keystore
 *.jks
 packages/lab/dist/
+
+# Android
+app-android/.gradle/
+app-android/build/
+app-android/app/build/
+app-android/local.properties
+app-android/app/src/test/resources/levels.json

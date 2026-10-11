@@ -1,0 +1,107 @@
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+}
+
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+// Подпись релиза: ключи приходят из CI/локального окружения, в репозитории их нет.
+// Ожидаемые имена: AMPERGRAD_KEYSTORE (путь), AMPERGRAD_KEYSTORE_PASSWORD,
+// AMPERGRAD_KEY_ALIAS, AMPERGRAD_KEY_PASSWORD.
+val keystorePath: String? = System.getenv("AMPERGRAD_KEYSTORE")
+
+android {
+    namespace = "com.ampergrad.game"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.ampergrad.game"
+        minSdk = 26
+        targetSdk = 36
+        versionCode = 1
+        versionName = "0.1.0"
+        // Адрес сервера клейма. Переопределяется: ./gradlew -PserverUrl=https://...
+        val serverUrl = (project.findProperty("serverUrl") as String?) ?: "https://api.ampergrad.example"
+        buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
+        buildConfigField("String", "ENGINE_VERSION", "\"0.1.0\"")
+    }
+
+    signingConfigs {
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("AMPERGRAD_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("AMPERGRAD_KEY_ALIAS")
+                keyPassword = System.getenv("AMPERGRAD_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false // включаем R8 после первой закрытой беты
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (keystorePath != null) signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+        }
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
+    packaging {
+        resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
+// Тест-векторы из TS-канона (packages/engine/vectors/levels.json).
+// Генерируются командой `npm run vectors` в корне репозитория; если файла нет,
+// задача ничего не делает, а Kotlin-тест скажет, что нужно выполнить.
+val vectorsSource = rootProject.projectDir.parentFile.resolve("packages/engine/vectors/levels.json")
+val vectorsOutput = layout.buildDirectory.dir("engineVectors")
+val syncEngineVectors = tasks.register<Copy>("syncEngineVectors") {
+    from(vectorsSource)
+    into(vectorsOutput)
+    onlyIf { vectorsSource.exists() }
+}
+android.sourceSets.getByName("test").resources.srcDir(vectorsOutput)
+tasks.withType<Test>().configureEach { dependsOn(syncEngineVectors) }
+
+dependencies {
+    // Кошелёк: Solana Mobile Wallet Adapter (Phantom, Seed Vault, Solflare, Backpack — все MWA-кошельки)
+    implementation("com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.2.0")
+
+    implementation("androidx.core:core-ktx:1.19.0")
+    implementation("androidx.activity:activity-compose:1.13.0")
+
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+
+    testImplementation(kotlin("test"))
+    testImplementation("org.json:json:20240303") // реальная реализация org.json для JUnit (в android.jar — заглушки)
+}
