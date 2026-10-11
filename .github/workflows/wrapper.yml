@@ -1,9 +1,14 @@
 name: Gradle wrapper
 
-# Одноразовая генерация gradle wrapper (для локальной сборки APK без установки Gradle).
+# Генерация gradle wrapper (для локальной сборки APK без установки Gradle).
 # В CI сборка идёт системным Gradle 9.8.1. Готовые файлы выкладываются в ветку ci-wrapper.
+# Запускается при изменении самого workflow (workflow_dispatch недоступен: файл только в рабочей ветке).
 on:
-  workflow_dispatch:
+  push:
+    branches: [arena/77b06826-1]
+    paths:
+      - '.github/workflows/wrapper.yml'
+      - 'app-android/gradle/wrapper/**'
 
 permissions:
   contents: write
