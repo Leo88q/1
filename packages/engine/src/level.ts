@@ -79,6 +79,9 @@ export function levelConfig(level: number): LevelConfig {
   return { size, extraDensity: base.extraDensity, receivers: 1 + Math.floor(size / 3) };
 }
 
+/** Конфигурация уровня для челленджа дня (6×6) — общая для клиента, веба и сервера. */
+export const DAILY_CONFIG_LEVEL = 33;
+
 /** Линейная интерполяция номера уровня (для сезонных лидербордов и событий). */
 export function lerpLevel(from: number, to: number, t: number): number {
   const clamped = Math.max(0, Math.min(1, t));

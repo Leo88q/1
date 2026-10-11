@@ -1,0 +1,286 @@
+import { describe, expect, it } from 'vitest';
+import { createApp } from '../src/app';
+import { loadEnv } from '../src/env';
+import { Minter } from '../src/mint';
+import { MemoryStore } from '../src/store';
+import { dailyProof, levelProof, createWallet } from './helpers';
+
+const TODAY = 20_365;
+const NOW = TODAY * 86_400_000 + 3_600_000;
+
+function buildApp(overrides: Record<string, string> = {}) {
+  const env = loadEnv({
+    AMPERGRAD_MINT_MODE: 'dry-run',
+    AMPERGRAD_ALLOW_UNVERIFIED: 'false',
+    ...overrides,
+  } as NodeJS.ProcessEnv);
+  const store = new MemoryStore();
+  const minter = new Minter(env);
+  const app = createApp({ env, store, minter, now: () => NOW });
+  return { app, store, env };
+}
+
+async function post(app: ReturnType<typeof buildApp>['app'], path: string, body: unknown) {
+  const response = await app.request(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return { status: response.status, json: (await response.json()) as Record<string, unknown> };
+}
+
+describe('сервер клейма', () => {
+  it('отдаёт здоровье с версией правил', async () => {
+    const { app } = buildApp();
+    const response = await app.request('/health');
+    const json = (await response.json()) as Record<string, unknown>;
+    expect(response.status).toBe(200);
+    expect(json.ok).toBe(true);
+    expect(json.engine).toBe('0.1.0');
+    expect(json.mintMode).toBe('dry-run');
+  });
+
+  it('полный поток: доказательство → задача → подпись → награда', async () => {
+    const { app, store } = buildApp();
+    const wallet = createWallet();
+    const proof = levelProof(1);
+
+    const start = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0', proof });
+    expect(start.status).toBe(200);
+    expect(start.json.rewardId).toBe('plomba-first');
+    expect(typeof start.json.nonce).toBe('string');
+    expect(typeof start.json.message).toBe('string');
+
+    const message = start.json.message as string;
+    const submit = await post(app, '/claim/submit', {
+      address: wallet.address,
+      nonce: start.json.nonce,
+      signature: wallet.sign(message),
+      rewardId: start.json.rewardId,
+      proof,
+    });
+
+    expect(submit.status).toBe(200);
+    expect(submit.json.status).toBe('queued'); // dry-run: награда в очереди, ничего не тратится
+    expect(submit.json.wallet).toMatch(/…/);
+
+    const progress = await store.getProgress(wallet.address);
+    expect(progress.solvedLevels.has(1)).toBe(true);
+  });
+
+  it('подпись другого кошелька отклоняется', async () => {
+    const { app } = buildApp();
+    const wallet = createWallet();
+    const attacker = createWallet();
+    const proof = levelProof(1);
+
+    const start = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0', proof });
+    const submit = await post(app, '/claim/submit', {
+      address: attacker.address,
+      nonce: start.json.nonce,
+      signature: attacker.sign(start.json.message as string),
+      rewardId: start.json.rewardId,
+      proof,
+    });
+    expect(submit.status).toBe(403); // задача выдана другому кошельку
+  });
+
+  it('неверная подпись отклоняется', async () => {
+    const { app } = buildApp();
+    const wallet = createWallet();
+    const proof = levelProof(1);
+    const start = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0', proof });
+
+    const submit = await post(app, '/claim/submit', {
+      address: wallet.address,
+      nonce: start.json.nonce,
+      signature: wallet.sign('поддельное сообщение'),
+      rewardId: start.json.rewardId,
+      proof,
+    });
+    expect(submit.status).toBe(401);
+  });
+
+  it('nonce одноразовый', async () => {
+    const { app } = buildApp();
+    const wallet = createWallet();
+    const proof = levelProof(2);
+    const start = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0', proof });
+    const signature = wallet.sign(start.json.message as string);
+
+    const first = await post(app, '/claim/submit', {
+      address: wallet.address,
+      nonce: start.json.nonce,
+      signature,
+      rewardId: start.json.rewardId,
+      proof,
+    });
+    const second = await post(app, '/claim/submit', {
+      address: wallet.address,
+      nonce: start.json.nonce,
+      signature,
+      rewardId: start.json.rewardId,
+      proof,
+    });
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(410);
+  });
+
+  it('поддельное доказательство решения отклоняется', async () => {
+    const { app, store } = buildApp();
+    const wallet = createWallet();
+    const honest = levelProof(3);
+    const fake = { ...honest, turns: honest.turns.slice(0, Math.max(1, honest.turns.length - 3)) };
+    fake.moves = fake.turns.length;
+
+    const start = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0', proof: fake });
+    expect(start.status).toBe(422);
+
+    const progress = await store.getProgress(wallet.address);
+    expect(progress.solvedLevels.size).toBe(0);
+  });
+
+  it('чужие ходы (не тот уровень) отклоняются', async () => {
+    const { app } = buildApp();
+    const wallet = createWallet();
+    const proof = levelProof(7);
+    // Тот же набор ходов, но заявлен как уровень 8 — реплей даст другой квартал.
+    const forged = { ...proof, level: 8 };
+    const start = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0', proof: forged });
+    expect(start.status).toBe(422);
+  });
+
+  it('версия правил проверяется', async () => {
+    const { app } = buildApp();
+    const wallet = createWallet();
+    const start = await post(app, '/claim/start', { address: wallet.address, engine: '0.0.9' });
+    expect(start.status).toBe(409);
+  });
+
+  it('клейм без доказательства запрещён в строгом режиме', async () => {
+    const { app } = buildApp();
+    const wallet = createWallet();
+    const start = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0' });
+    expect(start.status).toBe(409); // нет подтверждённого прогресса
+
+    const relaxed = buildApp({ AMPERGRAD_ALLOW_UNVERIFIED: 'true' });
+    const wallet2 = createWallet();
+    const start2 = await post(relaxed.app, '/claim/start', { address: wallet2.address, engine: '0.1.0' });
+    expect(start2.status).toBe(200);
+    const submit2 = await post(relaxed.app, '/claim/submit', {
+      address: wallet2.address,
+      nonce: start2.json.nonce,
+      signature: wallet2.sign(start2.json.message as string),
+      rewardId: start2.json.rewardId,
+    });
+    expect(submit2.status).toBe(200);
+  });
+
+  it('одна и та же награда не выдаётся дважды', async () => {
+    const { app } = buildApp({ AMPERGRAD_ALLOW_UNVERIFIED: 'true' });
+    const wallet = createWallet();
+
+    const first = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0' });
+    await post(app, '/claim/submit', {
+      address: wallet.address,
+      nonce: first.json.nonce,
+      signature: wallet.sign(first.json.message as string),
+      rewardId: first.json.rewardId,
+    });
+
+    const second = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0', rewardId: 'plomba-first' });
+    expect(second.status).toBe(409);
+    expect(String(second.json.error)).toContain('реестр');
+  });
+
+  it('дневной лимит наград работает', async () => {
+    const { app } = buildApp({ AMPERGRAD_ALLOW_UNVERIFIED: 'true', AMPERGRAD_MAX_CLAIMS_PER_DAY: '1' });
+    const wallet = createWallet();
+
+    const first = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0' });
+    const submit = await post(app, '/claim/submit', {
+      address: wallet.address,
+      nonce: first.json.nonce,
+      signature: wallet.sign(first.json.message as string),
+      rewardId: first.json.rewardId,
+    });
+    expect(submit.status).toBe(200);
+
+    const second = await post(app, '/claim/start', { address: wallet.address, engine: '0.1.0' });
+    expect(second.status).toBe(429); // дневной лимит: вторая награда — завтра
+    expect(String(second.json.error)).toContain('дневной лимит')
+  });
+});
+
+describe('челлендж дня', () => {
+  it('принимает подписанный результат и ведёт лидерборд', async () => {
+    const { app, store } = buildApp();
+    const wallet = createWallet();
+    const proof = dailyProof(TODAY);
+
+    const start = await post(app, '/daily/start', {
+      address: wallet.address,
+      engine: '0.1.0',
+      day: TODAY,
+      moves: proof.moves,
+    });
+    expect(start.status).toBe(200);
+
+    const submit = await post(app, '/daily/submit', {
+      address: wallet.address,
+      nonce: start.json.nonce,
+      signature: wallet.sign(start.json.message as string),
+      proof,
+    });
+    expect(submit.status).toBe(200);
+    expect(submit.json.status).toBe('accepted');
+    expect(submit.json.rank).toBe(1);
+
+    const board = await app.request(`/daily/leaderboard?day=${TODAY}`);
+    const json = (await board.json()) as { entries: Array<{ wallet: string; moves: number }> };
+    expect(json.entries).toHaveLength(1);
+    expect(json.entries[0].moves).toBe(proof.moves);
+
+    const progress = await store.getProgress(wallet.address);
+    expect(progress.dailyDays.has(TODAY)).toBe(true);
+    expect(progress.bestDailyStreak).toBe(1);
+  });
+
+  it('челлендж дня за старую дату отклоняется', async () => {
+    const { app } = buildApp();
+    const wallet = createWallet();
+    const oldDay = TODAY - 30;
+    const proof = dailyProof(oldDay);
+
+    const start = await post(app, '/daily/start', {
+      address: wallet.address,
+      engine: '0.1.0',
+      day: oldDay,
+      moves: proof.moves,
+    });
+    const submit = await post(app, '/daily/submit', {
+      address: wallet.address,
+      nonce: start.json.nonce,
+      signature: wallet.sign(start.json.message as string),
+      proof,
+    });
+    expect(submit.status).toBe(422);
+  });
+});
+
+describe('метаданные наград', () => {
+  it('отдаёт каталог, описание и картинку', async () => {
+    const { app } = buildApp();
+
+    const catalog = (await (await app.request('/rewards')).json()) as { rewards: unknown[] };
+    expect(catalog.rewards.length).toBeGreaterThan(3);
+
+    const metadata = (await (await app.request('/metadata/plomba-first')).json()) as Record<string, unknown>;
+    expect(metadata.name).toBeTruthy();
+    expect(String(metadata.description)).toContain('Цикл');
+
+    const svg = await app.request('/nft/plomba-first.svg');
+    expect(svg.status).toBe(200);
+    expect(svg.headers.get('content-type')).toContain('image/svg+xml');
+  });
+});

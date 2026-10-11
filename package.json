@@ -5,16 +5,22 @@
   "description": "АМПЕРГРАД / AMPERGRAD — головоломка на соединение цепей для Solana Mobile",
   "workspaces": [
     "packages/engine",
-    "packages/lab"
+    "packages/lab",
+    "server"
   ],
   "scripts": {
     "dev": "npm --workspace @ampergrad/lab run dev",
     "build": "npm --workspace @ampergrad/lab run build",
-    "test": "npm --workspace @ampergrad/engine run test",
-    "typecheck": "tsc -p packages/engine --noEmit && tsc -p packages/lab --noEmit",
-    "vectors": "npm --workspace @ampergrad/engine run vectors"
+    "test": "npm --workspace @ampergrad/engine run test && npm --workspace @ampergrad/server run test",
+    "typecheck": "tsc -p packages/engine --noEmit && tsc -p packages/lab --noEmit && tsc -p server --noEmit",
+    "vectors": "npm --workspace @ampergrad/engine run vectors",
+    "server": "npm --workspace @ampergrad/server run start",
+    "server:dev": "npm --workspace @ampergrad/server run dev"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "@metaplex-foundation/umi": "1.6.0"
   }
 }
