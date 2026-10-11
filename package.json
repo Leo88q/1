@@ -1,0 +1,20 @@
+{
+  "name": "ampergrad",
+  "private": true,
+  "version": "0.1.0",
+  "description": "АМПЕРГРАД / AMPERGRAD — головоломка на соединение цепей для Solana Mobile",
+  "workspaces": [
+    "packages/engine",
+    "packages/lab"
+  ],
+  "scripts": {
+    "dev": "npm --workspace @ampergrad/lab run dev",
+    "build": "npm --workspace @ampergrad/lab run build",
+    "test": "npm --workspace @ampergrad/engine run test",
+    "typecheck": "tsc -p packages/engine --noEmit && tsc -p packages/lab --noEmit",
+    "vectors": "npm --workspace @ampergrad/engine run vectors"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
