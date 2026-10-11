@@ -89,6 +89,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    testImplementation(kotlin("test"))
+    // Тесты: JUnit4 — стандарт для unit-тестов Android; kotlin-test добавляет ассерты.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.4.21")
     testImplementation("org.json:json:20240303") // реальная реализация org.json для JUnit (в android.jar — заглушки)
 }
