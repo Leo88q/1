@@ -34,7 +34,7 @@ class ClaimClient(private val baseUrl: String) {
         ClaimChallenge(
             nonce = json.getString("nonce"),
             message = json.getString("message"),
-            rewardId = json.optString("rewardId", "pломба-start"),
+            rewardId = json.optString("rewardId", "plomba-first"),
         )
     }
 

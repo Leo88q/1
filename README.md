@@ -21,7 +21,7 @@
 
 0. **Название: «АМПЕРГРАД» / AMPERGRAD** (город внутри аккумуляторной горы, свет = память). Библия — `docs/05`.
 1. **Своё ядро + своё имя.** Механика поворота фрагментов авторским правом не охраняется, а код ProjectWalker ограничен лицензией: берём MIT-версию (`v1.0+`) или пишем своё — но бренд обязан быть своим.
-2. **Стек:** Unity 6 + Solana.Unity-SDK (Mobile Wallet Adapter), ядро пазла — чистый C#, детерминированное и тестируемое. C++/SDL-форк с Web3 нестыкуем.
+2. **Стек:** нативный Kotlin + Jetpack Compose, кошелёк — Mobile Wallet Adapter 2.x (Phantom и Seed Vault одним флоу), ядро пазла — детерминированный Kotlin-порт TS-канона с общими тест-векторами. Unity/C++-форк отклонены (см. `docs/03`).
 3. **cNFT минтит сервер**, игрок только подписывает сообщение. Ключи — в KMS, не в APK.
 4. **Без обязательного токена.** Монетизация: косметика, Battle Pass, rewarded video. Призовой фонд — из выручки, не из депозитов.
 5. **Ежедневный челлендж** — общий seed для всех + серверная верификация решения (а не подписи результата).
@@ -43,6 +43,50 @@ npx tsx packages/engine/scripts/ascii.ts 1 --solved   # ASCII-рендер кв�
   удержание — против часовой), таймер, ходы, звёзды, подсказка, челлендж дня,
   прогресс в localStorage, неоновый рендер на canvas.
 
+- `packages/lab` — играбельный прототип «Амперграда»: поворот тапом (долгое
+  удержание — против часовой), таймер, ходы, звёзды, подсказка, челлендж дня,
+  прогресс в localStorage, неоновый рендер на canvas.
+
+## Android-приложение
+
+`app-android/` — нативное приложение на Kotlin + Jetpack Compose (минималистичный
+неон, 60 fps на Seeker):
+
+```bash
+cd app-android
+gradle :app:testDebugUnitTest      # 16 unit-тестов: правила и сверка с TS-каноном
+gradle :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
+gradle :app:assembleRelease        # подписывается, если заданы переменные окружения
+```
+
+- Кошелёк: **Mobile Wallet Adapter 2.x** (`mobile-wallet-adapter-clientlib-ktx:2.2.0`).
+  Приложение запускает системный выбор кошелька, поэтому **Phantom и Seed Vault
+  работают одним и тем же кодом**; игрок подписывает только сообщение (никаких
+  транзакций и комиссий со стороны игрока).
+- Адрес сервера задаётся при сборке: `-PserverUrl=https://...` (по умолчанию —
+  заглушка `https://api.ampergrad.example`, игра работает офлайн и без него).
+- Подпись релиза: переменные `AMPERGRAD_KEYSTORE` (путь), `AMPERGRAD_KEYSTORE_PASSWORD`,
+  `AMPERGRAD_KEY_ALIAS`, `AMPERGRAD_KEY_PASSWORD`. В CI — секрет
+  `AMPERGRAD_KEYSTORE_B64` (keystore в base64) и остальные три.
+- Клиент и сервер говорят на одной версии правил (`ENGINE_VERSION` в BuildConfig).
+  Тест-векторы берутся из `packages/engine/vectors/levels.json` — в CI их
+  подкладывает workflow, локально: `npm run vectors && cp packages/engine/vectors/levels.json app-android/app/src/test/resources/`.
+
+Сборка APK идёт в GitHub Actions (`.github/workflows/android.yml`): сначала тесты
+TS-ядра, затем Kotlin-тесты и APK; результат — артефакты `ampergrad-apk`,
+`test-report`, `level-vectors`.
+
+## Сервер
+
+`server/` — выдача наград (cNFT) и челлендж дня: Hono + TypeScript + Postgres,
+минт через `mpl-bubblegum`, проверка решения — проигрыванием ходов ядром.
+Подробности, переменные окружения и запуск — в `server/README.md`.
+
+```bash
+npm run server:dev    # http://0.0.0.0:8787 (без DATABASE_URL — хранилище в памяти)
+npm run test          # тесты ядра + сервера (14 тестов: подписи, лимиты, daily)
+```
+
 ## Статус
 
 - [x] Аудит лицензии и репозитория-донора
@@ -50,9 +94,10 @@ npx tsx packages/engine/scripts/ascii.ts 1 --solved   # ASCII-рендер кв�
 - [x] Выбор названия: «АМПЕРГРАД» (проверка на занятость первичная — чисто)
 - [x] Ядро правил + тесты + тест-векторы для Kotlin
 - [x] Играбельный прототип (веб-лаборатория)
+- [x] Android-приложение (Kotlin + Compose, MWA) и сборка APK в CI
+- [x] Сервер: challenge/verify/daily/claim + сухой прогон минта (devnet — по флагу)
 - [ ] Финальная юридическая проверка ТЗ/домены/ники
-- [ ] Android-приложение (Kotlin + Compose, MWA) и сборка APK в CI
-- [ ] Сервер: challenge/verify/daily/claim + devnet-минт cNFT
-- [ ] Контент: 75 уровней, реестр лора, магазин косметики
-- [ ] Closed beta на Seeker
+- [ ] Контент: лор-реестр (ярусы, имена узлов), магазин косметики
+- [ ] Closed beta на Seeker (плейтест на устройстве, оба кошелька)
+- [ ] Devnet-прогон минта с реальным деревом Bubblegum
 - [ ] Сабмит в dApp Store
