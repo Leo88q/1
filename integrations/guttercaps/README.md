@@ -10,7 +10,9 @@
 | `pr/packages/ampergrad/` | пакет для их монорепо: правила на чистом TS, 12 кварталов канона, 10 тестов, образцы арта и манифест |
 | `tools/prepare-samples.py` | собирает `pr/.../art/` из арта репозитория (уменьшенные образцы, pillow) |
 | `tools/pr-body.md` | описание PR |
-| `tools/open-pr.sh` | открывает или обновляет PR в `Leo88q/guttercaps` |
+| `tools/open-pr.sh` | открывает или обновляет PR в `Leo88q/guttercaps` через API |
+| `dist/ampergrad-mechanism.patch` | тот же коммит патчем: ложится на их `main` через `git am` |
+| `tools/land-pr-locally.sh` | укладывает патч в ваш клон GUTTERCAPS и открывает PR |
 
 ## Почему через Git Data API, а не клоном
 
@@ -18,6 +20,30 @@
 `tools/open-pr.sh` собирает один коммит поверх их `main` из блобов и обновляет ветку
 `arena/77b06826-ampergrad`. Скрипт безопасен для повторного запуска: он **не** трогает
 их `main`, только свою ветку.
+
+## Доставка PR
+
+Токен сессии Arena выдан только на репозиторий «Амперграда», поэтому писать в
+`Leo88q/guttercaps` из сессии нельзя (API отвечает `403 Resource not accessible by
+integration`). Два равнозначных пути:
+
+1. **Со своей машины (работает сразу).** Патч `dist/ampergrad-mechanism.patch` уже
+   собран и проверен: он ложится на их `main` через `git am`, конфликтов не даёт
+   (все файлы новые).
+
+   ```bash
+   bash integrations/guttercaps/tools/land-pr-locally.sh ~/Desktop/guttercaps
+   ```
+
+2. **Из сессии (если откроете доступ).** Подключите GitHub заново в Arena и дайте
+   доступ к `guttercaps` — тогда тот же коммит уедет через API:
+
+   ```bash
+   bash integrations/guttercaps/tools/open-pr.sh
+   ```
+
+Оба пути создают **одну и ту же** ветку `arena/77b06826-ampergrad` и один и тот же
+коммит: содержимое берётся из `pr/`, ничего не генерируется заново.
 
 ## Как пересобрать и отправить
 
