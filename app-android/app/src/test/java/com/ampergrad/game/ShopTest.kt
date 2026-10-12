@@ -40,12 +40,14 @@ class ShopTest {
             assertEquals("за игру", item.priceLabel)
         }
         for (item in shop.store) {
-            assertNotNull(item.priceUsd, "${item.id}: у товара витрины нет цены")
-            assertTrue(item.priceUsd!! > 0.0)
+            val price = item.priceUsd
+            assertNotNull(price, "${item.id}: у товара витрины нет цены")
+            assertTrue(price > 0.0, "${item.id}: цена должна быть больше нуля")
         }
         for (item in shop.coins) {
-            assertNotNull(item.priceCoins, "${item.id}: нет цены в монетах")
-            assertTrue(item.priceCoins!! > 0)
+            val coins = item.priceCoins
+            assertNotNull(coins, "${item.id}: нет цены в монетах")
+            assertTrue(coins > 0, "${item.id}: цена в монетах должна быть больше нуля")
         }
     }
 
