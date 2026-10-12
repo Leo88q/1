@@ -19,13 +19,23 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         wallet = MwaWallet(activity = this, useMainnet = !BuildConfig.DEBUG)
-        sound = SoundKit()
+        sound = SoundKit(this)
 
         setContent {
             AmpergradTheme {
                 AmpergradApp(activity = this, wallet = wallet, sound = sound)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        sound.startAmbience()
+    }
+
+    override fun onStop() {
+        sound.stopAmbience()
+        super.onStop()
     }
 
     override fun onDestroy() {

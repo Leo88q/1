@@ -66,6 +66,9 @@ gradle :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 gradle :app:assembleRelease        # подписывается, если заданы переменные окружения
 ```
 
+- Звук — **оригинальные синтезированные сэмплы**: щелчок реле на поворот,
+  «вдох» при подключении узла, «выдох» при пломбе, служебный сигнал подсказки и
+  бесшовный гул массива фоном (`app-android/tools/make_sounds.py`, ~370 КБ WAV).
 - Интерфейс — **русский и английский** (переключатель в меню, по умолчанию язык
   системы): строки в `content/UiStrings.kt`, имена кварталов — в каноне контента.
 - Кошелёк: **Mobile Wallet Adapter 2.x** (`mobile-wallet-adapter-clientlib-ktx:2.2.0`).

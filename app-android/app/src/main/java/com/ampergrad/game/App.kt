@@ -93,6 +93,8 @@ class GameSession(val mode: Mode, val levelNumber: Int, val level: Level) {
     var rank by mutableStateOf<Int?>(null)
     var scoreNote by mutableStateOf<String?>(null)
     var scoreBusy by mutableStateOf(false)
+    /** Сколько ячеек квартала сейчас под током — для звука «вдоха». */
+    var liveCells by mutableIntStateOf(0)
     val startedAt: Long = System.currentTimeMillis()
 
     /** Доказательство текущей партии: для уровня или для челленджа дня. */
@@ -157,7 +159,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         val configLevel = if (mode == Mode.DAILY) DAILY_CONFIG_LEVEL else levelNumber
         val level = if (mode == Mode.DAILY) generateLevel(configLevel, seed!!) else generateLevel(configLevel)
         if (mode == Mode.DAILY) level.level = 0
-        session = GameSession(mode, levelNumber, level)
+        session = GameSession(mode, levelNumber, level).also { it.liveCells = 0 }
         menuOpen = false
         walletOpen = false
         banner = when (mode) {
@@ -266,6 +268,10 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             current.turns += Turn(index, dir)
         }
         sound.rotate()
+        // «Вдох»: если поворот подключил к шине новую ячейку, узел отвечает звуком.
+        val live = poweredCells(current.level).count { it }
+        if (live > current.liveCells) sound.connect()
+        current.liveCells = live
         if (isSolved(current.level)) finish(current)
     }
 
@@ -273,6 +279,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         if (current.finishedAt != null) return
         val h = hint(current.level) ?: return
         current.hintsUsed += 1
+        current.liveCells = poweredCells(current.level).count { it }
         current.hintIndex = h.index
         current.hintUntil = System.currentTimeMillis() + 2500
         sound.hint()
