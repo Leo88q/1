@@ -95,7 +95,14 @@ if [ "$PLAY" = "1" ]; then
   # дописанный вторым аргумент он просто проигнорировал бы (проверено).
   npm --workspace @ampergrad/lab exec -- vite --host 0.0.0.0 --port "$PORT" &
   DEV_PID=$!
-  trap 'echo; echo "→ останавливаю игру"; kill "$DEV_PID" 2>/dev/null || true' EXIT INT TERM
+  # Останавливаем всё дерево: npm exec порождает node, тот порождает vite,
+  # поэтому одного kill по PID npm мало — сервер выживал бы в фоне.
+  kill_tree() {
+    local pid="$1" child
+    for child in $(pgrep -P "$pid" 2>/dev/null || true); do kill_tree "$child"; done
+    kill "$pid" 2>/dev/null || true
+  }
+  trap 'echo; echo "→ останавливаю игру"; kill_tree "$DEV_PID"' EXIT INT TERM
 
   # Ждём, пока сервер начнёт отвечать: иначе браузер откроет «не удалось открыть».
   for _ in $(seq 1 40); do
