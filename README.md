@@ -147,7 +147,7 @@ adb reverse tcp:8787 tcp:8787
 | `vitest: not found`, `tsx: not found` | пакеты не установлены: `npm ci` в корне (не в подпапке) |
 | Градл: `SDK location not found` | `printf 'sdk.dir=%s\n' "$HOME/Library/Android/sdk" > app-android/local.properties` |
 | Градл: `Unsupported class file major version` | `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` |
-| `port 8787 already in use` | `PORT=8788 npm run server` и тот же порт в `-PserverUrl` |
+| `EADDRINUSE: address already in use 0.0.0.0:8787` | порт занят: скорее всего сервер уже запущен в другом окне. Проверьте `curl -s localhost:8787/health` — если отвечает, второй запускать не нужно. Кто держит порт: `lsof -nP -iTCP:8787 -sTCP:LISTEN`, освободить: `kill <PID>`. Другой порт: `PORT=8788 npm run server` (и тот же порт в `-PserverUrl`). Сервер сам печатает эти подсказки вместо стектрейса |
 
 ## Android-приложение
 
