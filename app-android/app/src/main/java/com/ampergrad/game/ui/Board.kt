@@ -65,6 +65,9 @@ fun Board(
     art: Art? = null,
     artTier: ArtTier? = null,
     background: ImageBitmap? = null,
+    // Цвет среды из косметики (палитра игрока), если она надета. Без него
+    // купленная палитра была бы видна только в схеме — а арт включён по умолчанию.
+    artFlow: Color? = null,
     modifier: Modifier = Modifier,
     onRotate: (index: Int, dir: Int) -> Unit,
 ) {
@@ -138,7 +141,7 @@ fun Board(
         val burst = if (solving) min(1f, burstFrames / 60f) else 0f
 
         if (artTiles != null) {
-            drawArtBackground(background, cell * gridSize, ox, oy, cell, size)
+            drawArtBackground(background, cell * gridSize, ox, oy, cell, size, skin.field)
         }
         drawGrid(ox, oy, cell, gridSize, skin, withArt = artTiles != null)
 
@@ -160,15 +163,18 @@ fun Board(
 
                 if (artTiles != null) {
                     val (artPack, tier) = artTiles
+                    val flow = artFlow ?: tier.flow
                     val setName = setForCell(tier.sets, x, y, index)
                     drawArtTile(artPack, level, index, setName, cx, cy, cell, angles[index])
                     if (powered[index]) {
-                        drawArtFlow(level, index, cx, cy, cell, angles[index], tier.flow, pulse)
+                        drawArtFlow(level, index, cx, cy, cell, angles[index], flow, pulse)
                     }
                     if (tile.role == Role.RECEIVER) {
-                        drawArtReceiver(artPack, level, index, cx, cy, cell, powered[index], tier.flow, pulse)
+                        drawArtReceiver(artPack, level, index, cx, cy, cell, powered[index], flow, pulse)
                     }
-                    if (tile.role == Role.BUS) drawArtBus(artPack, cx, cy, cell, accent, pulse)
+                    // Шина красится «источником» из гардероба (канон — золото),
+                    // поэтому покупка источника видна и поверх арта.
+                    if (tile.role == Role.BUS) drawArtBus(artPack, cx, cy, cell, skin.source, pulse)
                 } else {
                     drawTile(level, index, cx, cy, cell, angles[index], powered[index], burst, skin)
                     if (tile.role == Role.BUS) drawBus(cx, cy, cell, accent, skin, pulse)
@@ -278,6 +284,7 @@ private fun DrawScope.drawArtBackground(
     oy: Float,
     cell: Float,
     area: Size,
+    tint: Color,
 ) {
     val top = oy - cell * 0.1f
     val height = board + cell * 0.2f
@@ -293,9 +300,11 @@ private fun DrawScope.drawArtBackground(
             dstSize = IntSize(w.toInt(), h.toInt()),
         )
     }
+    // Плита гасит фон под трубами, а заодно несёт купленную тему квартала:
+    // иначе «тема поля» была бы видна только в схеме.
     val plate = cell * 0.16f
     drawRoundRect(
-        color = Color(0x0F0A090D),
+        color = tint.copy(alpha = 0.10f),
         topLeft = Offset(ox - plate / 2f, top),
         size = Size(board + plate, height),
         cornerRadius = CornerRadius(plate),

@@ -12,6 +12,7 @@ import com.ampergrad.game.content.of
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -94,6 +95,27 @@ class WardrobeTest {
         // Источник: шина и её ореол.
         assertEquals(hexToColorOrNull(source.colors[0]), skin.source)
         assertEquals(hexToColorOrNull(source.colors[1]), skin.sourceRing)
+    }
+
+    /**
+     * Косметика обязана быть видна и в арт-режиме: поле рисуется трубами из арта,
+     * поэтому цвет среды, шина и тон поля приходят из скина, а не только из яруса.
+     * Тест фиксирует, что эти три канала вообще чем-то отличаются от канона — если
+     * предмет перестанет менять цвет, покупка перестанет быть видна игроку.
+     */
+    @Test
+    fun `надетое видно и поверх арта: ток, шина и тон поля`() {
+        val palette = assertNotNull(shop.byId("palette-mercury"))
+        val theme = assertNotNull(shop.byId("theme-plateau"))
+        val source = assertNotNull(shop.byId("source-gold"))
+        val skin = BoardSkin.of(Wardrobe(palette = palette, theme = theme, source = source))
+
+        // Ток: цвет палитры. Без него среда в арте всегда цвета яруса.
+        assertNotEquals(BoardSkin.Default.current, skin.current, "палитра не меняет цвет тока")
+        // Шина: источник. В арте это кольцо и колпак поверх детали.
+        assertNotEquals(BoardSkin.Default.source, skin.source, "источник не меняет шину")
+        // Тон поля: тема красит подложку под трубами (плиту поверх фона яруса).
+        assertNotEquals(BoardSkin.Default.field, skin.field, "тема не меняет фон поля")
     }
 
     @Test

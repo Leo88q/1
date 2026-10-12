@@ -144,6 +144,9 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     var coins by remember { mutableIntStateOf(store.coins) }
     var wardrobe by remember { mutableStateOf(currentWardrobe(store, shop)) }
     val skin = remember(wardrobe) { BoardSkin.of(wardrobe) }
+    // Цвет тока из купленной палитры: в арт-режиме среда иначе всегда цвета яруса,
+    // и палитра пропадала бы — а монеты за неё уже заплачены.
+    val paletteFlow = remember(wardrobe) { if (wardrobe.palette != null) skin.current else null }
     fun refreshWardrobe() {
         wardrobe = currentWardrobe(store, shop)
     }
@@ -431,6 +434,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 artOn = artOn,
                 artTier = currentTier,
                 background = artBackground,
+                artFlow = paletteFlow,
                 onRotate = { index, dir -> rotate(current, index, dir) },
                 onHint = { useHint(current) },
                 onReset = { startLevel(current.levelNumber, current.mode) },
@@ -712,6 +716,7 @@ private fun GameScreen(
     artOn: Boolean,
     artTier: ArtTier?,
     background: androidx.compose.ui.graphics.ImageBitmap?,
+    artFlow: Color? = null,
     onRotate: (Int, Int) -> Unit,
     onHint: () -> Unit,
     onReset: () -> Unit,
@@ -783,6 +788,7 @@ private fun GameScreen(
                 art = art,
                 artTier = artTier,
                 background = background,
+                artFlow = artFlow,
                 modifier = Modifier.fillMaxSize().padding(8.dp),
                 onRotate = onRotate,
             )
