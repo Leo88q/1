@@ -1,7 +1,9 @@
+import com.ampergrad.game.content.Lang
 import com.ampergrad.game.content.Lore
 import org.json.JSONObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -68,5 +70,17 @@ class LoreTest {
             assertTrue(entry.label.startsWith("РЕЕСТР "), "подпись ${entry.label}")
         }
         assertEquals("Клемма", lore.registryEntry("reg-s1-01")?.speaker)
+    }
+
+    @Test
+    fun `у каждого квартала есть английское имя`() {
+        val cyrillic = Regex("[А-Яа-яЁё]")
+        for (level in 1..75) {
+            val quarter = assertNotNull(lore.quarter(level), "нет квартала для уровня $level")
+            assertTrue(quarter.nameEn.length > 3, "короткое EN-имя у ${quarter.code}")
+            assertFalse(cyrillic.containsMatchIn(quarter.nameEn), "${quarter.code}: ${quarter.nameEn}")
+            assertEquals(quarter.nameEn, quarter.name(Lang.EN), "${quarter.code}: имя на английском")
+            assertEquals(quarter.name, quarter.name(Lang.RU), "${quarter.code}: имя на русском")
+        }
     }
 }

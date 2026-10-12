@@ -80,12 +80,14 @@ export const TIERS: Tier[] = [
 /** Всего уровней в основной кампании. */
 export const TOTAL_LEVELS = 75;
 
-/** Квартал одного уровня: короткое имя и код для интерфейса. */
+/** Квартал одного уровня: короткое имя (ru/en) и код для интерфейса. */
 export interface Quarter {
   level: number;
   /** Код в стиле диспетчерской: ярус + номер внутри яруса. */
   code: string;
   name: string;
+  /** Английское имя — интерфейс игры двуязычный (см. UiStrings в приложении). */
+  nameEn: string;
 }
 
 const QUARTER_NAMES: Record<string, string[]> = {
@@ -176,6 +178,95 @@ const QUARTER_NAMES: Record<string, string[]> = {
   ],
 };
 
+
+const QUARTER_NAMES_EN: Record<string, string[]> = {
+  plateau: [
+    'Trial Circuit',
+    'Palm Roof',
+    'Licensed Light',
+    'Billboard 4-A',
+    'Dry Contact',
+    'Relay Click',
+    'Backup Line',
+    'Observation Deck',
+    'First Seal',
+    'Guest Circuit',
+    'Quiet Riser',
+    'Lamp Over the Avenue',
+    'Cable Under the Lawn',
+    'Second Entrance',
+    'Practice Handover',
+  ],
+  mercury: [
+    'Living Metal',
+    'Backroom Workshop',
+    "Marta's Workshop",
+    'Mercury Chute',
+    'Guild Tee',
+    'Cast Cross',
+    'Viaduct Dead End',
+    'Brass Tier',
+    'Coil Garage',
+    'Wire Under Skin',
+    'Clamp Field',
+    'Unscheduled Repair',
+    'Alloy and Mould',
+    'Thermocouple',
+    'Shift Change',
+  ],
+  terminal: [
+    'Old Port',
+    'Switchboard 12',
+    'Dispatch Room',
+    'Freight Line',
+    'Packet Node',
+    'Repeater',
+    'Three-Relay Port',
+    'Semaphore Switch',
+    'Sorting Yard',
+    'Far Branch',
+    'Teletype',
+    'Frequency Bridge',
+    'Interchange',
+    'Night Shift',
+    'Return Run',
+  ],
+  'old-diode': [
+    'Glass Hall',
+    "First Volt-Master's Class",
+    'Shutdown Museum',
+    'Poured Cell',
+    'Archive Missing a Page',
+    'Two Buses',
+    'Dark Wing',
+    "Children's Counting Rhyme",
+    'Office 46',
+    'Trial of Light',
+    'Dust on Contacts',
+    'Board of Names',
+    'Old Seal',
+    'Parting Relay',
+    'Door Without a Handle',
+  ],
+  melter: [
+    'Bottom of the Array',
+    'First Breath',
+    'Rhythm Under the Floor',
+    'Galvanic Vein',
+    'Current Trace',
+    'Quiet Tier',
+    'Last Circuit',
+    'Melting Basin',
+    'Countdown',
+    'Vein No. 7',
+    'Light and Memory',
+    'Three Ascents',
+    'No Way Back',
+    'The Core Listens',
+    'Full Power',
+  ],
+};
+
 const TIER_CODES: Record<string, string> = {
   plateau: 'П',
   mercury: 'Р',
@@ -188,12 +279,14 @@ function buildQuarters(): Quarter[] {
   const out: Quarter[] = [];
   for (const tier of TIERS) {
     const names = QUARTER_NAMES[tier.id] ?? [];
+    const namesEn = QUARTER_NAMES_EN[tier.id] ?? [];
     const [from] = tier.levels;
     names.forEach((name, i) => {
       out.push({
         level: from + i,
         code: `${TIER_CODES[tier.id] ?? '?'}-${String(i + 1).padStart(2, '0')}`,
         name,
+        nameEn: namesEn[i] ?? name,
       });
     });
   }

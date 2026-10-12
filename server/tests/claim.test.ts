@@ -328,11 +328,12 @@ describe('контент: магазин, реестр, названия ква�
     const res = await app.request('/levels/16');
     expect(res.status).toBe(200);
     const data = (await res.json()) as {
-      quarter: { code: string; name: string };
+      quarter: { code: string; name: string; nameEn: string };
       tier: { id: string };
     };
     expect(data.quarter.code).toBe('Р-01');
     expect(data.quarter.name).toBe('Живой металл');
+    expect(data.quarter.nameEn).toBe('Living Metal');
     expect(data.tier.id).toBe('mercury');
 
     expect((await app.request('/levels/0')).status).toBe(400);

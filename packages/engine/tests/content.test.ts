@@ -34,9 +34,21 @@ describe('лор-реестр и магазин (M3)', () => {
     expect(codes.size).toBe(75);
   });
 
-  it('имена кварталов не повторяются', () => {
+  it('имена кварталов не повторяются ни в одном языке', () => {
     const names = QUARTERS.map((q) => q.name);
     expect(new Set(names).size).toBe(names.length);
+    const namesEn = QUARTERS.map((q) => q.nameEn);
+    expect(new Set(namesEn).size).toBe(namesEn.length);
+  });
+
+  it('английские имена кварталов переведены, а не скопированы', () => {
+    const cyrillic = /[А-Яа-яЁё]/;
+    for (const quarter of QUARTERS) {
+      expect(quarter.nameEn.length, `уровень ${quarter.level}`).toBeGreaterThan(3);
+      expect(cyrillic.test(quarter.nameEn), `${quarter.level}: ${quarter.nameEn}`).toBe(false);
+    }
+    const copies = QUARTERS.filter((q) => q.nameEn === q.name).map((q) => q.level);
+    expect(copies).toEqual([]);
   });
 
   it('реестр: 60 записей, три сезона по 20, идентификаторы уникальны', () => {

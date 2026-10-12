@@ -91,377 +91,452 @@
     {
       "level": 1,
       "code": "П-01",
-      "name": "Пробный контур"
+      "name": "Пробный контур",
+      "nameEn": "Trial Circuit"
     },
     {
       "level": 2,
       "code": "П-02",
-      "name": "Пальмовая крыша"
+      "name": "Пальмовая крыша",
+      "nameEn": "Palm Roof"
     },
     {
       "level": 3,
       "code": "П-03",
-      "name": "Лицензионный свет"
+      "name": "Лицензионный свет",
+      "nameEn": "Licensed Light"
     },
     {
       "level": 4,
       "code": "П-04",
-      "name": "Реклама 4-А"
+      "name": "Реклама 4-А",
+      "nameEn": "Billboard 4-A"
     },
     {
       "level": 5,
       "code": "П-05",
-      "name": "Сухой контакт"
+      "name": "Сухой контакт",
+      "nameEn": "Dry Contact"
     },
     {
       "level": 6,
       "code": "П-06",
-      "name": "Щелчок реле"
+      "name": "Щелчок реле",
+      "nameEn": "Relay Click"
     },
     {
       "level": 7,
       "code": "П-07",
-      "name": "Резервная линия"
+      "name": "Резервная линия",
+      "nameEn": "Backup Line"
     },
     {
       "level": 8,
       "code": "П-08",
-      "name": "Смотровая площадка"
+      "name": "Смотровая площадка",
+      "nameEn": "Observation Deck"
     },
     {
       "level": 9,
       "code": "П-09",
-      "name": "Первая пломба"
+      "name": "Первая пломба",
+      "nameEn": "First Seal"
     },
     {
       "level": 10,
       "code": "П-10",
-      "name": "Гостевой контур"
+      "name": "Гостевой контур",
+      "nameEn": "Guest Circuit"
     },
     {
       "level": 11,
       "code": "П-11",
-      "name": "Тихий стояк"
+      "name": "Тихий стояк",
+      "nameEn": "Quiet Riser"
     },
     {
       "level": 12,
       "code": "П-12",
-      "name": "Фонарь над проспектом"
+      "name": "Фонарь над проспектом",
+      "nameEn": "Lamp Over the Avenue"
     },
     {
       "level": 13,
       "code": "П-13",
-      "name": "Кабель под газоном"
+      "name": "Кабель под газоном",
+      "nameEn": "Cable Under the Lawn"
     },
     {
       "level": 14,
       "code": "П-14",
-      "name": "Второй вход"
+      "name": "Второй вход",
+      "nameEn": "Second Entrance"
     },
     {
       "level": 15,
       "code": "П-15",
-      "name": "Сдача практики"
+      "name": "Сдача практики",
+      "nameEn": "Practice Handover"
     },
     {
       "level": 16,
       "code": "Р-01",
-      "name": "Живой металл"
+      "name": "Живой металл",
+      "nameEn": "Living Metal"
     },
     {
       "level": 17,
       "code": "Р-02",
-      "name": "Подпольная мастерская"
+      "name": "Подпольная мастерская",
+      "nameEn": "Backroom Workshop"
     },
     {
       "level": 18,
       "code": "Р-03",
-      "name": "Мастерская Марты"
+      "name": "Мастерская Марты",
+      "nameEn": "Marta's Workshop"
     },
     {
       "level": 19,
       "code": "Р-04",
-      "name": "Ртутный жёлоб"
+      "name": "Ртутный жёлоб",
+      "nameEn": "Mercury Chute"
     },
     {
       "level": 20,
       "code": "Р-05",
-      "name": "Тройник гильдии"
+      "name": "Тройник гильдии",
+      "nameEn": "Guild Tee"
     },
     {
       "level": 21,
       "code": "Р-06",
-      "name": "Литой крест"
+      "name": "Литой крест",
+      "nameEn": "Cast Cross"
     },
     {
       "level": 22,
       "code": "Р-07",
-      "name": "Тупик на Виадуке"
+      "name": "Тупик на Виадуке",
+      "nameEn": "Viaduct Dead End"
     },
     {
       "level": 23,
       "code": "Р-08",
-      "name": "Латунный ярус"
+      "name": "Латунный ярус",
+      "nameEn": "Brass Tier"
     },
     {
       "level": 24,
       "code": "Р-09",
-      "name": "Гараж «Катушка»"
+      "name": "Гараж «Катушка»",
+      "nameEn": "Coil Garage"
     },
     {
       "level": 25,
       "code": "Р-10",
-      "name": "Провод под кожей"
+      "name": "Провод под кожей",
+      "nameEn": "Wire Under Skin"
     },
     {
       "level": 26,
       "code": "Р-11",
-      "name": "Хомутово поле"
+      "name": "Хомутово поле",
+      "nameEn": "Clamp Field"
     },
     {
       "level": 27,
       "code": "Р-12",
-      "name": "Ремонт без сметы"
+      "name": "Ремонт без сметы",
+      "nameEn": "Unscheduled Repair"
     },
     {
       "level": 28,
       "code": "Р-13",
-      "name": "Сплав и опока"
+      "name": "Сплав и опока",
+      "nameEn": "Alloy and Mould"
     },
     {
       "level": 29,
       "code": "Р-14",
-      "name": "Термопара"
+      "name": "Термопара",
+      "nameEn": "Thermocouple"
     },
     {
       "level": 30,
       "code": "Р-15",
-      "name": "Смена мастера"
+      "name": "Смена мастера",
+      "nameEn": "Shift Change"
     },
     {
       "level": 31,
       "code": "Т-01",
-      "name": "Старый порт"
+      "name": "Старый порт",
+      "nameEn": "Old Port"
     },
     {
       "level": 32,
       "code": "Т-02",
-      "name": "Коммутатор 12"
+      "name": "Коммутатор 12",
+      "nameEn": "Switchboard 12"
     },
     {
       "level": 33,
       "code": "Т-03",
-      "name": "Диспетчерская"
+      "name": "Диспетчерская",
+      "nameEn": "Dispatch Room"
     },
     {
       "level": 34,
       "code": "Т-04",
-      "name": "Грузовая линия"
+      "name": "Грузовая линия",
+      "nameEn": "Freight Line"
     },
     {
       "level": 35,
       "code": "Т-05",
-      "name": "Пакетный узел"
+      "name": "Пакетный узел",
+      "nameEn": "Packet Node"
     },
     {
       "level": 36,
       "code": "Т-06",
-      "name": "Ретранслятор"
+      "name": "Ретранслятор",
+      "nameEn": "Repeater"
     },
     {
       "level": 37,
       "code": "Т-07",
-      "name": "Порт трёх реле"
+      "name": "Порт трёх реле",
+      "nameEn": "Three-Relay Port"
     },
     {
       "level": 38,
       "code": "Т-08",
-      "name": "Стрелка семафора"
+      "name": "Стрелка семафора",
+      "nameEn": "Semaphore Switch"
     },
     {
       "level": 39,
       "code": "Т-09",
-      "name": "Сортировочный"
+      "name": "Сортировочный",
+      "nameEn": "Sorting Yard"
     },
     {
       "level": 40,
       "code": "Т-10",
-      "name": "Дальняя ветка"
+      "name": "Дальняя ветка",
+      "nameEn": "Far Branch"
     },
     {
       "level": 41,
       "code": "Т-11",
-      "name": "Телетайп"
+      "name": "Телетайп",
+      "nameEn": "Teletype"
     },
     {
       "level": 42,
       "code": "Т-12",
-      "name": "Частотный мост"
+      "name": "Частотный мост",
+      "nameEn": "Frequency Bridge"
     },
     {
       "level": 43,
       "code": "Т-13",
-      "name": "Развязка"
+      "name": "Развязка",
+      "nameEn": "Interchange"
     },
     {
       "level": 44,
       "code": "Т-14",
-      "name": "Ночная смена"
+      "name": "Ночная смена",
+      "nameEn": "Night Shift"
     },
     {
       "level": 45,
       "code": "Т-15",
-      "name": "Обратный рейс"
+      "name": "Обратный рейс",
+      "nameEn": "Return Run"
     },
     {
       "level": 46,
       "code": "Д-01",
-      "name": "Стеклянный зал"
+      "name": "Стеклянный зал",
+      "nameEn": "Glass Hall"
     },
     {
       "level": 47,
       "code": "Д-02",
-      "name": "Класс первого вольт-мастера"
+      "name": "Класс первого вольт-мастера",
+      "nameEn": "First Volt-Master's Class"
     },
     {
       "level": 48,
       "code": "Д-03",
-      "name": "Музей отключений"
+      "name": "Музей отключений",
+      "nameEn": "Shutdown Museum"
     },
     {
       "level": 49,
       "code": "Д-04",
-      "name": "Залитая ячейка"
+      "name": "Залитая ячейка",
+      "nameEn": "Poured Cell"
     },
     {
       "level": 50,
       "code": "Д-05",
-      "name": "Архив без страницы"
+      "name": "Архив без страницы",
+      "nameEn": "Archive Missing a Page"
     },
     {
       "level": 51,
       "code": "Д-06",
-      "name": "Две шины"
+      "name": "Две шины",
+      "nameEn": "Two Buses"
     },
     {
       "level": 52,
       "code": "Д-07",
-      "name": "Тёмное крыло"
+      "name": "Тёмное крыло",
+      "nameEn": "Dark Wing"
     },
     {
       "level": 53,
       "code": "Д-08",
-      "name": "Детская считалка"
+      "name": "Детская считалка",
+      "nameEn": "Children's Counting Rhyme"
     },
     {
       "level": 54,
       "code": "Д-09",
-      "name": "Кабинет 46"
+      "name": "Кабинет 46",
+      "nameEn": "Office 46"
     },
     {
       "level": 55,
       "code": "Д-10",
-      "name": "Суд над светом"
+      "name": "Суд над светом",
+      "nameEn": "Trial of Light"
     },
     {
       "level": 56,
       "code": "Д-11",
-      "name": "Пыль на контактах"
+      "name": "Пыль на контактах",
+      "nameEn": "Dust on Contacts"
     },
     {
       "level": 57,
       "code": "Д-12",
-      "name": "Именная доска"
+      "name": "Именная доска",
+      "nameEn": "Board of Names"
     },
     {
       "level": 58,
       "code": "Д-13",
-      "name": "Старая пломба"
+      "name": "Старая пломба",
+      "nameEn": "Old Seal"
     },
     {
       "level": 59,
       "code": "Д-14",
-      "name": "Прощальное реле"
+      "name": "Прощальное реле",
+      "nameEn": "Parting Relay"
     },
     {
       "level": 60,
       "code": "Д-15",
-      "name": "Дверь без ручки"
+      "name": "Дверь без ручки",
+      "nameEn": "Door Without a Handle"
     },
     {
       "level": 61,
       "code": "Я-01",
-      "name": "Дно массива"
+      "name": "Дно массива",
+      "nameEn": "Bottom of the Array"
     },
     {
       "level": 62,
       "code": "Я-02",
-      "name": "Первое дыхание"
+      "name": "Первое дыхание",
+      "nameEn": "First Breath"
     },
     {
       "level": 63,
       "code": "Я-03",
-      "name": "Ритм под полом"
+      "name": "Ритм под полом",
+      "nameEn": "Rhythm Under the Floor"
     },
     {
       "level": 64,
       "code": "Я-04",
-      "name": "Гальваническая жила"
+      "name": "Гальваническая жила",
+      "nameEn": "Galvanic Vein"
     },
     {
       "level": 65,
       "code": "Я-05",
-      "name": "Токовый след"
+      "name": "Токовый след",
+      "nameEn": "Current Trace"
     },
     {
       "level": 66,
       "code": "Я-06",
-      "name": "Стихший ярус"
+      "name": "Стихший ярус",
+      "nameEn": "Quiet Tier"
     },
     {
       "level": 67,
       "code": "Я-07",
-      "name": "Последний контур"
+      "name": "Последний контур",
+      "nameEn": "Last Circuit"
     },
     {
       "level": 68,
       "code": "Я-08",
-      "name": "Плавильная чаша"
+      "name": "Плавильная чаша",
+      "nameEn": "Melting Basin"
     },
     {
       "level": 69,
       "code": "Я-09",
-      "name": "Обратный счёт"
+      "name": "Обратный счёт",
+      "nameEn": "Countdown"
     },
     {
       "level": 70,
       "code": "Я-10",
-      "name": "Жила № 7"
+      "name": "Жила № 7",
+      "nameEn": "Vein No. 7"
     },
     {
       "level": 71,
       "code": "Я-11",
-      "name": "Свет и память"
+      "name": "Свет и память",
+      "nameEn": "Light and Memory"
     },
     {
       "level": 72,
       "code": "Я-12",
-      "name": "Три подъёма"
+      "name": "Три подъёма",
+      "nameEn": "Three Ascents"
     },
     {
       "level": 73,
       "code": "Я-13",
-      "name": "Ход без возврата"
+      "name": "Ход без возврата",
+      "nameEn": "No Way Back"
     },
     {
       "level": 74,
       "code": "Я-14",
-      "name": "Ядро слушает"
+      "name": "Ядро слушает",
+      "nameEn": "The Core Listens"
     },
     {
       "level": 75,
       "code": "Я-15",
-      "name": "Полное включение"
+      "name": "Полное включение",
+      "nameEn": "Full Power"
     }
   ],
   "registry": [

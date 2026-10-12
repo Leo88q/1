@@ -15,8 +15,11 @@ data class TierInfo(
     val levels: IntRange,
 )
 
-/** Квартал уровня: код в стиле диспетчерской и короткое имя. */
-data class QuarterInfo(val level: Int, val code: String, val name: String)
+/** Квартал уровня: код в стиле диспетчерской и имя на двух языках. */
+data class QuarterInfo(val level: Int, val code: String, val name: String, val nameEn: String) {
+    /** Имя на языке интерфейса; канон хранит оба варианта. */
+    fun name(lang: Lang): String = if (lang == Lang.EN) nameEn else name
+}
 
 /** Запись реестра — лор-фрагмент, который открывается за уровень. */
 data class RegistryInfo(
@@ -81,7 +84,12 @@ class Lore(
             }
 
             val quarters = root.getJSONArray("quarters").mapObjects { o ->
-                QuarterInfo(level = o.getInt("level"), code = o.getString("code"), name = o.getString("name"))
+                QuarterInfo(
+                    level = o.getInt("level"),
+                    code = o.getString("code"),
+                    name = o.getString("name"),
+                    nameEn = o.optString("nameEn").ifBlank { o.getString("name") },
+                )
             }
 
             val registry = root.getJSONArray("registry").mapObjects { o ->

@@ -512,7 +512,7 @@ private fun MenuScreen(
         lore?.quarter(store.level.coerceAtMost(75))?.let { quarter ->
             Spacer(Modifier.height(6.dp))
             Text(
-                "${quarter.code} · ${quarter.name}",
+                "${quarter.code} · ${quarter.name(lang)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = Grad.InkDim,
             )
@@ -602,7 +602,7 @@ private fun GameScreen(
                     text = when {
                         session.mode == Mode.DAILY -> t.commonQuarter(session.level.size)
 
-                        quarter != null -> "${t.level(session.levelNumber)} · ${quarter.name}"
+                        quarter != null -> "${t.level(session.levelNumber)} · ${quarter.name(t.lang)}"
 
                         else -> "${t.level(session.levelNumber)} · ${session.level.size}×${session.level.size}"
                     },
