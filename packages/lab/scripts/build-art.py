@@ -73,6 +73,12 @@ def canon_tier_names():
 SCREENS = {"menu": "screen-menu.jpg", "victory": "screen-victory.jpg", "shop": "screen-shop.jpg"}
 REWARDS = {"1": "reward-disc.png", "2": "reward-rings.png", "3": "reward-star.png"}
 
+# Особые пломбы: не за число звёзд, а за то, как именно запечатан квартал.
+#   resin — «заделано смолой»: обошлись подсказкой, контур держат, но не держит он;
+#   crack — «с трещиной»: ходов потрачено втрое больше плана, квартал едва живой;
+#   magma — плавленая пломба Плавильни: три звезды на пятом ярусе.
+SEALS = {"resin": "reward-resin.png", "crack": "reward-crack.png", "magma": "reward-magma.png"}
+
 
 def save_webp(img, path, quality):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -111,7 +117,7 @@ def main():
     with open(os.path.join(ART, "tiles", "manifest.json"), encoding="utf-8") as fh:
         manifest = json.load(fh)
 
-    pack = {"tile": TILE, "sets": {}, "round": {}, "tiers": [], "screens": {}, "rewards": {}}
+    pack = {"tile": TILE, "sets": {}, "round": {}, "tiers": [], "screens": {}, "rewards": {}, "seals": {}}
     total = 0
 
     # 1. Спрайты деталей по наборам. `file` — путь внутри public/art.
@@ -186,6 +192,15 @@ def main():
         total += os.path.getsize(os.path.join(OUT, rel))
         pack["rewards"][stars] = rel
     print("пломбы:", ", ".join(sorted(pack["rewards"])))
+
+    # 5. Особые пломбы: те же правила, что выбирают их в игре (см. chooseSeal).
+    for key, name in SEALS.items():
+        img = Image.open(os.path.join(ART, "tiles", name)).convert("RGBA")
+        img = img.resize((TILE, TILE), Image.LANCZOS)
+        rel = save_webp(img, os.path.join(OUT, "rewards", name.replace(".png", ".webp")), 85)
+        total += os.path.getsize(os.path.join(OUT, rel))
+        pack["seals"][key] = rel
+    print("особые пломбы:", ", ".join(sorted(pack["seals"])))
 
     with open(os.path.join(OUT, "web.json"), "w", encoding="utf-8") as fh:
         json.dump(pack, fh, ensure_ascii=False, indent=2)

@@ -160,6 +160,41 @@ function setForCell(sets: string[], x: number, y: number, index: number): string
   return sets[(x + y + index) % sets.length];
 }
 
+/**
+ * Какая пломба достанется за квартал.
+ *
+ * Кроме трёх пломб по числу звёзд есть три особых — за то, как именно квартал
+ * запечатан: подсказка означает «заделано смолой», ходов втрое больше плана —
+ * пломба с трещиной, три звезды в Плавильне — плавленая. Правила те же, что в
+ * Android-клиенте (chooseSeal в ui/Art.kt), иначе игрок видел бы разные медальоны.
+ *
+ * Порядок важен: подсказка перекрывает всё остальное.
+ */
+function chooseSeal(stars: number, hints: number, moves: number, par: number, tier: string): string {
+  if (hints > 0) return 'resin';
+  if (moves > par * 3) return 'crack';
+  if (stars === 3 && tier === 'melter') return 'magma';
+  return String(Math.max(1, Math.min(3, stars)));
+}
+
+/** Файл пломбы: сначала особые, потом по числу звёзд. */
+/** Подпись над медальоном: особая пломба объясняет себя, иначе это просто другая картинка. */
+const SEAL_TITLES: Record<string, string> = {
+  resin: 'ПЛОМБА · ЗАДЕЛАНО СМОЛОЙ',
+  crack: 'ПЛОМБА · С ТРЕЩИНОЙ',
+  magma: 'ПЛОМБА · ПЛАВЛЕНАЯ',
+};
+
+function sealTitle(key: string): string {
+  return SEAL_TITLES[key] ?? 'ПЛОМБА';
+}
+
+function sealFile(key: string): string | undefined {
+  const pack = art.pack;
+  if (!pack) return undefined;
+  return pack.seals?.[key] ?? pack.rewards[key];
+}
+
 /** Картинка фона, залитая по размеру холста (cover). */
 function drawCover(img: HTMLImageElement, rect: DOMRect) {
   const scale = Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
@@ -231,7 +266,7 @@ app.innerHTML = `
 
   <div class="overlay" id="winOverlay">
     <div class="card card--win">
-      <div class="win__label">ПЛОМБА</div>
+      <div class="win__label" id="winSealLabel">ПЛОМБА</div>
       <div class="seal" id="winSeal"></div>
       <h2 id="winTitle">Квартал дышит светом</h2>
       <div class="stars" id="winStars"></div>
@@ -402,12 +437,20 @@ function finish() {
   if (session.hintsUsed > 0) stars = Math.min(stars, 2);
   sfx.solved();
 
-  // Пломба на экране победы: медальон арта по числу звёзд.
-  const sealFile = art.pack?.rewards[String(Math.max(1, Math.min(3, stars)))];
-  const seal = art.get(sealFile);
+  // Пломба на экране победы: медальон арта — по числу звёзд или особый.
+  const sealKey = chooseSeal(
+    stars,
+    session.hintsUsed,
+    session.moves,
+    par,
+    tierOf(session.mode === 'daily' ? 33 : session.levelNumber).id,
+  );
+  const sealPath = sealFile(sealKey);
+  const seal = art.get(sealPath);
+  $<HTMLElement>('winSealLabel').textContent = sealTitle(sealKey);
   const sealEl = $<HTMLDivElement>('winSeal');
   if (seal) {
-    sealEl.style.backgroundImage = `url("${artImageUrl(sealFile!)}")`;
+    sealEl.style.backgroundImage = `url("${artImageUrl(sealPath!)}")`;
     sealEl.classList.add('is-on');
   } else {
     sealEl.classList.remove('is-on');

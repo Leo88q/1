@@ -313,8 +313,13 @@ canvas {
 
 .win__label {
   display: inline-block;
+  max-width: 100%;
   padding: 4px 12px;
   font-size: 10px;
+  /* Подпись особой пломбы длиннее («ПЛОМБА · ЗАДЕЛАНО СМОЛОЙ») — переносим,
+     а не обрезаем: иначе игрок читает половину объяснения. */
+  white-space: normal;
+  text-align: center;
   letter-spacing: 0.24em;
   color: #04211d;
   background: var(--mint);

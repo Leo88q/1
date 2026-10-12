@@ -75,6 +75,7 @@ import com.ampergrad.game.ui.Art
 import com.ampergrad.game.ui.screenBackdrop
 import com.ampergrad.game.ui.ArtTier
 import com.ampergrad.game.ui.artTierIndex
+import com.ampergrad.game.ui.chooseSeal
 import com.ampergrad.game.content.Shop
 import com.ampergrad.game.content.Wardrobe
 import com.ampergrad.game.content.of
@@ -877,8 +878,19 @@ private fun WinOverlay(
                 modifier = Modifier.padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // Пломба — по числу звёзд или особая (подсказка, перерасход ходов,
+                // Плавильня). Правила те же, что в веб-версии: chooseSeal.
+                val sealKey = chooseSeal(
+                    stars = session.stars,
+                    hints = session.hintsUsed,
+                    moves = session.moves,
+                    par = session.level.parMoves,
+                    // Челлендж дня считается за тридцать третий квартал (как
+                    // и в вебе): иначе daily попадал бы в первый ярус.
+                    tier = tierOf(if (session.mode == Mode.DAILY) 33 else session.levelNumber).id,
+                )
                 Text(
-                    t.seal,
+                    t.sealTitle(sealKey),
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFF04211D),
                     modifier = Modifier
@@ -888,7 +900,7 @@ private fun WinOverlay(
                 Spacer(Modifier.height(12.dp))
                 Text(t.districtAlive, style = MaterialTheme.typography.titleMedium, color = Color(0xFFEAFFF9))
                 Spacer(Modifier.height(10.dp))
-                art?.reward(session.stars)?.let { seal ->
+                art?.seal(sealKey)?.let { seal ->
                     androidx.compose.foundation.Image(
                         bitmap = seal,
                         contentDescription = t.seal,

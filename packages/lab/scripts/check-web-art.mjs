@@ -136,6 +136,13 @@ for (const stars of ['1', '2', '3']) {
   if (!rel) note(`нет пломбы за ${stars} звезды`);
   else assetOk(rel);
 }
+// Особые пломбы (см. chooseSeal): ключи задаёт игра, файлы — сборка арта.
+// Расхождение имён заметил бы только игрок: медальона просто не было бы.
+for (const key of ['resin', 'crack', 'magma']) {
+  const rel = (web.seals ?? {})[key];
+  if (!rel) note(`нет особой пломбы «${key}»`);
+  else assetOk(rel);
+}
 
 report();
 
@@ -149,7 +156,8 @@ function report() {
   console.log(
     `веб-арт ок: ${Object.keys(web.sets).length} наборов, ${sprites} спрайтов, ` +
       `${web.tiers.length} ярусов, ${Object.keys(web.screens).length} экрана, ` +
-      `${Object.keys(web.rewards).length} пломбы (web.json ${size} Б)`,
+      `${Object.keys(web.rewards).length}+${Object.keys(web.seals ?? {}).length} пломб ` +
+      `(web.json ${size} Б)`,
   );
   process.exit(0);
 }

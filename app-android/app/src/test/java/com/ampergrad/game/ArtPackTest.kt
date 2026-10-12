@@ -8,6 +8,7 @@ import com.ampergrad.game.ui.packIsUsable
 import com.ampergrad.game.ui.colorOfHex
 import com.ampergrad.game.ui.piecesForMask
 import com.ampergrad.game.ui.rewardForStars
+import com.ampergrad.game.ui.chooseSeal
 import com.ampergrad.game.ui.setForCell
 import java.io.File
 import kotlin.test.Test
@@ -49,6 +50,7 @@ class ArtPackTest {
         for (pieces in pack.sets.values) for (ref in pieces.values) files += ref.file
         files += pack.round.values
         files += pack.rewards.values
+        files += pack.seals.values
         files += pack.screens.values
         return files
     }
@@ -183,6 +185,42 @@ class ArtPackTest {
         }
     }
 
+    /**
+     * Особые пломбы — не за число звёзд, а за то, как запечатан квартал. Правило
+     * одно для веба и Android (chooseSeal в main.ts), иначе игрок видел бы
+     * разные медальоны за одну и ту же партию.
+     */
+    @Test
+    fun `пломба показывается за то, как квартал запечатан`() {
+        // Подсказка перекрывает всё: квартал заделан смолой, даже если ходов мало.
+        assertEquals("resin", chooseSeal(stars = 3, hints = 1, moves = 5, par = 19, tier = "plateau"))
+        assertEquals("resin", chooseSeal(stars = 1, hints = 2, moves = 80, par = 19, tier = "melter"))
+        // Ходов втрое больше плана — пломба с трещиной.
+        assertEquals("crack", chooseSeal(stars = 1, hints = 0, moves = 58, par = 19, tier = "plateau"))
+        // Ровно три плана — ещё терпимо (58 > 57, а 57 — нет).
+        assertEquals("1", chooseSeal(stars = 1, hints = 0, moves = 57, par = 19, tier = "plateau"))
+        // Три звезды в Плавильне — плавленая пломба.
+        assertEquals("magma", chooseSeal(stars = 3, hints = 0, moves = 12, par = 19, tier = "melter"))
+        // Три звезды в другом ярусе — обычная пломба за три звезды.
+        assertEquals("3", chooseSeal(stars = 3, hints = 0, moves = 12, par = 19, tier = "terminal"))
+        // Без особых условий — по числу звёзд, с приведением к 1…3.
+        assertEquals("2", chooseSeal(stars = 2, hints = 0, moves = 25, par = 19, tier = "plateau"))
+        assertEquals("1", chooseSeal(stars = 0, hints = 0, moves = 40, par = 19, tier = "plateau"))
+        assertEquals("3", chooseSeal(stars = 9, hints = 0, moves = 10, par = 19, tier = "plateau"))
+    }
+
+    /** У каждой особой пломбы в контракте есть свой файл. */
+    @Test
+    fun `особые пломбы лежат в арте`() {
+        val known = setOf("resin", "crack", "magma")
+        assertTrue(pack.seals.keys.containsAll(known), "нет пломб: ${known - pack.seals.keys}")
+        val files = pack.rewards.values.toSet()
+        for ((key, file) in pack.seals) {
+            assertTrue(file.isNotBlank(), "пломба $key без файла")
+            assertFalse(file in files, "пломба $key дублирует медальон за звезду: $file")
+        }
+    }
+
     @Test
     fun `цвет разбирается из канона палитры`() {
         assertEquals(Color(0xFFB6FF3C), colorOfHex("#B6FF3C"), "acid")
@@ -203,6 +241,7 @@ class ArtPackTest {
         }
         for (file in pack.round.values) if (!File(assets, file).isFile) missing += file
         for (file in pack.rewards.values) if (!File(assets, file).isFile) missing += file
+        for (file in pack.seals.values) if (!File(assets, file).isFile) missing += file
         for (tier in pack.tiers) {
             for (bg in tier.bg) if (!File(assets, bg).isFile) missing += bg
         }

@@ -70,6 +70,12 @@ interface UiStrings {
 
     /* Победа */
     val seal: String
+    /**
+     * Название пломбы на экране победы: обычная — просто «пломба», особая —
+     * с пояснением, за что именно (см. chooseSeal в ui/Art.kt). Без этого
+     * игрок видит другой медальон и не понимает, почему.
+     */
+    fun sealTitle(key: String): String
     val districtAlive: String
     fun winStats(moves: Int, par: Int, time: String, hints: Int): String
     val claimNeedsWallet: String
@@ -243,6 +249,12 @@ object Ru : UiStrings {
     override fun bannerWalletConnected(short: String) = "Кошелёк подключён: $short"
 
     override val seal = "ПЛОМБА"
+    override fun sealTitle(key: String) = when (key) {
+        "resin" -> "ПЛОМБА · ЗАДЕЛАНО СМОЛОЙ"
+        "crack" -> "ПЛОМБА · С ТРЕЩИНОЙ"
+        "magma" -> "ПЛОМБА · ПЛАВЛЕНАЯ"
+        else -> seal
+    }
     override val districtAlive = "Квартал дышит светом"
     override fun winStats(moves: Int, par: Int, time: String, hints: Int) =
         "Ходы: $moves (план $par) · Время: $time · Подсказки: $hints"
@@ -401,6 +413,12 @@ object En : UiStrings {
     override fun bannerWalletConnected(short: String) = "Wallet connected: $short"
 
     override val seal = "SEALED"
+    override fun sealTitle(key: String) = when (key) {
+        "resin" -> "SEALED · PATCHED WITH RESIN"
+        "crack" -> "SEALED · CRACKED"
+        "magma" -> "SEALED · MOLTEN"
+        else -> seal
+    }
     override val districtAlive = "The district breathes light"
     override fun winStats(moves: Int, par: Int, time: String, hints: Int) =
         "Moves: $moves (par $par) · Time: $time · Hints: $hints"

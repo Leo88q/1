@@ -83,6 +83,23 @@ fun artTierIndex(levelNumber: Int, tiers: Int): Int = ((levelNumber - 1) / 15).c
 fun rewardForStars(stars: Int): Int = stars.coerceIn(1, 3)
 
 /**
+ * Какая пломба достанется за квартал.
+ *
+ * Кроме трёх пломб по числу звёзд есть три особых — за то, как именно квартал
+ * запечатан: подсказка означает «заделано смолой», ходов втрое больше плана —
+ * пломба с трещиной, три звезды в Плавильне — плавленая. Правила те же, что в
+ * веб-версии (chooseSeal в main.ts), иначе игрок видел бы разные медальоны.
+ *
+ * Порядок важен: подсказка перекрывает всё остальное.
+ */
+fun chooseSeal(stars: Int, hints: Int, moves: Int, par: Int, tier: String): String = when {
+    hints > 0 -> "resin"
+    moves > par * 3 -> "crack"
+    stars == 3 && tier == "melter" -> "magma"
+    else -> rewardForStars(stars).toString()
+}
+
+/**
  * Артом можно рисовать: декодирован канонный набор и обе круглые детали.
  *
  * Проверяем не «web.json прочитан», а «есть чем рисовать»: если файл контракта на
@@ -127,6 +144,7 @@ class Art(private val context: Context, private val base: String = "art/") {
             }
             for (file in parsed.round.values) decode(file)?.let { images[file] = it }
             for (file in parsed.rewards.values) decode(file)?.let { images[file] = it }
+            for (file in parsed.seals.values) decode(file)?.let { images[file] = it }
             // Фоны экранов (меню, победа, витрина): их заметно сразу, поэтому
             // греем вместе с остальным, а не по первому показу.
             for (file in parsed.screens.values) decode(file)?.let { images[file] = it }
@@ -146,6 +164,13 @@ class Art(private val context: Context, private val base: String = "art/") {
     fun round(name: String): ImageBitmap? = images[pack?.round?.get(name) ?: return null]
 
     fun reward(stars: Int): ImageBitmap? = images[pack?.rewards?.get(rewardForStars(stars)) ?: return null]
+
+    /** Пломба по ключу: сначала особые, потом по числу звёзд (см. chooseSeal). */
+    fun seal(key: String): ImageBitmap? {
+        val loaded = pack ?: return null
+        val file = loaded.seals[key] ?: loaded.rewards[key.toIntOrNull() ?: return null] ?: return null
+        return images[file]
+    }
 
     /** Фон экрана: меню, победа или витрина. */
     fun screen(name: String): ImageBitmap? = images[pack?.screens?.get(name) ?: return null]
@@ -222,6 +247,12 @@ class Art(private val context: Context, private val base: String = "art/") {
             val rewardsJson = root.getJSONObject("rewards")
             for (name in rewardsJson.keys()) rewards[name.toIntOrNull() ?: continue] = rewardsJson.getString(name)
 
+            val seals = HashMap<String, String>()
+            val sealsJson = root.optJSONObject("seals")
+            if (sealsJson != null) {
+                for (name in sealsJson.keys()) seals[name] = sealsJson.getString(name)
+            }
+
             return ArtPack(
                 tile = root.optInt("tile", 256),
                 sets = sets,
@@ -229,6 +260,7 @@ class Art(private val context: Context, private val base: String = "art/") {
                 tiers = tiers,
                 screens = screens,
                 rewards = rewards,
+                seals = seals,
             )
         }
     }

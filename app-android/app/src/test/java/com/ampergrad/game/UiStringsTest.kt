@@ -75,6 +75,19 @@ class UiStringsTest {
     }
 
     @Test
+    fun `особая пломба подписана на обоих языках`() {
+        for (t in listOf(Ru, En)) {
+            for (key in listOf("resin", "crack", "magma")) {
+                assertTrue(t.sealTitle(key).isNotBlank(), "${t.lang}: пломба $key без подписи")
+                assertFalse(t.sealTitle(key) == t.seal, "${t.lang}: пломба $key звучит как обычная")
+            }
+            assertEquals(t.seal, t.sealTitle("3"), "${t.lang}: обычная пломба — просто пломба")
+        }
+        assertFalse(cyrillic.containsMatchIn(En.sealTitle("resin")), "английская подпись не переведена")
+        assertTrue(cyrillic.containsMatchIn(Ru.sealTitle("resin")), "русская подпись переведена")
+    }
+
+    @Test
     fun `названия ярусов на английском отличаются от русских`() {
         assertFalse(cyrillic.containsMatchIn(En.tierName(1)))
         assertTrue(cyrillic.containsMatchIn(Ru.tierName(1)))

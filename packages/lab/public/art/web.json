@@ -268,5 +268,10 @@
     "1": "rewards/reward-disc.webp",
     "2": "rewards/reward-rings.webp",
     "3": "rewards/reward-star.webp"
+  },
+  "seals": {
+    "resin": "rewards/reward-resin.webp",
+    "crack": "rewards/reward-crack.webp",
+    "magma": "rewards/reward-magma.webp"
   }
 }

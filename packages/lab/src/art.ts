@@ -39,6 +39,8 @@ export interface ArtPack {
   screens: Record<string, string>;
   /** Пломбы за число звёзд: "1" | "2" | "3" → файл. */
   rewards: Record<string, string>;
+  /** Особые пломбы: не за звёзды, а за то, как запечатан квартал (см. chooseSeal). */
+  seals: Record<string, string>;
 }
 
 export class Art {
@@ -61,6 +63,7 @@ export class Art {
       }
       for (const round of Object.values(this.pack.round)) files.add(round.file);
       for (const file of Object.values(this.pack.rewards)) files.add(file);
+      for (const file of Object.values(this.pack.seals ?? {})) files.add(file);
       // Ошибки отдельных картинок не роняют загрузку: наборов много, и отсутствие
       // одного металла ещё не значит «не играть». Но если не встал канонный набор,
       // поле оказалось бы пустым при включённом арт-режиме — это провал целиком.
