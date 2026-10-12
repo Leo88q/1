@@ -37,7 +37,7 @@ jobs:
         run: npm run content
 
       # Механизм для GUTTERCAPS живёт в двух видах: пакет в integrations/guttercaps/pr
-      # и патч dist/*.patch, который владелец кладёт в их монорепо. Если пакет
+      # и патч patch/*.patch, который владелец кладёт в их монорепо. Если пакет
       # поправили, а патч не пересобрали — патч уедет устаревшим, поэтому сверяем.
       - name: "Механизм для GUTTERCAPS: тесты пакета"
         run: node --experimental-strip-types --test integrations/guttercaps/pr/packages/ampergrad/test/*.test.ts
