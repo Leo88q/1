@@ -52,15 +52,23 @@ FONT_CANDIDATES = {
 # Кадры, которые собираем: уровень → ярус (фон + материал труб + цвет среды).
 # Ярусы идут как в контенте: plateau → mercury → terminal → old-diode → veins.
 TIERS = {
-    "plateau": {"bg": ["tier-1-plateau.jpg", "tier-1-plateau-b.jpg"], "metal": "zinc", "flow": (182, 255, 60)},
-    "mercury": {"bg": ["tier-2-mercury.jpg", "tier-2-mercury-b.jpg"], "metal": "chrome", "flow": (22, 229, 217)},
-    "terminal": {"bg": ["tier-3-terminal.jpg", "tier-3-terminal-b.jpg"], "metal": "rust", "flow": (255, 122, 26)},
-    "old-diode": {"bg": ["tier-4-old-diode.jpg", "tier-4-old-diode-b.jpg"], "metal": "cast", "flow": (255, 176, 64)},
-    "veins": {"bg": ["tier-5-veins.jpg", "tier-5-veins-b.jpg"], "metal": "glass", "flow": (182, 255, 60)},
+    # `metal` — основной материал яруса, `metal2` — второй (есть не у всех):
+    # вариант кадра (a/b) берёт либо один, либо пару «основной + второй».
+    "plateau": {"bg": ["tier-1-plateau.jpg", "tier-1-plateau-b.jpg"], "metal": "zinc",
+                "metal2": "zinc2", "flow": (182, 255, 60)},
+    "mercury": {"bg": ["tier-2-mercury.jpg", "tier-2-mercury-b.jpg"], "metal": "chrome",
+                "flow": (22, 229, 217)},
+    "terminal": {"bg": ["tier-3-terminal.jpg", "tier-3-terminal-b.jpg"], "metal": "rust",
+                 "metal2": "rust2", "flow": (255, 122, 26)},
+    "old-diode": {"bg": ["tier-4-old-diode.jpg", "tier-4-old-diode-b.jpg"], "metal": "cast",
+                  "flow": (255, 176, 64)},
+    "veins": {"bg": ["tier-5-veins.jpg", "tier-5-veins-b.jpg"], "metal": "glass",
+              "flow": (182, 255, 60)},
 }
 
 SHOTS = [
     {"level": 3, "tier": "plateau", "variant": 0, "title": "ЛИЦЕНЗИОННЫЙ СВЕТ", "titleEn": "Licensed Light"},
+    {"level": 9, "tier": "plateau", "variant": 1, "title": "СМОТРОВАЯ ПЛОЩАДКА", "titleEn": "The Viewing Deck"},
     {"level": 31, "tier": "terminal", "variant": 1, "title": "ДИСПЕТЧЕРСКАЯ", "titleEn": "Dispatch Room"},
     {"level": 46, "tier": "old-diode", "variant": 0, "title": "СУД НАД СВЕТОМ", "titleEn": "The Trial of Light"},
     {"level": 61, "tier": "veins", "variant": 0, "title": "ЖИЛА № 7", "titleEn": "Vein Number Seven"},
@@ -128,14 +136,20 @@ def sprite_for(mask, sprites, material, variant=0):
     """Какой спрайт рисует ячейку: прямая, отвод, тройник, крест или заглушка.
 
     Материал выбирается ярусом: цинк в Плато, хром в Ртутном, ржавчина в
-    Терминальном, чугун в Старом Диоде, стекло в Жилах.
+    Терминальном, чугун в Старом Диоде, стекло в Жилах. Там, где для яруса есть
+    второй материал (`metal2`), вариант кадра отдаёт половину ячеек ему — поле
+    одного яруса перестаёт выглядеть клоном поля из соседнего уровня.
     """
     families = {5: ["straight", "straight2"], 3: ["elbow"], 7: ["tee"], 15: ["cross"], 1: ["stub"]}
+    materials = [material]
+    if isinstance(material, (list, tuple)):
+        materials = list(material)
     names = []
-    for piece in families[mask]:
-        for candidate in (f"{material}-{piece}", f"base-{piece}"):
-            if candidate in sprites:
-                names.append(candidate)
+    for mat in materials:
+        for piece in families[mask]:
+            for candidate in (f"{mat}-{piece}", f"base-{piece}"):
+                if candidate in sprites:
+                    names.append(candidate)
     if not names:
         raise SystemExit(f"нет спрайта для маски {mask} (материал {material})")
     return sprites[names[variant % len(names)]]
@@ -309,7 +323,12 @@ def frame_ui(img, shot, level, cell_px):
 def render_level(shot, sprites, size=(1080, 1920)):
     level = level_of(shot["level"])
     tier = TIERS[shot["tier"]]
-    material = tier["metal"]
+    # Материал поля: основной берём всегда, второй — если у яруса он есть и кадр
+    # идёт вариантом b. Тогда два фона яруса дают ещё и два разных металла.
+    if shot["variant"] % 2 == 1 and tier.get("metal2"):
+        material = [tier["metal"], tier["metal2"]]
+    else:
+        material = tier["metal"]
     flow = tier["flow"]
     width, height = size
     bg_file = tier["bg"][shot["variant"] % len(tier["bg"])]
@@ -414,8 +433,10 @@ def render_tileset(sprites, path, size=None):
     materials = [
         ("base", "чугун + цинк · канон"),
         ("zinc", "цинк · Плато"),
+        ("zinc2", "цинк с патиной · Плато, кадр b"),
         ("chrome", "хром · Ртутный"),
         ("rust", "ржавый металл · Терминальный"),
+        ("rust2", "глубокая ржавчина · Терминальный, кадр b"),
         ("cast", "чугун · Старый Диод"),
         ("glass", "стекло · Жилы"),
     ]
@@ -460,6 +481,38 @@ def render_tileset(sprites, path, size=None):
         img.paste(art, (x + (cell - art.width) // 2, y + (cell - art.height) // 2), art)
         # Подпись по центру ячейки: короткие строки не наезжают друг на друга.
         draw.text((x + cell // 2, y - 16), caption, font=font("mono", 19), fill=DIM, anchor="mm")
+
+    img.save(path, "JPEG", quality=90)
+    return path
+
+
+def render_rewards(path, cell=240, gap=34, margin=70):
+    """Лист медальонов наград: что игрок получает за квартал, серию и челлендж."""
+    with open(os.path.join(TILES, "rewards.json"), encoding="utf-8") as fh:
+        rewards = json.load(fh)
+    names = list(rewards)
+    columns = min(3, len(names))
+    rows = (len(names) + columns - 1) // columns
+    size = (margin * 2 + columns * cell + (columns - 1) * gap,
+            100 + rows * (cell + gap + 30) + 20)
+    img = Image.new("RGB", size, SHEET_BG)
+    draw = ImageDraw.Draw(img)
+    for x in range(0, size[0], 40):
+        draw.line([(x, 0), (x, size[1])], fill=(32, 31, 37), width=1)
+    for y in range(0, size[1], 40):
+        draw.line([(0, y), (size[0], y)], fill=(32, 31, 37), width=1)
+    draw.text((margin, 26), "АМПЕРГРАД · пломбы квартала", font=font("bold", 32), fill=ACID)
+
+    for i, name in enumerate(names):
+        col, row = i % columns, i // columns
+        x = margin + col * (cell + gap)
+        y = 100 + row * (cell + gap + 30)
+        art = Image.open(os.path.join(TILES, rewards[name]["file"])).convert("RGBA")
+        art.thumbnail((cell - 16, cell - 16), Image.LANCZOS)
+        img.paste(art, (x + (cell - art.width) // 2, y + (cell - art.height) // 2), art)
+        caption = rewards[name]["caption"]
+        draw.text((x + cell // 2, y + cell + 6), caption, font=font("regular", 17),
+                  fill=INK, anchor="ma")
 
     img.save(path, "JPEG", quality=90)
     return path
@@ -511,6 +564,7 @@ def main():
 
     print("записано:", os.path.relpath(render_tileset(sprites, os.path.join(OUT, "tileset.jpg")), REPO))
     print("записано:", os.path.relpath(render_props(os.path.join(OUT, "props.jpg")), REPO))
+    print("записано:", os.path.relpath(render_rewards(os.path.join(OUT, "rewards.jpg")), REPO))
 
 
 if __name__ == "__main__":

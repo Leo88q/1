@@ -287,6 +287,102 @@
       "8": 0.23
     }
   },
+  "zinc2-straight": {
+    "mask": 5,
+    "file": "art/tiles/zinc2-straight.png",
+    "preRotation": 1,
+    "set": "zinc2",
+    "edge": {
+      "1": 0.05,
+      "2": 0.0,
+      "4": 0.05,
+      "8": 0.0
+    }
+  },
+  "zinc2-elbow": {
+    "mask": 3,
+    "file": "art/tiles/zinc2-elbow.png",
+    "preRotation": 3,
+    "set": "zinc2",
+    "edge": {
+      "1": 0.18,
+      "2": 0.19,
+      "4": 0.12,
+      "8": 0.12
+    }
+  },
+  "zinc2-tee": {
+    "mask": 7,
+    "file": "art/tiles/zinc2-tee.png",
+    "preRotation": 1,
+    "set": "zinc2",
+    "edge": {
+      "1": 0.17,
+      "2": 0.1,
+      "4": 0.19,
+      "8": 0.14
+    }
+  },
+  "zinc2-cross": {
+    "mask": 15,
+    "file": "art/tiles/zinc2-cross.png",
+    "preRotation": 0,
+    "set": "zinc2",
+    "edge": {
+      "1": 0.1,
+      "2": 0.14,
+      "4": 0.15,
+      "8": 0.19
+    }
+  },
+  "rust2-straight": {
+    "mask": 5,
+    "file": "art/tiles/rust2-straight.png",
+    "preRotation": 1,
+    "set": "rust2",
+    "edge": {
+      "1": 0.04,
+      "2": 0.0,
+      "4": 0.04,
+      "8": 0.0
+    }
+  },
+  "rust2-elbow": {
+    "mask": 3,
+    "file": "art/tiles/rust2-elbow.png",
+    "preRotation": 3,
+    "set": "rust2",
+    "edge": {
+      "1": 0.11,
+      "2": 0.12,
+      "4": 0.12,
+      "8": 0.3
+    }
+  },
+  "rust2-tee": {
+    "mask": 7,
+    "file": "art/tiles/rust2-tee.png",
+    "preRotation": 1,
+    "set": "rust2",
+    "edge": {
+      "1": 0.18,
+      "2": 0.07,
+      "4": 0.17,
+      "8": 0.11
+    }
+  },
+  "rust2-cross": {
+    "mask": 15,
+    "file": "art/tiles/rust2-cross.png",
+    "preRotation": 0,
+    "set": "rust2",
+    "edge": {
+      "1": 0.08,
+      "2": 0.14,
+      "4": 0.07,
+      "8": 0.13
+    }
+  },
   "base-straight2": {
     "mask": 5,
     "file": "art/tiles/base-straight2.png",

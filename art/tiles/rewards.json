@@ -1,0 +1,32 @@
+{
+  "reward-star": {
+    "file": "reward-star.png",
+    "caption": "звезда · квартал без подсказок",
+    "source": "rewards/plombs-topdown.jpg"
+  },
+  "reward-rings": {
+    "file": "reward-rings.png",
+    "caption": "кольца · серия дней",
+    "source": "rewards/plombs-topdown.jpg"
+  },
+  "reward-disc": {
+    "file": "reward-disc.png",
+    "caption": "диск · проход ровно по плану",
+    "source": "rewards/plombs-topdown.jpg"
+  },
+  "reward-resin": {
+    "file": "reward-resin.png",
+    "caption": "смола · челлендж дня",
+    "source": "rewards/plombs-topdown.jpg"
+  },
+  "reward-crack": {
+    "file": "reward-crack.png",
+    "caption": "трещина · сложный квартал",
+    "source": "rewards/plombs-topdown.jpg"
+  },
+  "reward-magma": {
+    "file": "reward-magma.png",
+    "caption": "магма · недельный вызов",
+    "source": "rewards/plombs-topdown.jpg"
+  }
+}

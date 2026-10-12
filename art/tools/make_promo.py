@@ -42,11 +42,19 @@ TEXTS = {
         "title": "АМПЕРГРАД",
         "tagline": "ВЕРНИ ГОРОДУ ТОК",
         "footer": "1–3 минуты · без кошелька · награды — сжатые NFT",
+        "season_tagline": "СЕЗОН: ПОДЪЁМ ВОДЫ",
+        "season_footer": "событие на две недели · кварталы на время · пломба за серию",
+        "square_tagline": "ПЯТЬ ЯРУСОВ · 75 КВАРТАЛОВ",
+        "square_footer": "головоломка на соединение труб",
     },
     "en": {
         "title": "AMPERGRAD",
         "tagline": "BRING THE CURRENT BACK",
         "footer": "1–3 minutes · no wallet · rewards are compressed NFTs",
+        "season_tagline": "SEASON: RISING WATER",
+        "season_footer": "two-week event · timed districts · a seal for the streak",
+        "square_tagline": "FIVE TIERS · 75 DISTRICTS",
+        "square_footer": "a pipe-connecting puzzle",
     },
 }
 
@@ -114,9 +122,19 @@ def main():
     jobs = [
         ("og-amperograd.jpg", "og", (1200, 630), 92, 34, 24),
         ("hero-city.jpg", "feature", (1024, 500), 68, 26, 19),
+        # Сезонный кадр — вторая фича-графика: для баннеров события и постов.
+        ("season-key-art.jpg", "season", (1024, 500), 66, 25, 18),
+        # Квадрат — карточка для соцсетей и аватар канала.
+        ("map-city.jpg", "square", (1080, 1080), 96, 34, 24),
     ]
+    # Тексты для кадра события и квадрата идут теми же строками листинга.
     for source, kind, size, t, g, f in jobs:
-        for lang, texts in TEXTS.items():
+        for lang, base in TEXTS.items():
+            texts = {
+                "title": base["title"],
+                "tagline": base.get(f"{kind}_tagline", base["tagline"]),
+                "footer": base.get(f"{kind}_footer", base["footer"]),
+            }
             name = f"{kind}-{lang}-{size[0]}x{size[1]}.jpg"
             path = os.path.join(OUT, name)
             cover(os.path.join(PROMO, source), size, texts, t, g, f).save(path, "JPEG", quality=92)
