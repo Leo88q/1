@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Пересобирает dist/ampergrad-mechanism.patch из содержимого pr/.
+# Пересобирает patch/ampergrad-mechanism.patch из содержимого pr/.
 #
 # Патч — тот же коммит, что уехал бы в GUTTERCAPS: один файл, который владелец
 # прикладывает к их main через `git am`. Собирается в пустом репозитории, поэтому
@@ -10,7 +10,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PR_ROOT="$(cd "$HERE/.." && pwd)/pr"
-DIST="$(cd "$HERE/.." && pwd)/dist"
+DIST="$(cd "$HERE/.." && pwd)/patch"
 MESSAGE="feat(ampergrad): механизм «Амперград» отдельным контуром — правила, контент, арт-контракт"
 
 TMP="$(mktemp -d)"

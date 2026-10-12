@@ -11,7 +11,7 @@
 | `tools/prepare-samples.py` | собирает `pr/.../art/` из арта репозитория (уменьшенные образцы, pillow) |
 | `tools/pr-body.md` | описание PR |
 | `tools/open-pr.sh` | открывает или обновляет PR в `Leo88q/guttercaps` через API |
-| `dist/ampergrad-mechanism.patch` | тот же коммит патчем: ложится на их `main` через `git am` |
+| `patch/ampergrad-mechanism.patch` | тот же коммит патчем: ложится на их `main` через `git am` |
 | `tools/build-patch.sh` | пересобирает патч из `pr/` (и сразу сверяет результат) |
 | `tools/check-patch.mjs` | сверка патча с пакетом по sha-блобам; гоняется в CI |
 | `tools/land-pr-locally.sh` | укладывает патч в ваш клон GUTTERCAPS и открывает PR |
@@ -29,7 +29,7 @@
 `Leo88q/guttercaps` из сессии нельзя (API отвечает `403 Resource not accessible by
 integration`). Два равнозначных пути:
 
-1. **Со своей машины (работает сразу).** Патч `dist/ampergrad-mechanism.patch` уже
+1. **Со своей машины (работает сразу).** Патч `patch/ampergrad-mechanism.patch` уже
    собран и проверен: он ложится на их `main` через `git am`, конфликтов не даёт
    (все файлы новые).
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Сверяет патч `dist/ampergrad-mechanism.patch` с содержимым `pr/`.
+ * Сверяет патч `patch/ampergrad-mechanism.patch` с содержимым `pr/`.
  *
  * Патч — то, что владелец кладёт в монорепо GUTTERCAPS через `git am`. Если пакет
  * поправили, а патч не пересобрали (или наоборот), в чужой репозиторий уедет
@@ -20,7 +20,7 @@ import { join, resolve } from 'node:path';
 const HERE = import.meta.dirname;
 const ROOT = resolve(HERE, '../../..');
 const PR = join(ROOT, 'integrations/guttercaps/pr');
-const PATCH = join(ROOT, 'integrations/guttercaps/dist/ampergrad-mechanism.patch');
+const PATCH = join(ROOT, 'integrations/guttercaps/patch/ampergrad-mechanism.patch');
 
 /** Хеш git-блоба: sha1("blob <длина>\0" + содержимое), как считает сам git. */
 function blobSha(bytes) {

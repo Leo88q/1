@@ -12,7 +12,7 @@ set -euo pipefail
 REPO_DIR="${1:?путь к клону guttercaps, например ~/Desktop/guttercaps}"
 BRANCH="arena/77b06826-ampergrad"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PATCH="$HERE/../dist/ampergrad-mechanism.patch"
+PATCH="$HERE/../patch/ampergrad-mechanism.patch"
 TITLE="feat(ampergrad): механизм «Амперград» отдельным контуром — правила, контент, арт-контракт"
 BODY="$HERE/pr-body.md"
 
