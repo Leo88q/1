@@ -97,7 +97,8 @@ class LoreTest {
         }
         // Тот же словарь говорящих, что в TS-каноне.
         assertEquals("Klemma", lore.registryEntry("reg-s1-01")?.speaker(Lang.EN))
-        assertEquals("the air", lore.registryEntry("reg-s2-05")?.speaker(Lang.EN))
+        assertEquals("the air", lore.registryEntry("reg-s1-02")?.speaker(Lang.EN))
+        assertEquals("Marta Volt", lore.registryEntry("reg-s2-05")?.speaker(Lang.EN))
         assertEquals("Клемма", lore.registryEntry("reg-s1-01")?.speaker(Lang.RU))
     }
 }
