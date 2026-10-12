@@ -133,6 +133,17 @@ adb reverse tcp:8787 tcp:8787
 (страница Releases репозитория) — её можно поставить через `adb install -r app-debug.apk`
 без всякой сборки.
 
+### Если что-то не собирается
+
+| Симптом | Причина и решение |
+|---|---|
+| `Cannot find package '@solana/web3.js'` в тестах сервера | часть версий npm не ставит пакеты, объявленные **только** как peer-зависимости (в локе такие помечены `peer: true`). В `server/package.json` зависимость объявлена явно, поэтому `git pull` + `rm -rf node_modules && npm ci` лечит. Разовая заплатка без обновления кода: `npm i -w @ampergrad/server @solana/web3.js` |
+| `npm warn install-scripts … allowScripts` | предупреждение npm 11.7+ о заблокированных установочных скриптах. Платформенные бинарники esbuild приходят отдельным пакетом, сборка не ломается. Хотите тишины: `npm install-scripts approve esbuild` |
+| `vitest: not found`, `tsx: not found` | пакеты не установлены: `npm ci` в корне (не в подпапке) |
+| Градл: `SDK location not found` | `printf 'sdk.dir=%s\n' "$HOME/Library/Android/sdk" > app-android/local.properties` |
+| Градл: `Unsupported class file major version` | `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` |
+| `port 8787 already in use` | `PORT=8788 npm run server` и тот же порт в `-PserverUrl` |
+
 ## Android-приложение
 
 `app-android/` — нативное приложение на Kotlin + Jetpack Compose (минималистичный
