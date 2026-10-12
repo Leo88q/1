@@ -12,6 +12,8 @@
 | `tools/pr-body.md` | описание PR |
 | `tools/open-pr.sh` | открывает или обновляет PR в `Leo88q/guttercaps` через API |
 | `dist/ampergrad-mechanism.patch` | тот же коммит патчем: ложится на их `main` через `git am` |
+| `tools/build-patch.sh` | пересобирает патч из `pr/` (и сразу сверяет результат) |
+| `tools/check-patch.mjs` | сверка патча с пакетом по sha-блобам; гоняется в CI |
 | `tools/land-pr-locally.sh` | укладывает патч в ваш клон GUTTERCAPS и открывает PR |
 
 ## Почему через Git Data API, а не клоном
@@ -50,8 +52,14 @@ integration`). Два равнозначных пути:
 ```bash
 python3 integrations/guttercaps/tools/prepare-samples.py   # образцы арта (нужен pillow)
 node --experimental-strip-types --test integrations/guttercaps/pr/packages/ampergrad/test/*.test.ts
-bash integrations/guttercaps/tools/open-pr.sh              # PR в Leo88q/guttercaps
+bash integrations/guttercaps/tools/build-patch.sh          # пересобрать патч после правок в pr/
+node integrations/guttercaps/tools/check-patch.mjs         # сверка патча с пакетом (то же делает CI)
+bash integrations/guttercaps/tools/open-pr.sh              # PR в Leo88q/guttercaps (если есть права)
 ```
+
+Правка в `pr/` **требует** пересборки патча: `npm run` его не собирает, а CI сверяет
+патч с пакетом по sha-блобам и падает, если они разъехались. Так устаревший код не
+уедет в чужой репозиторий.
 
 ## Что проверяемо локально
 

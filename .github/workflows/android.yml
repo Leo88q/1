@@ -43,19 +43,7 @@ jobs:
         run: node --experimental-strip-types --test integrations/guttercaps/pr/packages/ampergrad/test/*.test.ts
 
       - name: "Механизм для GUTTERCAPS: патч совпадает с пакетом"
-        run: |
-          set -euo pipefail
-          tmp="$(mktemp -d)"
-          git -C "$tmp" init -q
-          git -C "$tmp" config user.name ci
-          git -C "$tmp" config user.email ci@example.com
-          printf 'base\n' > "$tmp/README.md"
-          git -C "$tmp" add -A
-          git -C "$tmp" commit -qm base
-          git -C "$tmp" am "$PWD/integrations/guttercaps/dist/ampergrad-mechanism.patch"
-          diff -r "$tmp/docs" integrations/guttercaps/pr/docs
-          diff -r "$tmp/packages/ampergrad" integrations/guttercaps/pr/packages/ampergrad
-          echo "патч и пакет совпадают"
+        run: node integrations/guttercaps/tools/check-patch.mjs
 
       - uses: actions/upload-artifact@v5
         with:
