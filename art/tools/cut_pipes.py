@@ -19,17 +19,27 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "tiles")
 TILE = 512
 
-# Биты как в движке: 1 = север, 2 = восток, 4 = юг, 8 = запад.
-# Для каждой детали: где лежит на листе, куда смотрят её порты и к какой маске
-# движка деталь приводится (5 = прямая, 3 = отвод, 7 = тройник, 15 = крест).
-SHEET_PIECES = {
-    "straight": {"sheet": "pieces-topdown.jpg", "row": "top", "index": 0, "ports": [2, 8], "engine": 5},
-    "elbow": {"sheet": "pieces-topdown.jpg", "row": "bottom", "index": 0, "ports": [2, 4], "engine": 3},
-    "tee": {"sheet": "pieces-topdown.jpg", "row": "bottom", "index": 1, "ports": [1, 2, 8], "engine": 7},
-    "cross": {"sheet": "pieces-topdown.jpg", "row": "bottom", "index": 2, "ports": [1, 2, 4, 8], "engine": 15},
-    "straight2": {"sheet": "straight-topdown.jpg", "row": "top", "index": 0, "ports": [2, 8], "engine": 5},
-}
 ROUND_PIECES = {"mouth": "open-end-topdown.jpg", "cap": "cap-topdown.jpg"}
+
+# Материал поля по ярусам: у каждого свой лист с той же раскладкой деталей.
+# Это позволяет менять «металл» квартала вместе с фоном, не перерисовывая поле.
+MATERIAL_SETS = {
+    "base": "pieces-topdown.jpg",          # канон: чугун + цинк (промо и витрина)
+    "zinc": "tier-1-zinc.jpg",             # Плато Первого Контакта
+    "chrome": "tier-2-chrome.jpg",         # Ртутный ярус
+    "rust": "tier-3-rust.jpg",             # Терминальный ярус
+    "cast": "tier-4-cast.jpg",             # Старый Диод
+    "glass": "tier-5-glass.jpg",           # Жилы массива
+}
+# Раскладка деталей на каждом листе: верхний ряд — прямая, нижний — отвод/тройник/крест.
+LAYOUT = {
+    "straight": {"row": "top", "index": 0},
+    "elbow": {"row": "bottom", "index": 0},
+    "tee": {"row": "bottom", "index": 1},
+    "cross": {"row": "bottom", "index": 2},
+}
+MASK_OF = {"straight": 5, "elbow": 3, "tee": 7, "cross": 15}
+PORTS_OF = {"straight": [2, 8], "elbow": [2, 4], "tee": [1, 2, 8], "cross": [1, 2, 4, 8]}
 
 
 def mask_of(img, threshold=22):
@@ -86,7 +96,7 @@ def pre_rotate(sprite, ports, engine):
     raise SystemExit(f"не смог совместить маску спрайта {sprite_mask} с движковой {engine}")
 
 
-def touches(alpha, bit, edge=2):
+def touches(alpha, bit, edge=3):
     """Доля покрытия края: у порта деталь подходит к самому краю картинки."""
     w, h = alpha.size
     px = alpha.load()
@@ -101,7 +111,7 @@ def touches(alpha, bit, edge=2):
             probe = [(w - 1 - d, i) for d in range(edge)]
         else:
             probe = [(d, i) for d in range(edge)]
-        if any(px[x, y] > 40 for x, y in probe):
+        if any(px[x, y] > 25 for x, y in probe):
             hits += 1
     return hits / span
 
@@ -153,41 +163,65 @@ def boxes_for(sheet, row):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    sheets = {}
     manifest = {}
 
-    for name, spec in SHEET_PIECES.items():
-        if spec["sheet"] not in sheets:
-            sheets[spec["sheet"]] = Image.open(os.path.join(ROOT, "pipes", spec["sheet"]))
-        sheet = sheets[spec["sheet"]]
-        boxes = boxes_for(sheet, spec["row"])
-        if spec["index"] >= len(boxes):
-            raise SystemExit(f"{name}: на листе {spec['sheet']} нашёл {len(boxes)} деталей, нужен индекс {spec['index']}")
-        ports = spec["ports"]
-        sprite = fit_piece(sheet, boxes[spec["index"]], ports)
-        sprite, steps = pre_rotate(sprite, ports, spec["engine"])
-        coverage = {bit: round(touches(sprite.getchannel("A"), bit), 2) for bit in (1, 2, 4, 8)}
-        sprite.save(os.path.join(OUT, f"{name}.png"))
-        reached = [bit for bit in ports if coverage[bit] > 0.02]
-        warn = "" if len(reached) == len(ports) else f"  ⚠ порты {ports} не на краю: {coverage}"
-        manifest[name] = {
-            "mask": spec["engine"],
-            "file": f"tiles/{name}.png",
+    for set_name, filename in MATERIAL_SETS.items():
+        path = os.path.join(ROOT, "pipes", filename)
+        if not os.path.exists(path):
+            print(f"{set_name}: листа {filename} нет — пропускаю")
+            continue
+        sheet = Image.open(path)
+        for piece, place in LAYOUT.items():
+            boxes = boxes_for(sheet, place["row"])
+            if place["index"] >= len(boxes):
+                raise SystemExit(f"{set_name}/{piece}: на листе нашёл {len(boxes)} деталей")
+            ports = PORTS_OF[piece]
+            sprite = fit_piece(sheet, boxes[place["index"]], ports)
+            sprite, steps = pre_rotate(sprite, ports, MASK_OF[piece])
+            # После доворота деталь лежит канонически, поэтому проверяем не порты
+            # исходного листа, а биты маски движка: именно они обязаны дойти до края.
+            canonical = [bit for bit in (1, 2, 4, 8) if MASK_OF[piece] & bit]
+            coverage = {bit: round(touches(sprite.getchannel("A"), bit), 2) for bit in (1, 2, 4, 8)}
+            name = f"{set_name}-{piece}"
+            sprite.save(os.path.join(OUT, f"{name}.png"), optimize=True)
+            reached = [bit for bit in canonical if coverage[bit] > 0.02]
+            warn = "" if len(reached) == len(canonical) else f"  ⚠ маска {MASK_OF[piece]}: не к краю {coverage}"
+            manifest[name] = {
+                "mask": MASK_OF[piece],
+                "file": f"art/tiles/{name}.png",
+                "preRotation": steps,
+                "set": set_name,
+                "edge": coverage,
+            }
+            print(f"{name}: маска {MASK_OF[piece]} (доворот {steps}) → art/tiles/{name}.png{warn}")
+
+    # Вторая прямая труба (цинк) — только для канонного набора: даёт разнообразие поля.
+    extra = os.path.join(ROOT, "pipes", "straight-topdown.jpg")
+    if os.path.exists(extra):
+        sheet = Image.open(extra)
+        boxes = boxes_for(sheet, "top")
+        sprite = fit_piece(sheet, boxes[0], PORTS_OF["straight"])
+        sprite, steps = pre_rotate(sprite, PORTS_OF["straight"], MASK_OF["straight"])
+        sprite.save(os.path.join(OUT, "base-straight2.png"), optimize=True)
+        manifest["base-straight2"] = {
+            "mask": 5,
+            "file": "art/tiles/base-straight2.png",
             "preRotation": steps,
-            "edge": coverage,
+            "set": "base",
+            "edge": {},
         }
-        print(f"{name}: маска движка {spec['engine']} (доворот {steps}) → art/tiles/{name}.png{warn}")
+        print("base-straight2: вторая прямая (цинк) → art/tiles/base-straight2.png")
 
     for name, filename in ROUND_PIECES.items():
         img = Image.open(os.path.join(ROOT, "pipes", filename))
         sprite = fit_piece(img, mask_of(img).getbbox())
-        sprite.save(os.path.join(OUT, f"{name}.png"))
-        manifest[name] = {"mask": None, "file": f"tiles/{name}.png", "preRotation": 0, "edge": {}}
+        sprite.save(os.path.join(OUT, f"{name}.png"), optimize=True)
+        manifest[name] = {"mask": None, "file": f"art/tiles/{name}.png", "preRotation": 0, "set": "base", "edge": {}}
         print(f"{name}: круглый элемент → art/tiles/{name}.png")
 
     with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)
-    print("manifest.json записан")
+    print(f"manifest.json записан: {len(manifest)} деталей")
 
 
 if __name__ == "__main__":

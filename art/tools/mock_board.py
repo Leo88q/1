@@ -49,11 +49,22 @@ FONT_CANDIDATES = {
     ],
 }
 
-# Кадры, которые собираем: уровень → фон яруса.
+# Кадры, которые собираем: уровень → ярус (фон + материал труб + цвет среды).
+# Ярусы идут как в контенте: plateau → mercury → terminal → old-diode → veins.
+TIERS = {
+    "plateau": {"bg": ["tier-1-plateau.jpg", "tier-1-plateau-b.jpg"], "metal": "zinc", "flow": (182, 255, 60)},
+    "mercury": {"bg": ["tier-2-mercury.jpg", "tier-2-mercury-b.jpg"], "metal": "chrome", "flow": (22, 229, 217)},
+    "terminal": {"bg": ["tier-3-terminal.jpg", "tier-3-terminal-b.jpg"], "metal": "rust", "flow": (255, 122, 26)},
+    "old-diode": {"bg": ["tier-4-old-diode.jpg", "tier-4-old-diode-b.jpg"], "metal": "cast", "flow": (255, 176, 64)},
+    "veins": {"bg": ["tier-5-veins.jpg", "tier-5-veins-b.jpg"], "metal": "glass", "flow": (182, 255, 60)},
+}
+
 SHOTS = [
-    {"level": 3, "bg": "tier-1-plateau.jpg", "title": "ЛИЦЕНЗИОННЫЙ СВЕТ", "titleEn": "Licensed Light"},
-    {"level": 61, "bg": "tier-5-veins.jpg", "title": "ЖИЛА № 7", "titleEn": "Vein Number Seven"},
-    {"level": 75, "bg": "tier-5-veins.jpg", "title": "ПОСЛЕДНИЙ КОНТУР", "titleEn": "The Last Circuit"},
+    {"level": 3, "tier": "plateau", "variant": 0, "title": "ЛИЦЕНЗИОННЫЙ СВЕТ", "titleEn": "Licensed Light"},
+    {"level": 31, "tier": "terminal", "variant": 1, "title": "ДИСПЕТЧЕРСКАЯ", "titleEn": "Dispatch Room"},
+    {"level": 46, "tier": "old-diode", "variant": 0, "title": "СУД НАД СВЕТОМ", "titleEn": "The Trial of Light"},
+    {"level": 61, "tier": "veins", "variant": 0, "title": "ЖИЛА № 7", "titleEn": "Vein Number Seven"},
+    {"level": 75, "tier": "veins", "variant": 1, "title": "ПОСЛЕДНИЙ КОНТУР", "titleEn": "The Last Circuit"},
 ]
 
 # Фон чертежа/листа спрайтов.
@@ -91,7 +102,9 @@ def load_tiles():
             "mask": info["mask"],
         }
     # Заглушки (маска 1) в каталоге нет — собираем её из прямой трубы.
-    sprites["stub"] = make_stub(sprites["straight"])
+    for name in list(sprites):
+        if name.endswith("-straight"):
+            sprites[name.replace("-straight", "-stub")] = make_stub(sprites[name])
     return sprites
 
 
@@ -111,14 +124,21 @@ def make_stub(straight):
     return {"image": art, "mask": 1}
 
 
-def sprite_for(mask, sprites, variant=0):
-    """Какой спрайт рисует ячейку: прямая, отвод, тройник, крест или заглушка."""
+def sprite_for(mask, sprites, material, variant=0):
+    """Какой спрайт рисует ячейку: прямая, отвод, тройник, крест или заглушка.
+
+    Материал выбирается ярусом: цинк в Плато, хром в Ртутном, ржавчина в
+    Терминальном, чугун в Старом Диоде, стекло в Жилах.
+    """
     families = {5: ["straight", "straight2"], 3: ["elbow"], 7: ["tee"], 15: ["cross"], 1: ["stub"]}
-    names = families[mask]
-    sprite = sprites[names[variant % len(names)]]
-    if sprite is None:
-        raise SystemExit(f"нет спрайта для маски {mask}")
-    return sprite
+    names = []
+    for piece in families[mask]:
+        for candidate in (f"{material}-{piece}", f"base-{piece}"):
+            if candidate in sprites:
+                names.append(candidate)
+    if not names:
+        raise SystemExit(f"нет спрайта для маски {mask} (материал {material})")
+    return sprites[names[variant % len(names)]]
 
 
 def rotation_steps(sprite_mask, target_mask):
@@ -187,7 +207,7 @@ def draw_flow(base, cell_box, mask, cell, color, strength=1.0):
     base.alpha_composite(core)
 
 
-def draw_receiver(base, cell_box, cell, sprite, mask):
+def draw_receiver(base, cell_box, cell, sprite, mask, flow=ACID):
     """Приёмник: струя из горловины, поверх неё — открытый конец трубы.
 
     Открытый конец разворачивается так же, как труба ячейки: горловина смотрит
@@ -204,12 +224,12 @@ def draw_receiver(base, cell_box, cell, sprite, mask):
     top = cy + int(cell * 0.12)
     bottom = y1 + int(cell * 0.5)
     w = max(3, int(cell * 0.075))
-    draw.line([(cx, top), (cx, bottom)], fill=ACID + (185,), width=w)
-    glow.line([(cx, top), (cx, bottom)], fill=ACID + (55,), width=int(w * 3))
+    draw.line([(cx, top), (cx, bottom)], fill=flow + (185,), width=w)
+    glow.line([(cx, top), (cx, bottom)], fill=flow + (55,), width=int(w * 3))
     for k in range(3):
         dy = y1 + int(cell * (0.58 + 0.2 * k))
         rr = max(2, int(cell * (0.038 - 0.009 * k)))
-        draw.ellipse([cx - rr, dy - rr, cx + rr, dy + rr], fill=ACID + (140 - 26 * k,))
+        draw.ellipse([cx - rr, dy - rr, cx + rr, dy + rr], fill=flow + (140 - 26 * k,))
     base.alpha_composite(halo.filter(ImageFilter.GaussianBlur(cell * 0.08)))
     base.alpha_composite(layer)
 
@@ -288,8 +308,12 @@ def frame_ui(img, shot, level, cell_px):
 
 def render_level(shot, sprites, size=(1080, 1920)):
     level = level_of(shot["level"])
+    tier = TIERS[shot["tier"]]
+    material = tier["metal"]
+    flow = tier["flow"]
     width, height = size
-    bg = make_background(os.path.join(ROOT, "backgrounds", shot["bg"]), size).convert("RGBA")
+    bg_file = tier["bg"][shot["variant"] % len(tier["bg"])]
+    bg = make_background(os.path.join(ROOT, "backgrounds", bg_file), size).convert("RGBA")
     img = bg.copy()
 
     # Поле: квадрат по центру, стеклянная плита под сетку.
@@ -332,7 +356,7 @@ def render_level(shot, sprites, size=(1080, 1920)):
         gx, gy = index % grid, index // grid
         box = (round(bx + gx * cell), round(by + gy * cell), round(bx + (gx + 1) * cell), round(by + (gy + 1) * cell))
 
-        sprite = sprite_for(base_mask, sprites, variant=(gx + gy + index) % 2)
+        sprite = sprite_for(base_mask, sprites, material, variant=(gx + gy + index) % 2)
         if sprite is not None:
             steps = rotation_steps(sprite["mask"], target)
             art = sprite["image"].rotate(-90 * steps, expand=False)
@@ -340,27 +364,27 @@ def render_level(shot, sprites, size=(1080, 1920)):
             pipes.alpha_composite(art, (box[0], box[1]))
     img.alpha_composite(pipes)
 
-    flow = Image.new("RGBA", size, (0, 0, 0, 0))
+    flow_layer = Image.new("RGBA", size, (0, 0, 0, 0))
     for index in range(grid * grid):
         base_mask = level["base"][index]
         target = rotate_cw_steps(base_mask, level["solutionRot"][index])
         gx, gy = index % grid, index // grid
         box = (round(bx + gx * cell), round(by + gy * cell), round(bx + (gx + 1) * cell), round(by + (gy + 1) * cell))
         # Все ячейки освещены: решение собрано, среда идёт от шины.
-        color = ORANGE if index == bus else ACID
-        draw_flow(flow, box, target, cell, color, strength=1.0)
-    img.alpha_composite(flow)
+        color = flow if index != bus else (255, 255, 255)
+        draw_flow(flow_layer, box, target, cell, color, strength=1.0)
+    img.alpha_composite(flow_layer)
 
     for index in sorted(receivers):
         gx, gy = index % grid, index // grid
         box = (round(bx + gx * cell), round(by + gy * cell), round(bx + (gx + 1) * cell), round(by + (gy + 1) * cell))
         target = rotate_cw_steps(level["base"][index], level["solutionRot"][index])
-        draw_receiver(img, box, cell, sprites["mouth"]["image"], target)
+        draw_receiver(img, box, cell, sprites["mouth"]["image"], target, flow)
 
     gx, gy = bus % grid, bus // grid
     bus_box = (round(bx + gx * cell), round(by + gy * cell), round(bx + (gx + 1) * cell), round(by + (gy + 1) * cell))
     bus_mask = rotate_cw_steps(level["base"][bus], level["solutionRot"][bus])
-    pipe_sprite = sprite_for(level["base"][bus], sprites)
+    pipe_sprite = sprite_for(level["base"][bus], sprites, material)
     draw_source(img, bus_box, cell, sprites["cap"]["image"], bus_mask, pipe_sprite)
 
     # Плёночное зерно и виньетка — чтобы кадр не выглядел «наклейкой».
@@ -380,36 +404,52 @@ def render_level(shot, sprites, size=(1080, 1920)):
     return img.convert("RGB")
 
 
-def render_tileset(sprites, path, size=(1400, 1000)):
-    """Лист спрайтов: как детали выглядят на асфальте — для художника и для витрины."""
+def render_tileset(sprites, path, size=(1500, 1180)):
+    """Лист деталей по материалам: строка — материал, столбец — тип детали."""
     img = Image.new("RGB", size, SHEET_BG)
     draw = ImageDraw.Draw(img)
-    for i in range(0, size[0], 40):
-        draw.line([(i, 0), (i, size[1])], fill=(32, 31, 37), width=1)
-    for i in range(0, size[1], 40):
-        draw.line([(0, i), (size[0], i)], fill=(32, 31, 37), width=1)
+    for x in range(0, size[0], 40):
+        draw.line([(x, 0), (x, size[1])], fill=(32, 31, 37), width=1)
+    for y in range(0, size[1], 40):
+        draw.line([(0, y), (size[0], y)], fill=(32, 31, 37), width=1)
 
-    order = ["straight", "straight2", "elbow", "tee", "cross", "mouth", "cap"]
-    cell = 300
-    for i, name in enumerate(order):
+    materials = [
+        ("base", "чугун + цинк · канон"),
+        ("zinc", "цинк · Плато"),
+        ("chrome", "хром · Ртутный"),
+        ("rust", "ржавый металл · Терминальный"),
+        ("cast", "чугун · Старый Диод"),
+        ("glass", "стекло · Жилы"),
+    ]
+    pieces = ["straight", "elbow", "tee", "cross"]
+    cell = 200
+    draw.text((70, 26), "АМПЕРГРАД × GUTTERCAPS · детали по материалам", font=font("bold", 32), fill=ACID)
+
+    for row, (material, label) in enumerate(materials):
+        y = 100 + row * (cell + 40)
+        draw.text((70, y + cell // 2 - 10), label, font=font("regular", 20), fill=INK)
+        for col, piece in enumerate(pieces):
+            name = f"{material}-{piece}"
+            x = 300 + col * (cell + 30)
+            art = sprites[name]["image"].copy()
+            art.thumbnail((cell - 16, cell - 16), Image.LANCZOS)
+            img.paste(art, (x + (cell - art.width) // 2, y + (cell - art.height) // 2), art)
+            if row == 0 and col < len(pieces):
+                mask = sprites[name]["mask"]
+                title = {"straight": f"ПРЯМАЯ · маска {mask}", "elbow": f"ОТВОД · маска {mask}",
+                         "tee": f"ТРОЙНИК · маска {mask}", "cross": f"КРЕСТ · маска {mask}"}[piece]
+                draw.text((x, y - 26), title, font=font("mono", 19), fill=DIM)
+
+    # Служебные круглые детали — отдельной строкой.
+    y = 100 + len(materials) * (cell + 40)
+    draw.text((70, y + cell // 2 - 10), "служебные", font=font("regular", 20), fill=INK)
+    for col, (name, caption) in enumerate((("mouth", "ОТКРЫТЫЙ КОНЕЦ · приёмник"), ("cap", "КОЛПАК · шина"))):
+        x = 300 + col * (cell + 30)
         art = sprites[name]["image"].copy()
-        art.thumbnail((cell - 24, cell - 24), Image.LANCZOS)
-        gx, gy = i % 4, i // 4
-        x = 90 + gx * (cell + 40)
-        y = 90 + gy * (cell + 90)
-        draw.rectangle([x - 6, y - 6, x + cell, y + cell], outline=(90, 90, 100), width=2)
+        art.thumbnail((cell - 16, cell - 16), Image.LANCZOS)
         img.paste(art, (x + (cell - art.width) // 2, y + (cell - art.height) // 2), art)
-        mask = sprites[name]["mask"]
-        label = {
-            5: "STRAIGHT · маска 5",
-            3: "ELBOW · маска 3",
-            7: "TEE · маска 7",
-            15: "CROSS · маска 15",
-            None: "ROUND · служебный",
-        }[mask]
-        draw.text((x, y + cell + 16), label, font=font("mono", 22), fill=INK)
-        draw.text((x, y + cell + 48), name, font=font("regular", 20), fill=DIM)
-    draw.text((90, 30), "АМПЕРГРАД × GUTTERCAPS · набор деталей", font=font("bold", 34), fill=ACID)
+        draw.text((x, y - 26), caption, font=font("mono", 19), fill=DIM)
+
     img.save(path, "JPEG", quality=90)
     return path
 
