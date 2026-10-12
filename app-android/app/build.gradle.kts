@@ -69,37 +69,42 @@ android {
     }
 }
 
-// Контент (лор, реестр) генерируется в репозитории командой `npm run content`.
-// Если файл есть — копируем его в assets приложения и в ресурсы unit-тестов.
-// В CI файл подкладывает workflow, локально достаточно выполнить npm run content.
+// Контент (лор, реестр, магазин) генерируется командой `npm run content`, тест-векторы
+// ядра — командой `npm run vectors`. Оба файла лежат в репозитории, поэтому свежий клон
+// собирается даже без Node: копируем то, что есть, и пропускаем отсутствующее.
 val contentDir = File(rootProject.projectDir.parentFile, "packages/engine/content")
-val contentFiles = listOf("lore.json", "cosmetics.json")
-val contentTargets = contentFiles.flatMap { name ->
-    listOf(
-        File(project.projectDir, "src/main/assets/$name"),
-        File(project.projectDir, "src/test/resources/$name"),
-    )
-}
+val vectorsFile = File(rootProject.projectDir.parentFile, "packages/engine/vectors/levels.json")
+
+/** Файл в репозитории → куда его положить внутри модуля приложения. */
+val syncedFiles = mapOf(
+    File(contentDir, "lore.json") to listOf(
+        File(project.projectDir, "src/main/assets/lore.json"),
+        File(project.projectDir, "src/test/resources/lore.json"),
+    ),
+    File(contentDir, "cosmetics.json") to listOf(
+        File(project.projectDir, "src/main/assets/cosmetics.json"),
+        File(project.projectDir, "src/test/resources/cosmetics.json"),
+    ),
+    vectorsFile to listOf(File(project.projectDir, "src/test/resources/levels.json")),
+)
 
 val syncContent = tasks.register("syncContent") {
     group = "ampergrad"
-    description = "Копирует контент (lore.json) в assets и тестовые ресурсы"
-    inputs.files(contentFiles.map { File(contentDir, it) }).optional()
-    outputs.files(contentTargets)
+    description = "Копирует контент и тест-векторы ядра в assets и ресурсы unit-тестов"
+    inputs.files(syncedFiles.keys.toList()).optional()
+    outputs.files(syncedFiles.values.flatten())
     doLast {
-        val missing = contentFiles.filterNot { File(contentDir, it).exists() }
+        val missing = syncedFiles.keys.filterNot { it.exists() }
         if (missing.isNotEmpty()) {
-            logger.lifecycle("контент не найден ($missing) — шаг пропущен (выполните npm run content в корне репозитория)")
-        } else {
-            contentFiles.forEach { name ->
-                val source = File(contentDir, name)
-                listOf(
-                    File(project.projectDir, "src/main/assets/$name"),
-                    File(project.projectDir, "src/test/resources/$name"),
-                ).forEach { target ->
-                    target.parentFile?.mkdirs()
-                    source.copyTo(target, overwrite = true)
-                }
+            logger.lifecycle(
+                "шаг пропущен: нет файлов $missing — выполните npm run content и npm run vectors в корне репозитория",
+            )
+        }
+        syncedFiles.forEach { (source, targets) ->
+            if (!source.exists()) return@forEach
+            targets.forEach { target ->
+                target.parentFile?.mkdirs()
+                source.copyTo(target, overwrite = true)
             }
         }
     }

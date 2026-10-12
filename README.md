@@ -50,9 +50,75 @@ npx tsx packages/engine/scripts/ascii.ts 1 --solved   # ASCII-рендер кв�
   удержание — против часовой), таймер, ходы, звёзды, подсказка, челлендж дня,
   прогресс в localStorage, неоновый рендер на canvas.
 
-- `packages/lab` — играбельный прототип «Амперграда»: поворот тапом (долгое
-  удержание — против часовой), таймер, ходы, звёзды, подсказка, челлендж дня,
-  прогресс в localStorage, неоновый рендер на canvas.
+## Попробовать на своей машине (macOS)
+
+Для игры в браузере и для сервера нужен только **Node 22** (нет — `brew install node@22`).
+Для сборки APK дополнительно нужны **JDK 21** и **Android SDK** — их проще всего
+получить вместе с Android Studio, но можно и через Homebrew (см. ниже).
+
+```bash
+# 1. Код: репозиторий публичный, вся работа — в ветке arena/77b06826-1
+mkdir -p ~/Desktop && cd ~/Desktop
+git clone -b arena/77b06826-1 --single-branch https://github.com/Leo88q/1.git Amperograd
+cd Amperograd
+
+# 2. Зависимости и контент
+node -v            # ждём v22.x
+npm ci             # установка строго по package-lock.json
+npm run content    # 75 кварталов, 60 записей реестра, 18 предметов магазина
+npm test           # 40 тестов ядра + 17 тестов сервера
+```
+
+Дальше — два терминала. Первый: сервер клейма и контента.
+
+```bash
+cd ~/Desktop/Amperograd
+npm run server     # http://0.0.0.0:8787, хранилище — память (Postgres не нужен)
+curl -s localhost:8787/health
+curl -s localhost:8787/shop | head -c 300
+```
+
+По умолчанию минт работает в режиме `dry-run`: заявка встаёт «в очередь», ничего
+не тратится и кошелёк не нужен. Реальный devnet-минт включается переменными
+окружения (`AMPERGRAD_MINT_MODE=devnet`, `AMPERGRAD_RPC_URL`, `AMPERGRAD_PAYER_SECRET`,
+`AMPERGRAD_MERKLE_TREE`) — см. `server/.env.example`.
+
+Второй терминал: играбельный прототип в браузере.
+
+```bash
+cd ~/Desktop/Amperograd
+npm run dev        # http://localhost:5173 — тап по ячейке поворачивает по часовой,
+                   # долгое удержание — против; кнопка «Челлендж дня» рядом
+```
+
+Сборка приложения (если нужен APK на телефоне или эмуляторе):
+
+```bash
+# один раз: JDK 21 и Android SDK
+brew install --cask temurin@21 android-studio
+# в Android Studio: Settings → SDK Manager → Android 37 (compileSdk 37) и build-tools 37.0.0
+printf 'sdk.dir=%s\n' "$HOME/Library/Android/sdk" > ~/Desktop/Amperograd/app-android/local.properties
+
+cd ~/Desktop/Amperograd/app-android
+./gradlew :app:testDebugUnitTest   # 50 тестов: правила, векторы ядра, лор, витрина, звук
+./gradlew :app:assembleDebug       # APK: app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:installDebug        # на подключённый телефон или запущенный эмулятор
+```
+
+Контент и тест-векторы копируются в ресурсы модуля задачей `syncContent` перед
+сборкой, поэтому свежий клон собирается без дополнительных шагов.
+
+Чтобы приложение ходило в локальный сервер, адрес задаётся при сборке:
+
+```bash
+./gradlew :app:assembleDebug -PserverUrl=http://10.0.2.2:8787      # эмулятор Android
+./gradlew :app:assembleDebug -PserverUrl=http://192.168.1.42:8787  # телефон в той же сети Wi-Fi, IP Mac
+```
+
+Игра работает и без сервера: кошелёк, клейм и рейтинг дня просто остаются
+недоступными. Готовая debug-сборка лежит в релизе `android-build`
+(страница Releases репозитория) — её можно поставить через `adb install -r app-debug.apk`
+без всякой сборки.
 
 ## Android-приложение
 
@@ -61,9 +127,9 @@ npx tsx packages/engine/scripts/ascii.ts 1 --solved   # ASCII-рендер кв�
 
 ```bash
 cd app-android
-gradle :app:testDebugUnitTest      # 16 unit-тестов: правила и сверка с TS-каноном
-gradle :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
-gradle :app:assembleRelease        # подписывается, если заданы переменные окружения
+./gradlew :app:testDebugUnitTest   # 50 тестов: правила, векторы ядра, лор, витрина, звук
+./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:assembleRelease     # подписывается, если заданы переменные окружения
 ```
 
 - Магазин двуязычен: название, способ получения и лор каждого предмета есть и
@@ -90,8 +156,9 @@ gradle :app:assembleRelease        # подписывается, если зад
   записывает последовательность поворотов, сервер проигрывает её ядром
   (`server/src/verify.ts`). Подпись кошелька подтверждает владение, ходы — честность.
 - Клиент и сервер говорят на одной версии правил (`ENGINE_VERSION` в BuildConfig).
-  Тест-векторы берутся из `packages/engine/vectors/levels.json` — в CI их
-  подкладывает workflow, локально: `npm run vectors && cp packages/engine/vectors/levels.json app-android/app/src/test/resources/`.
+  Тест-векторы берутся из `packages/engine/vectors/levels.json`; задача Gradle
+  `syncContent` сама копирует их и контент в ресурсы модуля, поэтому локально
+  достаточно `./gradlew :app:testDebugUnitTest`.
 
 Сборка APK идёт в GitHub Actions (`.github/workflows/android.yml`): сначала тесты
 TS-ядра, затем Kotlin-тесты и APK; результат — артефакты `ampergrad-apk`,
