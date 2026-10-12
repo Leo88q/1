@@ -18,7 +18,8 @@
     "server:dev": "npm --workspace @ampergrad/server run dev",
     "content": "npm run content -w @ampergrad/engine",
     "store:data": "npm run store:data -w @ampergrad/engine",
-    "store:assets": "python3 store/render_assets.py"
+    "store:assets": "python3 store/render_assets.py",
+    "doctor": "node scripts/doctor.mjs"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
