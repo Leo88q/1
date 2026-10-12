@@ -103,6 +103,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     var session by remember { mutableStateOf<GameSession?>(null) }
     var menuOpen by remember { mutableStateOf(true) }
     var walletOpen by remember { mutableStateOf(false) }
+    var registryOpen by remember { mutableStateOf(false) }
     var banner by remember { mutableStateOf<String?>(null) }
     var walletAddress by remember { mutableStateOf(store.walletAddress) }
     var walletError by remember { mutableStateOf<String?>(null) }
@@ -230,6 +231,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 onPlay = { startLevel(store.level.coerceAtMost(75)) },
                 onDaily = { startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY) },
                 onWallet = { walletOpen = true },
+                onRegistry = { registryOpen = true },
                 onReset = {
                     store.reset()
                     session = null
@@ -251,6 +253,14 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     sound.enabled = !sound.enabled
                     showBanner(if (sound.enabled) "Звук включён" else "Звук выключен")
                 },
+            )
+        }
+
+        if (registryOpen) {
+            RegistryOverlay(
+                lore = lore,
+                store = store,
+                onClose = { registryOpen = false },
             )
         }
 
@@ -325,6 +335,7 @@ private fun MenuScreen(
     onPlay: () -> Unit,
     onDaily: () -> Unit,
     onWallet: () -> Unit,
+    onRegistry: () -> Unit,
     onReset: () -> Unit,
 ) {
     Column(
@@ -373,6 +384,10 @@ private fun MenuScreen(
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onWallet, modifier = Modifier.fillMaxWidth()) {
             Text(if (walletAddress == null) "ПОДКЛЮЧИТЬ КОШЕЛЁК" else "КОШЕЛЁК · ${Base58.shorten(walletAddress)}")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onRegistry, modifier = Modifier.fillMaxWidth()) {
+            Text("РЕЕСТР ГОРОДА")
         }
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onReset) {
@@ -628,6 +643,92 @@ private fun WinOverlay(
                     OutlinedButton(onClick = onMenu, modifier = Modifier.weight(1f)) { Text("В МЕНЮ") }
                 }
             }
+        }
+    }
+}
+
+/** Реестр города: страницы, открытые за пройденные уровни. */
+@Composable
+private fun RegistryOverlay(
+    lore: Lore?,
+    store: ProgressStore,
+    onClose: () -> Unit,
+) {
+    val pages = (1 until store.level.coerceAtMost(Lore.TOTAL_LEVELS + 1)).mapNotNull { level ->
+        lore?.registryForLevel(level)
+    }
+    val total = lore?.registry?.size ?: 0
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xF203050A))
+            .systemBarsPadding()
+            .padding(20.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("РЕЕСТР ГОРОДА", style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                    Text(
+                        "открыто ${pages.size} из $total",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Grad.InkDim,
+                    )
+                }
+                TextButton(onClick = onClose) { Text("ЗАКРЫТЬ", color = Grad.InkDim) }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Гильдия не выдаёт реестр целиком: страницы открываются за собранные кварталы. " +
+                    "Каждая — с подписью того, кто говорил.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Grad.InkDim,
+            )
+            Spacer(Modifier.height(16.dp))
+
+            if (pages.isEmpty()) {
+                Text(
+                    "Пока пусто. Соберите первый квартал — откроется первая страница.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Grad.Metal,
+                )
+            }
+
+            pages.forEach { entry ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Grad.Panel),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text(entry.label, style = MaterialTheme.typography.labelSmall, color = Grad.Mint)
+                        Spacer(Modifier.height(4.dp))
+                        Text(entry.title, style = MaterialTheme.typography.titleMedium, color = Grad.Ink)
+                        Spacer(Modifier.height(6.dp))
+                        Text("«${entry.text}»", style = MaterialTheme.typography.bodySmall, color = Grad.Ink)
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Открыта: ${entry.source} · ${entry.id}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Grad.InkDim,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
