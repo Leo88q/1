@@ -404,15 +404,13 @@ def render_level(shot, sprites, size=(1080, 1920)):
     return img.convert("RGB")
 
 
-def render_tileset(sprites, path, size=(1500, 1180)):
-    """Лист деталей по материалам: строка — материал, столбец — тип детали."""
-    img = Image.new("RGB", size, SHEET_BG)
-    draw = ImageDraw.Draw(img)
-    for x in range(0, size[0], 40):
-        draw.line([(x, 0), (x, size[1])], fill=(32, 31, 37), width=1)
-    for y in range(0, size[1], 40):
-        draw.line([(0, y), (size[0], y)], fill=(32, 31, 37), width=1)
+def render_tileset(sprites, path, size=None):
+    """Лист деталей по материалам: строка — материал, столбец — тип детали.
 
+    Высота считается по числу строк (6 материалов + строка служебных), ширина
+    по числу столбцов — ничего не обрезается. Подписи материалов живут в своей
+    колонке слева и не заезжают под спрайты.
+    """
     materials = [
         ("base", "чугун + цинк · канон"),
         ("zinc", "цинк · Плато"),
@@ -422,15 +420,27 @@ def render_tileset(sprites, path, size=(1500, 1180)):
         ("glass", "стекло · Жилы"),
     ]
     pieces = ["straight", "elbow", "tee", "cross"]
-    cell = 200
+    cell, gap, label_x, sprite_x0, top = 200, 28, 70, 460, 100
+    rows = len(materials) + 1  # + строка служебных деталей
+    if size is None:
+        size = (max(1500, sprite_x0 + len(pieces) * cell + (len(pieces) - 1) * gap + 60),
+                top + rows * (cell + 40) + 40)
+
+    img = Image.new("RGB", size, SHEET_BG)
+    draw = ImageDraw.Draw(img)
+    for x in range(0, size[0], 40):
+        draw.line([(x, 0), (x, size[1])], fill=(32, 31, 37), width=1)
+    for y in range(0, size[1], 40):
+        draw.line([(0, y), (size[0], y)], fill=(32, 31, 37), width=1)
+
     draw.text((70, 26), "АМПЕРГРАД × GUTTERCAPS · детали по материалам", font=font("bold", 32), fill=ACID)
 
     for row, (material, label) in enumerate(materials):
-        y = 100 + row * (cell + 40)
-        draw.text((70, y + cell // 2 - 10), label, font=font("regular", 20), fill=INK)
+        y = top + row * (cell + 40)
+        draw.text((label_x, y + cell // 2 - 10), label, font=font("regular", 20), fill=INK)
         for col, piece in enumerate(pieces):
             name = f"{material}-{piece}"
-            x = 300 + col * (cell + 30)
+            x = sprite_x0 + col * (cell + gap)
             art = sprites[name]["image"].copy()
             art.thumbnail((cell - 16, cell - 16), Image.LANCZOS)
             img.paste(art, (x + (cell - art.width) // 2, y + (cell - art.height) // 2), art)
@@ -441,14 +451,15 @@ def render_tileset(sprites, path, size=(1500, 1180)):
                 draw.text((x, y - 26), title, font=font("mono", 19), fill=DIM)
 
     # Служебные круглые детали — отдельной строкой.
-    y = 100 + len(materials) * (cell + 40)
-    draw.text((70, y + cell // 2 - 10), "служебные", font=font("regular", 20), fill=INK)
-    for col, (name, caption) in enumerate((("mouth", "ОТКРЫТЫЙ КОНЕЦ · приёмник"), ("cap", "КОЛПАК · шина"))):
-        x = 300 + col * (cell + 30)
+    y = top + len(materials) * (cell + 40)
+    draw.text((label_x, y + cell // 2 - 10), "служебные", font=font("regular", 20), fill=INK)
+    for col, (name, caption) in enumerate((("mouth", "ПРИЁМНИК"), ("cap", "КОЛПАК · шина"))):
+        x = sprite_x0 + col * (cell + gap)
         art = sprites[name]["image"].copy()
         art.thumbnail((cell - 16, cell - 16), Image.LANCZOS)
         img.paste(art, (x + (cell - art.width) // 2, y + (cell - art.height) // 2), art)
-        draw.text((x, y - 26), caption, font=font("mono", 19), fill=DIM)
+        # Подпись по центру ячейки: короткие строки не наезжают друг на друга.
+        draw.text((x + cell // 2, y - 16), caption, font=font("mono", 19), fill=DIM, anchor="mm")
 
     img.save(path, "JPEG", quality=90)
     return path
