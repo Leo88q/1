@@ -55,28 +55,44 @@ data class BoardSkin(
 /**
  * Превращает гардероб в цвета поля.
  *
- * Соответствие частей поля и палитры предмета:
- *  • палитра    — цвет тока (colors[0]), обесточенные сегменты (colors[1]), ядро (colors[2]);
- *  • тема       — линии сетки (colors[0]), фон поля (colors[1]);
- *  • источник   — шина (colors[0]) и её ореол (colors[1]).
+ * Каждый предмет красит свою часть квартала и ничего больше:
+ *  • палитра  — живой ток (colors[0]) и его приглушённая подложка для обесточенных
+ *               сегментов (colors[2], а если её нет — затемнённый цвет тока),
+ *               яркое ядро соединения (colors[1]);
+ *  • тема     — фон квартала (colors[2], иначе канонический фон) и линии сетки —
+ *               цвет темы (colors[0]), подмешанный к фону, чтобы разметка оставалась тихой;
+ *  • источник — шина питания (colors[0]) и её ореол (colors[1]).
  * Предметы без цветов (или отсутствующие) не меняют вид: поле остаётся каноническим.
+ * Ни один цвет не влияет на правила, время и награды.
  */
 fun BoardSkin.Companion.of(wardrobe: Wardrobe): BoardSkin {
     var skin = BoardSkin.Default
     wardrobe.palette?.let { item ->
         item.colorAt(0)?.let { skin = skin.copy(current = it) }
-        item.colorAt(1)?.let { skin = skin.copy(idle = it) }
-        item.colorAt(2)?.let { skin = skin.copy(hub = it) }
+        val base = item.colorAt(2) ?: blend(skin.current, BoardSkin.Default.field, 0.72f)
+        skin = skin.copy(idle = base, hub = item.colorAt(1) ?: skin.current)
     }
     wardrobe.theme?.let { item ->
-        item.colorAt(0)?.let { skin = skin.copy(grid = it) }
-        item.colorAt(1)?.let { skin = skin.copy(field = it) }
+        val field = item.colorAt(2) ?: BoardSkin.Default.field
+        skin = skin.copy(field = field)
+        item.colorAt(0)?.let { skin = skin.copy(grid = blend(field, it, 0.28f)) }
     }
     wardrobe.source?.let { item ->
         item.colorAt(0)?.let { skin = skin.copy(source = it) }
         item.colorAt(1)?.let { skin = skin.copy(sourceRing = it) }
     }
     return skin
+}
+
+/** Смешивает два цвета: часть = 0 — первый, часть = 1 — второй. */
+fun blend(from: Color, to: Color, part: Float): Color {
+    val t = part.coerceIn(0f, 1f)
+    return Color(
+        red = from.red + (to.red - from.red) * t,
+        green = from.green + (to.green - from.green) * t,
+        blue = from.blue + (to.blue - from.blue) * t,
+        alpha = from.alpha + (to.alpha - from.alpha) * t,
+    )
 }
 
 /**

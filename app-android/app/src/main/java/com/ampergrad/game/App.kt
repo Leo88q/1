@@ -358,6 +358,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     store.lang = lang.code
                 },
                 worn = wardrobe,
+                coins = coins,
                 walletAddress = walletAddress,
                 onPlay = { startLevel(store.level.coerceAtMost(75)) },
                 onDaily = { startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY) },
@@ -534,6 +535,7 @@ private fun MenuScreen(
     lang: Lang,
     onToggleLang: () -> Unit,
     worn: Wardrobe,
+    coins: Int,
     walletAddress: String?,
     onPlay: () -> Unit,
     onDaily: () -> Unit,
@@ -1166,7 +1168,6 @@ private fun ShopOverlay(
     }
 }
 
-@Composable
 /** Состояние карточки: что можно сделать с предметом прямо сейчас. */
 private enum class CosmeticAction { BUY, EQUIP, UNEQUIP, NONE }
 

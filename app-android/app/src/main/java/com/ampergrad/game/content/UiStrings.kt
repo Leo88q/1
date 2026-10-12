@@ -128,7 +128,7 @@ interface UiStrings {
     val shopInUse: String
     val shopPlatform: String
     val shopRewardHint: String
-    val menuCoins: (Int) -> String
+    fun menuCoins(amount: Int): String
     val menuNothingWorn: String
     fun menuWearing(what: String): String
     fun coinsEarned(amount: Int): String

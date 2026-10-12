@@ -1,6 +1,9 @@
 package com.ampergrad.game
 
+import androidx.compose.ui.graphics.Color
 import com.ampergrad.game.content.BoardSkin
+import com.ampergrad.game.content.CosmeticItem
+import com.ampergrad.game.content.blend
 import com.ampergrad.game.content.EconomyRules
 import com.ampergrad.game.content.Shop
 import com.ampergrad.game.content.Wardrobe
@@ -74,11 +77,60 @@ class WardrobeTest {
         val source = assertNotNull(shop.byId("source-gold"))
         val skin = BoardSkin.of(Wardrobe(palette = palette, theme = theme, source = source))
 
+        // Палитра: ток, ядро и тёмная подложка для обесточенных сегментов.
         assertEquals(hexToColorOrNull(palette.colors[0]), skin.current)
-        assertEquals(hexToColorOrNull(palette.colors[1]), skin.idle)
-        assertEquals(hexToColorOrNull(theme.colors[0]), skin.grid)
-        assertEquals(hexToColorOrNull(theme.colors[1]), skin.field)
+        assertEquals(hexToColorOrNull(palette.colors[1]), skin.hub)
+        assertEquals(hexToColorOrNull(palette.colors[2]), skin.idle)
+        assertTrue(luminance(skin.idle) < luminance(skin.current), "подложка должна быть тише тока")
+        // Тема: фон квартала как есть, сетка — тихая примесь акцента к фону.
+        assertEquals(hexToColorOrNull(theme.colors[2]), skin.field)
+        assertEquals(
+            blend(skin.field, assertNotNull(hexToColorOrNull(theme.colors[0])), 0.28f),
+            skin.grid,
+        )
+        assertTrue(skin.grid != skin.field, "тема должна быть видна на поле")
+        // Источник: шина и её ореол.
         assertEquals(hexToColorOrNull(source.colors[0]), skin.source)
+        assertEquals(hexToColorOrNull(source.colors[1]), skin.sourceRing)
+    }
+
+    @Test
+    fun `предмет из двух цветов не спорит с каноном`() {
+        // В каталоге попадаются предметы без третьего (тёмного) цвета — поле не должно пострадать.
+        val palette = CosmeticItem(
+            id = "check-palette",
+            name = "Проверочная палитра",
+            type = "palette",
+            rarity = "rare",
+            channel = "coins",
+            priceUsd = null,
+            priceCoins = 100,
+            how = "тест",
+            lore = "тест",
+            colors = listOf("#00E5C7", "#FFC24B"),
+            standard = "cNFT",
+        )
+        val theme = CosmeticItem(
+            id = "check-theme",
+            name = "Проверочная тема",
+            type = "theme",
+            rarity = "rare",
+            channel = "coins",
+            priceUsd = null,
+            priceCoins = 100,
+            how = "тест",
+            lore = "тест",
+            colors = listOf("#FF3D81", "#9AA7FF"),
+            standard = "cNFT",
+        )
+        val skin = BoardSkin.of(Wardrobe(palette = palette, theme = theme))
+        assertEquals(hexToColorOrNull("#00E5C7"), skin.current)
+        assertEquals(hexToColorOrNull("#FFC24B"), skin.hub)
+        assertEquals(blend(skin.current, BoardSkin.Default.field, 0.72f), skin.idle)
+        assertTrue(luminance(skin.idle) < luminance(skin.current), "подложка темнее тока")
+        // Тёмной основы у темы нет — фон остаётся каноническим, сетка берёт цвет темы.
+        assertEquals(BoardSkin.Default.field, skin.field)
+        assertEquals(blend(BoardSkin.Default.field, assertNotNull(hexToColorOrNull("#FF3D81")), 0.28f), skin.grid)
     }
 
     @Test
@@ -97,6 +149,10 @@ class WardrobeTest {
         assertNotNull(hexToColorOrNull("#00E5C7"))
         assertNotNull(hexToColorOrNull("FFC24B"))
     }
+
+    /** Светимость цвета: нужна, чтобы проверить «тихость» подложки и сетки. */
+    private fun luminance(color: Color): Float =
+        0.2126f * color.red + 0.7152f * color.green + 0.0722f * color.blue
 
     @Test
     fun `резервные правила экономики совпадают с каноном`() {
