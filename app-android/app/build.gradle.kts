@@ -72,24 +72,34 @@ android {
 // Контент (лор, реестр) генерируется в репозитории командой `npm run content`.
 // Если файл есть — копируем его в assets приложения и в ресурсы unit-тестов.
 // В CI файл подкладывает workflow, локально достаточно выполнить npm run content.
-val loreSource = File(rootProject.projectDir.parentFile, "packages/engine/content/lore.json")
-val loreTargets = listOf(
-    File(project.projectDir, "src/main/assets/lore.json"),
-    File(project.projectDir, "src/test/resources/lore.json"),
-)
+val contentDir = File(rootProject.projectDir.parentFile, "packages/engine/content")
+val contentFiles = listOf("lore.json", "cosmetics.json")
+val contentTargets = contentFiles.flatMap { name ->
+    listOf(
+        File(project.projectDir, "src/main/assets/$name"),
+        File(project.projectDir, "src/test/resources/$name"),
+    )
+}
 
 val syncContent = tasks.register("syncContent") {
     group = "ampergrad"
     description = "Копирует контент (lore.json) в assets и тестовые ресурсы"
-    inputs.files(loreSource).optional()
-    outputs.files(loreTargets)
+    inputs.files(contentFiles.map { File(contentDir, it) }).optional()
+    outputs.files(contentTargets)
     doLast {
-        if (!loreSource.exists()) {
-            logger.lifecycle("lore.json не найден — шаг пропущен (выполните npm run content в корне репозитория)")
+        val missing = contentFiles.filterNot { File(contentDir, it).exists() }
+        if (missing.isNotEmpty()) {
+            logger.lifecycle("контент не найден ($missing) — шаг пропущен (выполните npm run content в корне репозитория)")
         } else {
-            loreTargets.forEach { target ->
-                target.parentFile?.mkdirs()
-                loreSource.copyTo(target, overwrite = true)
+            contentFiles.forEach { name ->
+                val source = File(contentDir, name)
+                listOf(
+                    File(project.projectDir, "src/main/assets/$name"),
+                    File(project.projectDir, "src/test/resources/$name"),
+                ).forEach { target ->
+                    target.parentFile?.mkdirs()
+                    source.copyTo(target, overwrite = true)
+                }
             }
         }
     }

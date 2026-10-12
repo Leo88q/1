@@ -45,7 +45,7 @@ jobs:
       - uses: actions/upload-artifact@v5
         with:
           name: content-json
-          path: packages/engine/content/lore.json
+          path: packages/engine/content/*.json
           if-no-files-found: error
 
   apk:
@@ -98,8 +98,10 @@ jobs:
         run: |
           mkdir -p app-android/app/src/test/resources app-android/app/src/main/assets
           cp packages/engine/vectors/levels.json app-android/app/src/test/resources/levels.json
-          cp packages/engine/content/lore.json app-android/app/src/test/resources/lore.json
-          cp packages/engine/content/lore.json app-android/app/src/main/assets/lore.json
+          for f in lore.json cosmetics.json; do
+            cp "packages/engine/content/$f" "app-android/app/src/test/resources/$f"
+            cp "packages/engine/content/$f" "app-android/app/src/main/assets/$f"
+          done
 
       - name: Kotlin-ядро против TS-канона (unit-тесты)
         working-directory: app-android

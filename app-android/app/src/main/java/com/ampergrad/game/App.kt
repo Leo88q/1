@@ -62,7 +62,9 @@ import com.ampergrad.game.solana.MwaWallet
 import com.ampergrad.game.ui.Board
 import com.ampergrad.game.ui.Grad
 import com.ampergrad.game.ui.Tier
+import com.ampergrad.game.content.CosmeticItem
 import com.ampergrad.game.content.Lore
+import com.ampergrad.game.content.Shop
 import com.ampergrad.game.ui.tierOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -97,6 +99,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     val context = LocalContext.current
     val store = remember { ProgressStore(context) }
     val lore = remember { Lore.load(context) }
+    val shop = remember { Shop.load(context) }
     val claimApi = remember { ClaimClient(BuildConfig.SERVER_URL) }
     val scope = rememberCoroutineScope()
 
@@ -104,6 +107,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     var menuOpen by remember { mutableStateOf(true) }
     var walletOpen by remember { mutableStateOf(false) }
     var registryOpen by remember { mutableStateOf(false) }
+    var shopOpen by remember { mutableStateOf(false) }
     var banner by remember { mutableStateOf<String?>(null) }
     var walletAddress by remember { mutableStateOf(store.walletAddress) }
     var walletError by remember { mutableStateOf<String?>(null) }
@@ -232,6 +236,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 onDaily = { startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY) },
                 onWallet = { walletOpen = true },
                 onRegistry = { registryOpen = true },
+                onShop = { shopOpen = true },
                 onReset = {
                     store.reset()
                     session = null
@@ -254,6 +259,10 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     showBanner(if (sound.enabled) "Звук включён" else "Звук выключен")
                 },
             )
+        }
+
+        if (shopOpen) {
+            ShopOverlay(shop = shop, onClose = { shopOpen = false })
         }
 
         if (registryOpen) {
@@ -336,6 +345,7 @@ private fun MenuScreen(
     onDaily: () -> Unit,
     onWallet: () -> Unit,
     onRegistry: () -> Unit,
+    onShop: () -> Unit,
     onReset: () -> Unit,
 ) {
     Column(
@@ -388,6 +398,10 @@ private fun MenuScreen(
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onRegistry, modifier = Modifier.fillMaxWidth()) {
             Text("РЕЕСТР ГОРОДА")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onShop, modifier = Modifier.fillMaxWidth()) {
+            Text("ВИТРИНА")
         }
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onReset) {
@@ -731,6 +745,94 @@ private fun RegistryOverlay(
             Spacer(Modifier.height(12.dp))
         }
     }
+}
+
+/** Витрина косметики: только вид. Каталог — общий с сервером (/shop). */
+@Composable
+private fun ShopOverlay(shop: Shop?, onClose: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xF203050A))
+            .systemBarsPadding()
+            .padding(20.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("ВИТРИНА", style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                TextButton(onClick = onClose) { Text("ЗАКРЫТЬ", color = Grad.InkDim) }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Косметика меняет только вид: цвет тока, тему поля, источник, печать. " +
+                    "Правила, время и награды она не трогает — ни один предмет не даёт преимущества.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Grad.InkDim,
+            )
+            Spacer(Modifier.height(16.dp))
+
+            if (shop == null) {
+                Text(
+                    "Каталог не попал в сборку. Выполните npm run content и пересоберите приложение.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Grad.Metal,
+                )
+            } else {
+                ShopSection("НАГРАДЫ ЗА ИГРУ", shop.rewards, "забрать пломбой в реестре")
+                ShopSection("ЗА МОНЕТЫ", shop.coins, "монеты зарабатываются в игре, не покупаются")
+                ShopSection("ВИТРИНА", shop.store, "покупки идут в фонд сезона и призы")
+                ShopSection("BATTLE PASS", shop.seasonPass, "сезонный трек, 8 недель")
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun ShopSection(title: String, items: List<CosmeticItem>, note: String) {
+    if (items.isEmpty()) return
+    Text(title, style = MaterialTheme.typography.labelSmall, color = Grad.Gold)
+    Spacer(Modifier.height(6.dp))
+    Text(note, style = MaterialTheme.typography.bodySmall, color = Grad.InkDim)
+    Spacer(Modifier.height(8.dp))
+    items.forEach { item ->
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = Grad.Panel),
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Column(Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(item.name, style = MaterialTheme.typography.titleMedium, color = Grad.Ink)
+                    Text(item.priceLabel, style = MaterialTheme.typography.labelSmall, color = Grad.Mint)
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "${item.rarityLabel} · ${item.how}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Grad.InkDim,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text("«${item.lore}»", style = MaterialTheme.typography.bodySmall, color = Grad.Ink)
+            }
+        }
+    }
+    Spacer(Modifier.height(10.dp))
 }
 
 @Composable

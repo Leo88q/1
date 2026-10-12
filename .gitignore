@@ -16,3 +16,5 @@ app-android/local.properties
 app-android/app/src/test/resources/levels.json
 app-android/app/src/test/resources/lore.json
 app-android/app/src/main/assets/lore.json
+app-android/app/src/main/assets/cosmetics.json
+app-android/app/src/test/resources/cosmetics.json
