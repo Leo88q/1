@@ -67,9 +67,9 @@ class LoreTest {
         for (entry in lore.registry) {
             assertTrue(entry.text.length > 30, "короткий текст у ${entry.id}")
             assertTrue(entry.source.isNotBlank(), "нет источника у ${entry.id}")
-            assertTrue(entry.label.startsWith("РЕЕСТР "), "подпись ${entry.label}")
+            assertTrue(entry.code.startsWith("S"), "код страницы ${entry.code}")
         }
-        assertEquals("Клемма", lore.registryEntry("reg-s1-01")?.speaker)
+        assertEquals("Клемма", lore.registryEntry("reg-s1-01")?.speaker(Lang.RU))
     }
 
     @Test
