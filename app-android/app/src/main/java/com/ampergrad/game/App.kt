@@ -67,6 +67,8 @@ import com.ampergrad.game.ui.Board
 import com.ampergrad.game.ui.Grad
 import com.ampergrad.game.ui.Tier
 import com.ampergrad.game.content.CosmeticItem
+import com.ampergrad.game.content.Lang
+import com.ampergrad.game.content.UiStrings
 import com.ampergrad.game.content.Lore
 import com.ampergrad.game.content.Shop
 import com.ampergrad.game.ui.tierOf
@@ -119,6 +121,8 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     val shop = remember { Shop.load(context) }
     val claimApi = remember { ClaimClient(BuildConfig.SERVER_URL) }
     val scope = rememberCoroutineScope()
+    var lang by remember { mutableStateOf(Lang.of(store.lang ?: Lang.systemDefault().code)) }
+    val t = remember(lang) { UiStrings.of(lang) }
 
     var session by remember { mutableStateOf<GameSession?>(null) }
     var menuOpen by remember { mutableStateOf(true) }
@@ -157,8 +161,8 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         menuOpen = false
         walletOpen = false
         banner = when (mode) {
-            Mode.DAILY -> "Челлендж дня: тот же квартал для всех мастеров Амперграда"
-            Mode.LEVEL -> "Подай ток на ${level.receivers.size} приёмник(а): все ячейки квартала должны быть подключены к шине"
+            Mode.DAILY -> t.bannerDailyStart
+            Mode.LEVEL -> t.bannerLevelStart(level.receivers.size)
         }
     }
 
@@ -196,13 +200,13 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 )
                 current.rank = result.rank
                 current.scoreNote = if (result.rank != null) {
-                    "Рейтинг дня: место ${result.rank} из ${maxOf(result.leaderboard.size, result.rank)}"
+                    t.boardRank(result.rank, maxOf(result.leaderboard.size, result.rank))
                 } else {
-                    "Результат дня принят: ${result.moves} ходов"
+                    t.boardAccepted(result.moves)
                 }
                 store.leaderboardJson = encodeBoard(result.leaderboard)
             } catch (e: Exception) {
-                current.scoreNote = e.message ?: "Не удалось отправить результат дня"
+                current.scoreNote = e.message ?: t.boardSendFailed
             } finally {
                 current.scoreBusy = false
             }
@@ -217,7 +221,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 boardError = null
                 store.leaderboardJson = encodeBoard(board)
             } catch (e: Exception) {
-                boardError = e.message ?: "Рейтинг недоступен"
+                boardError = e.message ?: t.boardError
             } finally {
                 boardLoading = false
             }
@@ -247,14 +251,14 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             if (store.dailyBestMoves == 0 || current.moves < store.dailyBestMoves) store.dailyBestMoves = current.moves
             if (walletAddress != null) submitDaily(current)
         }
-        showBanner("Пломба. Квартал дышит светом.")
+        showBanner(t.bannerSealed)
     }
 
     fun rotate(current: GameSession, index: Int, dir: Int) {
         if (current.finishedAt != null) return
         val before = current.level.tiles[index].rot
         if (!applyRotate(current.level, index, dir)) {
-            showBanner("Клемма: «Крест не вращается, мастер. Регламент 2.7»")
+            showBanner(t.bannerCrossFixed)
             return
         }
         if (current.level.tiles[index].rot != before) {
@@ -272,7 +276,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         current.hintIndex = h.index
         current.hintUntil = System.currentTimeMillis() + 2500
         sound.hint()
-        showBanner("Клемма: «Позиция 4.2 — доверните фрагмент до упора»")
+        showBanner(t.bannerHint)
         scope.launch {
             delay(2600)
             if (current.hintIndex == h.index) current.hintIndex = null
@@ -303,15 +307,15 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 store.lastClaimJson = result.txSignature
                 current.reward = RewardState(
                     message = when (result.status) {
-                        "minted" -> "Пломба записана в реестр города"
-                        "queued" -> "Награда в очереди: минт выполнится в ближайшем батче"
-                        else -> "Статус: ${result.status}"
+                        "minted" -> t.claimMinted
+                        "queued" -> t.claimQueued
+                        else -> t.claimStatus(result.status)
                     },
                     assetId = result.assetId,
                 )
             } catch (e: Exception) {
                 current.reward = RewardState(
-                    message = e.message ?: "Не удалось забрать награду",
+                    message = e.message ?: t.claimFailed,
                     isError = true,
                 )
             }
@@ -324,6 +328,12 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             MenuScreen(
                 store = store,
                 lore = lore,
+                t = t,
+                lang = lang,
+                onToggleLang = {
+                    lang = if (lang == Lang.RU) Lang.EN else Lang.RU
+                    store.lang = lang.code
+                },
                 walletAddress = walletAddress,
                 onPlay = { startLevel(store.level.coerceAtMost(75)) },
                 onDaily = { startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY) },
@@ -338,13 +348,14 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     store.reset()
                     session = null
                     walletAddress = null
-                    showBanner("Реестр очищен. Город начинается заново.")
+                    showBanner(t.bannerReset)
                 },
             )
         } else {
             GameScreen(
                 session = current,
                 lore = lore,
+                t = t,
                 banner = banner,
                 soundEnabled = sound.enabled,
                 onRotate = { index, dir -> rotate(current, index, dir) },
@@ -353,13 +364,14 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 onMenu = { menuOpen = true },
                 onToggleSound = {
                     sound.enabled = !sound.enabled
-                    showBanner(if (sound.enabled) "Звук включён" else "Звук выключен")
+                    showBanner(if (sound.enabled) t.soundOn else t.soundOff)
                 },
             )
         }
 
         if (boardOpen) {
             LeaderboardOverlay(
+                t = t,
                 day = System.currentTimeMillis() / 86_400_000L,
                 entries = board,
                 loading = boardLoading,
@@ -370,19 +382,21 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         }
 
         if (shopOpen) {
-            ShopOverlay(shop = shop, onClose = { shopOpen = false })
+            ShopOverlay(shop = shop, t = t, onClose = { shopOpen = false })
         }
 
         if (registryOpen) {
             RegistryOverlay(
                 lore = lore,
                 store = store,
+                t = t,
                 onClose = { registryOpen = false },
             )
         }
 
         if (walletOpen) {
             WalletOverlay(
+                t = t,
                 address = walletAddress,
                 busy = walletBusy,
                 error = walletError,
@@ -397,9 +411,9 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                             walletAddress = address
                             store.walletAddress = address
                             store.walletAuthToken = wallet.authToken
-                            showBanner("Кошелёк подключён: ${Base58.shorten(address)}")
+                            showBanner(t.bannerWalletConnected(Base58.shorten(address)))
                         } catch (e: Exception) {
-                            walletError = e.message ?: "Не удалось подключить кошелёк"
+                            walletError = e.message ?: t.walletConnectFailed
                         } finally {
                             walletBusy = false
                         }
@@ -415,7 +429,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                             store.walletAddress = null
                             store.walletAuthToken = null
                         } catch (e: Exception) {
-                            walletError = e.message ?: "Не удалось отключить кошелёк"
+                            walletError = e.message ?: t.walletDisconnectFailed
                         } finally {
                             walletBusy = false
                         }
@@ -429,6 +443,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             WinOverlay(
                 session = finished,
                 lore = lore,
+                t = t,
                 walletAddress = walletAddress,
                 onNext = {
                     if (finished.mode == Mode.DAILY) startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY)
@@ -451,6 +466,9 @@ private fun encodeBoard(scores: List<DailyScore>): String = LeaderboardCodec.enc
 private fun MenuScreen(
     store: ProgressStore,
     lore: Lore?,
+    t: UiStrings,
+    lang: Lang,
+    onToggleLang: () -> Unit,
     walletAddress: String?,
     onPlay: () -> Unit,
     onDaily: () -> Unit,
@@ -472,13 +490,13 @@ private fun MenuScreen(
         Spacer(Modifier.height(12.dp))
         Text("АМПЕРГРАД", style = MaterialTheme.typography.displaySmall, color = Color(0xFFEAFFF9))
         Text(
-            "ВЕРНИ ГОРОДУ ТОК",
+            t.tagline,
             style = MaterialTheme.typography.labelSmall,
             color = Grad.Mint,
         )
         Spacer(Modifier.height(18.dp))
         Text(
-            text = "Собранных кварталов: ${store.solvedCount()} · пломб: ${store.totalStars()} · стрик: ${store.streak} дн.",
+            text = t.menuProgress(store.solvedCount(), store.totalStars(), store.streak),
             style = MaterialTheme.typography.bodyMedium,
             color = Grad.InkDim,
         )
@@ -489,7 +507,7 @@ private fun MenuScreen(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = Grad.Mint, contentColor = Color(0xFF04211D)),
         ) {
-            Text("НАЧАТЬ СМЕНУ · УРОВЕНЬ ${store.level.coerceAtMost(75)}")
+            Text(t.startShift(store.level.coerceAtMost(75)))
         }
         lore?.quarter(store.level.coerceAtMost(75))?.let { quarter ->
             Spacer(Modifier.height(6.dp))
@@ -501,41 +519,44 @@ private fun MenuScreen(
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onDaily, modifier = Modifier.fillMaxWidth()) {
-            Text("ЧЕЛЛЕНДЖ ДНЯ")
+            Text(t.dailyChallenge)
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onWallet, modifier = Modifier.fillMaxWidth()) {
-            Text(if (walletAddress == null) "ПОДКЛЮЧИТЬ КОШЕЛЁК" else "КОШЕЛЁК · ${Base58.shorten(walletAddress)}")
+            Text(
+                if (walletAddress == null) t.connectWallet
+                else t.walletShort(Base58.shorten(walletAddress)),
+            )
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onRegistry, modifier = Modifier.fillMaxWidth()) {
-            Text("РЕЕСТР ГОРОДА")
+            Text(t.registryButton)
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onShop, modifier = Modifier.fillMaxWidth()) {
-            Text("ВИТРИНА")
+            Text(t.shopButton)
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onBoard, modifier = Modifier.fillMaxWidth()) {
-            Text("РЕЙТИНГ ДНЯ")
+            Text(t.boardButton)
         }
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onReset) {
-            Text("НАЧАТЬ ЗАНОВО", color = Grad.InkDim)
+            Text(t.resetButton, color = Grad.InkDim)
+        }
+        TextButton(onClick = onToggleLang) {
+            Text(if (lang == Lang.RU) "ENGLISH" else "РУССКИЙ", color = Grad.Metal)
         }
 
         Spacer(Modifier.height(24.dp))
         Text(
-            "Гильдия Ключа: свет — это ресурс, а память — плата. " +
-                "Награды за кварталы — сжатые NFT (cNFT) в реестре города; игра не требует токенов " +
-                "и не просит подписывать транзакции за SOL.",
+            t.menuAbout,
             style = MaterialTheme.typography.bodySmall,
             color = Grad.InkDim,
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            "Движок правил: собственный код проекта. Идея жанра — свободная; код PipeWalker (MIT) " +
-                "не используется, ассеты — оригинальные.",
+            t.menuEngineNote,
             style = MaterialTheme.typography.bodySmall,
             color = Color(0xFF4B5B73),
         )
@@ -546,6 +567,7 @@ private fun MenuScreen(
 private fun GameScreen(
     session: GameSession,
     lore: Lore?,
+    t: UiStrings,
     banner: String?,
     soundEnabled: Boolean,
     onRotate: (Int, Int) -> Unit,
@@ -572,27 +594,25 @@ private fun GameScreen(
         ) {
             Column {
                 Text(
-                    text = if (session.mode == Mode.DAILY) "ЧЕЛЛЕНДЖ ДНЯ" else tier.name,
+                    text = if (session.mode == Mode.DAILY) t.daily else t.tierName(tier.order),
                     style = MaterialTheme.typography.titleMedium,
                     color = accent,
                 )
                 Text(
                     text = when {
-                        session.mode == Mode.DAILY ->
-                            "ОБЩИЙ КВАРТАЛ ${session.level.size}×${session.level.size}"
+                        session.mode == Mode.DAILY -> t.commonQuarter(session.level.size)
 
-                        quarter != null ->
-                            "УРОВЕНЬ ${session.levelNumber} · ${quarter.name}"
+                        quarter != null -> "${t.level(session.levelNumber)} · ${quarter.name}"
 
-                        else -> "УРОВЕНЬ ${session.levelNumber} · КВАРТАЛ ${session.level.size}×${session.level.size}"
+                        else -> "${t.level(session.levelNumber)} · ${session.level.size}×${session.level.size}"
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = Grad.InkDim,
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Stat("ХОДЫ", session.moves.toString())
-                Stat("ВРЕМЯ", formatDuration((session.finishedAt ?: System.currentTimeMillis()) - session.startedAt))
+                Stat(t.moves, session.moves.toString())
+                Stat(t.time, formatDuration((session.finishedAt ?: System.currentTimeMillis()) - session.startedAt))
             }
         }
 
@@ -628,9 +648,9 @@ private fun GameScreen(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick = onReset, modifier = Modifier.weight(1f)) { Text("СБРОС") }
-            OutlinedButton(onClick = onHint, modifier = Modifier.weight(1f)) { Text("ПОДСКАЗКА") }
-            OutlinedButton(onClick = onMenu, modifier = Modifier.weight(1f)) { Text("МЕНЮ") }
+            OutlinedButton(onClick = onReset, modifier = Modifier.weight(1f)) { Text(t.reset) }
+            OutlinedButton(onClick = onHint, modifier = Modifier.weight(1f)) { Text(t.hint) }
+            OutlinedButton(onClick = onMenu, modifier = Modifier.weight(1f)) { Text(t.menu) }
             OutlinedButton(onClick = onToggleSound, modifier = Modifier.width(56.dp)) {
                 Text(if (soundEnabled) "♪" else "×")
             }
@@ -650,6 +670,7 @@ private fun Stat(key: String, value: String) {
 private fun WinOverlay(
     session: GameSession,
     lore: Lore?,
+    t: UiStrings,
     walletAddress: String?,
     onNext: () -> Unit,
     onMenu: () -> Unit,
@@ -673,7 +694,7 @@ private fun WinOverlay(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    "ПЛОМБА",
+                    t.seal,
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFF04211D),
                     modifier = Modifier
@@ -681,7 +702,7 @@ private fun WinOverlay(
                         .padding(horizontal = 12.dp, vertical = 4.dp),
                 )
                 Spacer(Modifier.height(12.dp))
-                Text("Квартал дышит светом", style = MaterialTheme.typography.titleMedium, color = Color(0xFFEAFFF9))
+                Text(t.districtAlive, style = MaterialTheme.typography.titleMedium, color = Color(0xFFEAFFF9))
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = "★".repeat(session.stars) + "☆".repeat(3 - session.stars),
@@ -690,9 +711,12 @@ private fun WinOverlay(
                 )
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    "Ходы: ${session.moves} (план ${session.level.parMoves}) · " +
-                        "Время: ${formatDuration((session.finishedAt ?: System.currentTimeMillis()) - session.startedAt)} · " +
-                        "Подсказки: ${session.hintsUsed}",
+                    t.winStats(
+                        moves = session.moves,
+                        par = session.level.parMoves,
+                        time = formatDuration((session.finishedAt ?: System.currentTimeMillis()) - session.startedAt),
+                        hints = session.hintsUsed,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = Grad.InkDim,
                     textAlign = TextAlign.Center,
@@ -700,9 +724,9 @@ private fun WinOverlay(
 
                 if (session.mode == Mode.DAILY) {
                     val note = when {
-                        session.scoreBusy -> "Отправляю результат в рейтинг…"
+                        session.scoreBusy -> t.boardSubmitting
                         session.scoreNote != null -> session.scoreNote
-                        walletAddress == null -> "Подключите кошелёк, чтобы попасть в рейтинг дня"
+                        walletAddress == null -> t.boardConnect
                         else -> null
                     }
                     if (note != null) {
@@ -738,7 +762,7 @@ private fun WinOverlay(
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                "Открыта как ${entry.id} · ${entry.title}",
+                                t.openEntry(entry.id, entry.title),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Grad.InkDim,
                             )
@@ -749,7 +773,7 @@ private fun WinOverlay(
                 Spacer(Modifier.height(18.dp))
                 if (walletAddress == null) {
                     OutlinedButton(onClick = onWallet, modifier = Modifier.fillMaxWidth()) {
-                        Text("ЗАБРАТЬ ПЛОМБУ (НУЖЕН КОШЕЛЁК)")
+                        Text(t.claimNeedsWallet)
                     }
                 } else {
                     Button(
@@ -758,7 +782,7 @@ private fun WinOverlay(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Grad.Gold, contentColor = Color(0xFF231703)),
                     ) {
-                        Text(if (session.reward.busy) "ЗАПИСЬ В РЕЕСТР…" else "ЗАБРАТЬ ПЛОМБУ В РЕЕСТР")
+                        Text(if (session.reward.busy) t.claimBusy else t.claimButton)
                     }
                 }
                 session.reward.message?.let { message ->
@@ -773,7 +797,7 @@ private fun WinOverlay(
                 session.reward.assetId?.let { asset ->
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Реестр: ${Base58.shorten(asset, 6, 6)}",
+                        t.registryRef(Base58.shorten(asset, 6, 6)),
                         style = MaterialTheme.typography.labelSmall,
                         color = Grad.InkDim,
                     )
@@ -786,9 +810,9 @@ private fun WinOverlay(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = Grad.Mint, contentColor = Color(0xFF04211D)),
                     ) {
-                        Text(if (session.mode == Mode.DAILY) "ЕЩЁ РАЗ" else "СЛЕДУЮЩИЙ КВАРТАЛ")
+                        Text(if (session.mode == Mode.DAILY) t.again else t.nextQuarter)
                     }
-                    OutlinedButton(onClick = onMenu, modifier = Modifier.weight(1f)) { Text("В МЕНЮ") }
+                    OutlinedButton(onClick = onMenu, modifier = Modifier.weight(1f)) { Text(t.toMenu) }
                 }
             }
         }
@@ -800,6 +824,7 @@ private fun WinOverlay(
 private fun RegistryOverlay(
     lore: Lore?,
     store: ProgressStore,
+    t: UiStrings,
     onClose: () -> Unit,
 ) {
     val pages = (1 until store.level.coerceAtMost(Lore.TOTAL_LEVELS + 1)).mapNotNull { level ->
@@ -827,19 +852,18 @@ private fun RegistryOverlay(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
-                    Text("РЕЕСТР ГОРОДА", style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                    Text(t.registryTitle, style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
                     Text(
-                        "открыто ${pages.size} из $total",
+                        t.registryProgress(pages.size, total),
                         style = MaterialTheme.typography.labelSmall,
                         color = Grad.InkDim,
                     )
                 }
-                TextButton(onClick = onClose) { Text("ЗАКРЫТЬ", color = Grad.InkDim) }
+                TextButton(onClick = onClose) { Text(t.close, color = Grad.InkDim) }
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                "Гильдия не выдаёт реестр целиком: страницы открываются за собранные кварталы. " +
-                    "Каждая — с подписью того, кто говорил.",
+                t.registryNote,
                 style = MaterialTheme.typography.bodySmall,
                 color = Grad.InkDim,
             )
@@ -847,7 +871,7 @@ private fun RegistryOverlay(
 
             if (pages.isEmpty()) {
                 Text(
-                    "Пока пусто. Соберите первый квартал — откроется первая страница.",
+                    t.registryEmpty,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Grad.Metal,
                 )
@@ -869,7 +893,7 @@ private fun RegistryOverlay(
                         Text("«${entry.text}»", style = MaterialTheme.typography.bodySmall, color = Grad.Ink)
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "Открыта: ${entry.source} · ${entry.id}",
+                            t.registryOpenedBy(entry.source, entry.id),
                             style = MaterialTheme.typography.labelSmall,
                             color = Grad.InkDim,
                         )
@@ -885,6 +909,7 @@ private fun RegistryOverlay(
 /** Рейтинг дня: один квартал для всех, сортировка по числу ходов. */
 @Composable
 private fun LeaderboardOverlay(
+    t: UiStrings,
     day: Long,
     entries: List<DailyScore>,
     loading: Boolean,
@@ -911,26 +936,24 @@ private fun LeaderboardOverlay(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
-                    Text("РЕЙТИНГ ДНЯ", style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
-                    Text("день $day", style = MaterialTheme.typography.labelSmall, color = Grad.InkDim)
+                    Text(t.boardTitle, style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                    Text(t.boardDay(day), style = MaterialTheme.typography.labelSmall, color = Grad.InkDim)
                 }
-                TextButton(onClick = onClose) { Text("ЗАКРЫТЬ", color = Grad.InkDim) }
+                TextButton(onClick = onClose) { Text(t.close, color = Grad.InkDim) }
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                "Квартал дня одинаков для всех мастеров. Сервер проигрывает ходы движком, " +
-                    "поэтому в рейтинге только честные решения.",
+                t.boardNote,
                 style = MaterialTheme.typography.bodySmall,
                 color = Grad.InkDim,
             )
             Spacer(Modifier.height(14.dp))
 
             when {
-                loading -> Text("Запрашиваю реестр…", style = MaterialTheme.typography.bodyMedium, color = Grad.Metal)
+                loading -> Text(t.boardLoading, style = MaterialTheme.typography.bodyMedium, color = Grad.Metal)
                 error != null -> Text(error, style = MaterialTheme.typography.bodyMedium, color = Grad.Danger)
                 entries.isEmpty() -> Text(
-                    "Сегодня ещё никто не отправил результат. Соберите квартал дня — " +
-                        "и город запишет вас первым.",
+                    t.boardEmpty,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Grad.Metal,
                 )
@@ -954,7 +977,7 @@ private fun LeaderboardOverlay(
                                 color = if (row.rank == 1) Grad.Gold else Grad.Ink,
                             )
                             Text(
-                                "${row.moves} ход.",
+                                t.boardMoves(row.moves),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Grad.InkDim,
                             )
@@ -965,7 +988,7 @@ private fun LeaderboardOverlay(
 
             Spacer(Modifier.height(12.dp))
             OutlinedButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
-                Text("ОБНОВИТЬ")
+                Text(t.boardRefresh)
             }
             Spacer(Modifier.height(12.dp))
         }
@@ -973,7 +996,7 @@ private fun LeaderboardOverlay(
 }
 
 @Composable
-private fun ShopOverlay(shop: Shop?, onClose: () -> Unit) {
+private fun ShopOverlay(shop: Shop?, t: UiStrings, onClose: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -992,13 +1015,12 @@ private fun ShopOverlay(shop: Shop?, onClose: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("ВИТРИНА", style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
-                TextButton(onClick = onClose) { Text("ЗАКРЫТЬ", color = Grad.InkDim) }
+                Text(t.shopTitle, style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                TextButton(onClick = onClose) { Text(t.close, color = Grad.InkDim) }
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                "Косметика меняет только вид: цвет тока, тему поля, источник, печать. " +
-                    "Правила, время и награды она не трогает — ни один предмет не даёт преимущества.",
+                t.shopNote,
                 style = MaterialTheme.typography.bodySmall,
                 color = Grad.InkDim,
             )
@@ -1006,15 +1028,15 @@ private fun ShopOverlay(shop: Shop?, onClose: () -> Unit) {
 
             if (shop == null) {
                 Text(
-                    "Каталог не попал в сборку. Выполните npm run content и пересоберите приложение.",
+                    t.shopMissing,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Grad.Metal,
                 )
             } else {
-                ShopSection("НАГРАДЫ ЗА ИГРУ", shop.rewards, "забрать пломбой в реестре")
-                ShopSection("ЗА МОНЕТЫ", shop.coins, "монеты зарабатываются в игре, не покупаются")
-                ShopSection("ВИТРИНА", shop.store, "покупки идут в фонд сезона и призы")
-                ShopSection("BATTLE PASS", shop.seasonPass, "сезонный трек, 8 недель")
+                ShopSection(t.shopSectionRewards, shop.rewards, t.shopNoteRewards, t)
+                ShopSection(t.shopSectionCoins, shop.coins, t.shopNoteCoins, t)
+                ShopSection(t.shopSectionStore, shop.store, t.shopNoteStore, t)
+                ShopSection(t.shopSectionPass, shop.seasonPass, t.shopNotePass, t)
             }
             Spacer(Modifier.height(12.dp))
         }
@@ -1022,7 +1044,7 @@ private fun ShopOverlay(shop: Shop?, onClose: () -> Unit) {
 }
 
 @Composable
-private fun ShopSection(title: String, items: List<CosmeticItem>, note: String) {
+private fun ShopSection(title: String, items: List<CosmeticItem>, note: String, t: UiStrings) {
     if (items.isEmpty()) return
     Text(title, style = MaterialTheme.typography.labelSmall, color = Grad.Gold)
     Spacer(Modifier.height(6.dp))
@@ -1043,11 +1065,11 @@ private fun ShopSection(title: String, items: List<CosmeticItem>, note: String) 
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(item.name, style = MaterialTheme.typography.titleMedium, color = Grad.Ink)
-                    Text(item.priceLabel, style = MaterialTheme.typography.labelSmall, color = Grad.Mint)
+                    Text(item.priceLabel(t), style = MaterialTheme.typography.labelSmall, color = Grad.Mint)
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "${item.rarityLabel} · ${item.how}",
+                    "${item.rarityLabel(t)} · ${item.how}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Grad.InkDim,
                 )
@@ -1061,6 +1083,7 @@ private fun ShopSection(title: String, items: List<CosmeticItem>, note: String) 
 
 @Composable
 private fun WalletOverlay(
+    t: UiStrings,
     address: String?,
     busy: Boolean,
     error: String?,
@@ -1083,28 +1106,26 @@ private fun WalletOverlay(
             shape = RoundedCornerShape(18.dp),
         ) {
             Column(Modifier.padding(22.dp)) {
-                Text("КОШЕЛЁК", style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                Text(t.walletTitle, style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = if (address == null) {
-                        "Кошелёк подключается только для того, чтобы забрать награду. " +
-                            "Игра не требует токенов и не подписывает транзакции за SOL."
+                        t.walletNote
                     } else {
-                        "Подключено: ${Base58.shorten(address, 6, 6)}"
+                        t.walletConnectedShort(Base58.shorten(address, 6, 6))
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Grad.InkDim,
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "Работает с Seed Vault Wallet на Seeker, Phantom, Solflare, Backpack — " +
-                        "подключение идёт через Mobile Wallet Adapter, поэтому приложение не зависит от конкретного кошелька.",
+                    t.walletNoKeys,
                     style = MaterialTheme.typography.bodySmall,
                     color = Grad.InkDim,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Сеть: ${if (mainnet) "mainnet-beta" else "devnet"} · Сервер клейма: $serverUrl",
+                    "${if (mainnet) t.networkMainnet else t.networkDevnet} · ${t.walletServer(serverUrl)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFF4B5B73),
                 )
@@ -1120,16 +1141,16 @@ private fun WalletOverlay(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Grad.Mint, contentColor = Color(0xFF04211D)),
                     ) {
-                        Text(if (busy) "ОЖИДАНИЕ КОШЕЛЬКА…" else "ПОДКЛЮЧИТЬ КОШЕЛЁК")
+                        Text(if (busy) t.walletConnecting else t.walletConnect)
                     }
                 } else {
                     OutlinedButton(onClick = onDisconnect, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                        Text("ОТКЛЮЧИТЬ")
+                        Text(t.walletDisconnect)
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
-                    Text("ЗАКРЫТЬ", color = Grad.InkDim)
+                    Text(t.close, color = Grad.InkDim)
                 }
             }
         }

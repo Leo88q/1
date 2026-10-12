@@ -26,22 +26,11 @@ data class CosmeticItem(
     val colors: List<String>,
     val standard: String?,
 ) {
-    val rarityLabel: String
-        get() = when (rarity) {
-            "common" -> "ОБЫЧНЫЙ"
-            "rare" -> "РЕДКИЙ"
-            "epic" -> "ЭПИЧЕСКИЙ"
-            else -> "ЛЕГЕНДАРНЫЙ"
-        }
+    /** Метка редкости на языке интерфейса. */
+    fun rarityLabel(t: UiStrings): String = t.rarity(rarity)
 
     /** Цена для карточки: деньги витрины, монеты игры или способ получения. */
-    val priceLabel: String
-        get() = when {
-            priceUsd != null -> "$${String.format("%.2f", priceUsd)}"
-            priceCoins != null -> "$priceCoins монет"
-            channel == "reward" -> "за игру"
-            else -> "по сезону"
-        }
+    fun priceLabel(t: UiStrings): String = t.priceLabel(priceUsd, priceCoins, channel)
 }
 
 class Shop(val items: List<CosmeticItem>) {

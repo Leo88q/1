@@ -69,6 +69,11 @@ class ProgressStore(context: Context) {
         get() = prefs.getInt("daily_best_moves", 0)
         set(value) = prefs.edit().putInt("daily_best_moves", value).apply()
 
+    /** Язык интерфейса: "ru" или "en". Пусто — берём системный. */
+    var lang: String?
+        get() = prefs.getString("lang", null)
+        set(value) = prefs.edit().putString("lang", value).apply()
+
     /** Последний загруженный рейтинг дня (JSON) — экран открывается мгновенно. */
     var leaderboardJson: String?
         get() = prefs.getString("leaderboard", null)

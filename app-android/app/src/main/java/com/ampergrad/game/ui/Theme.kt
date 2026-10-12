@@ -31,15 +31,19 @@ object Grad {
     val Hub = Color(0xFF16202F)
 }
 
-/** Ярусы: название и акцентный цвет (5 ярусов × 15 уровней). */
-data class Tier(val name: String, val accent: Color)
+/**
+ * Ярусы: идентификатор (совпадает с content/lore.json), порядок сверху вниз
+ * и акцентный цвет. Названия берутся из переводов (UiStrings.tierName), чтобы
+ * интерфейс был на языке игрока, а канон контента остался одним.
+ */
+data class Tier(val id: String, val order: Int, val accent: Color)
 
 val TIERS = listOf(
-    Tier("ПЛАТО ПЕРВОГО КОНТАКТА", Color(0xFF00E5C7)),
-    Tier("РТУТНЫЙ ЯРУС", Color(0xFF2AD9C4)),
-    Tier("ТЕРМИНАЛЬНЫЙ ЯРУС", Color(0xFF5CC8FF)),
-    Tier("СТАРЫЙ ДИОД", Color(0xFFFFC24B)),
-    Tier("ПЛАВИЛЬНЯ", Color(0xFFFF3D81)),
+    Tier("plateau", 1, Color(0xFF00E5C7)),
+    Tier("mercury", 2, Color(0xFF2AD9C4)),
+    Tier("terminal", 3, Color(0xFF5CC8FF)),
+    Tier("old-diode", 4, Color(0xFFFFC24B)),
+    Tier("melter", 5, Color(0xFFFF3D81)),
 )
 
 fun tierOf(levelNumber: Int): Tier = TIERS[((levelNumber - 1) / 15).coerceIn(0, TIERS.size - 1)]

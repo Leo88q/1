@@ -1,3 +1,5 @@
+import com.ampergrad.game.content.En
+import com.ampergrad.game.content.Ru
 import com.ampergrad.game.content.Shop
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,7 +39,7 @@ class ShopTest {
             assertNull(item.priceUsd, "${item.id}: награда не продаётся")
             assertNull(item.priceCoins, "${item.id}: награда не стоит монет")
             assertNotNull(item.standard, "${item.id}: награда должна быть NFT")
-            assertEquals("за игру", item.priceLabel)
+            assertEquals("за игру", item.priceLabel(Ru))
         }
         for (item in shop.store) {
             val price = item.priceUsd
@@ -59,6 +61,20 @@ class ShopTest {
             assertTrue(item.how.isNotBlank(), "${item.id}: не сказано, как получить")
         }
     }
+
+    @Test
+    fun `метки редкости и цены переводятся`() {
+        val store = shop.store.first()
+        assertTrue(store.priceLabel(En).startsWith("$"), "цена витрины в долларах: ${store.priceLabel(En)}")
+        assertTrue(ruCoinsExample().priceLabel(Ru).endsWith("монет"), "цена в монетах по-русски")
+        assertTrue(ruCoinsExample().priceLabel(En).endsWith("coins"), "цена в монетах по-английски")
+        assertEquals("LEGENDARY", legend().rarityLabel(En))
+        assertEquals("ЛЕГЕНДАРНЫЙ", legend().rarityLabel(Ru))
+    }
+
+    private fun ruCoinsExample() = shop.coins.first()
+
+    private fun legend() = shop.items.first { it.rarity == "legendary" }
 
     @Test
     fun `типы предметов — только косметика`() {
