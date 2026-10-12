@@ -257,6 +257,13 @@ app.innerHTML = `
         <button class="btn" id="btnDaily">Челлендж дня</button>
         <button class="btn btn--ghost" id="btnRestart">Начать заново</button>
       </div>
+      <!-- Прыжок по кварталам: в лаборатории смотрят арт и правила, а не
+           проходят семьдесят пять уровней подряд, чтобы дойти до Плавильни. -->
+      <div class="menu-jump">
+        <label for="jumpLevel">Квартал</label>
+        <input id="jumpLevel" type="number" min="1" max="75" step="1" value="1" />
+        <button class="btn btn--ghost" id="btnJump">Перейти</button>
+      </div>
       <p class="footnote">
         Прототип правил. Ядро — общий код с Android-приложением и сервером.<br />
         Код PipeWalker не используется; проект вдохновлён жанром.
@@ -802,6 +809,14 @@ $('btnRestart').addEventListener('click', () => {
   progress = { level: 1, stars: {}, bestMoves: {} };
   saveProgress(progress);
   refreshMenu();
+});
+$('btnJump').addEventListener('click', () => {
+  const raw = Number($<HTMLInputElement>('jumpLevel').value);
+  if (!Number.isFinite(raw)) return;
+  startLevel(Math.min(75, Math.max(1, Math.round(raw))));
+});
+$('jumpLevel').addEventListener('keydown', (event) => {
+  if ((event as KeyboardEvent).key === 'Enter') $<HTMLButtonElement>('btnJump').click();
 });
 $('btnReset').addEventListener('click', () => {
   if (!session) return;
