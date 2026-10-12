@@ -27,14 +27,22 @@ body {
   overscroll-behavior: none;
 }
 
-#app,
+#app {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  background: #04060b;
+}
+
 .shell {
   height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.shell {
+  /* Игра телефонная, а арт нарисован портретом 720×1290. На широком окне
+     MacBook'а поле растягивалось бы по ширине, и кадр яруса превращался
+     в размытый увеличинный фрагмент граффити — поэтому держим узкую колонку,
+     как на телефоне. На узком экране колонка занимает всю ширину. */
+  width: min(100%, 460px);
   padding: max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom));
   gap: 8px;
 }
@@ -192,11 +200,14 @@ canvas {
   place-items: center;
   padding: 20px;
   /* Фон экрана из арта (меню, победа, магазин) под затемнением: карточка остаётся
-     читаемой, а кадр виден. Переменную ставит main.ts, когда арт загружен. */
-  background-color: rgba(3, 5, 10, 0.84);
+     читаемой, а кадр виден. Переменную ставит main.ts, когда арт загружен.
+     contain, а не cover: кадр портретный (720×1290), и на широком окне cover
+     расплющивал его двукратно увеличенный размытый фрагмент. */
+  background-color: rgba(3, 5, 10, 0.9);
   background-image: linear-gradient(180deg, rgba(3, 5, 10, 0.8), rgba(3, 5, 10, 0.94)),
     var(--art-screen, none);
-  background-size: cover;
+  background-size: contain;
+  background-repeat: no-repeat;
   background-position: center;
   backdrop-filter: blur(6px);
   opacity: 0;

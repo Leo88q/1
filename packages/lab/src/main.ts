@@ -195,9 +195,19 @@ function sealFile(key: string): string | undefined {
   return pack.seals?.[key] ?? pack.rewards[key];
 }
 
-/** Картинка фона, залитая по размеру холста (cover). */
+/**
+ * Картинка фона по размеру холста (cover), но без размытия: кадр яруса нарисован
+ * портретом 720×1290, и на широком окне честный cover растягивал бы его вдвое —
+ * поле превращалось в размытый фрагмент граффити. Поэтому увеличивать можно не
+ * больше MAX_BG_ZOOM, дальше фон просто обрамляем цветом (letterbox).
+ */
+const MAX_BG_ZOOM = 1.25;
+
 function drawCover(img: HTMLImageElement, rect: DOMRect) {
-  const scale = Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+  ctx.fillStyle = '#04060b';
+  ctx.fillRect(0, 0, rect.width, rect.height);
+  const cover = Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+  const scale = Math.min(cover, MAX_BG_ZOOM);
   const w = img.naturalWidth * scale;
   const h = img.naturalHeight * scale;
   ctx.drawImage(img, (rect.width - w) / 2, (rect.height - h) / 2, w, h);
@@ -530,17 +540,35 @@ function geometry() {
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.floor(rect.width * dpr);
-  canvas.height = Math.floor(rect.height * dpr);
+  const w = Math.max(1, Math.floor(rect.width * dpr));
+  const h = Math.max(1, Math.floor(rect.height * dpr));
+  if (canvas.width === w && canvas.height === h) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return;
+  }
+  canvas.width = w;
+  canvas.height = h;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 window.addEventListener('resize', resize);
+// Холст меняет размер не только вместе с окном: колонка игры, шрифты, панель
+// закладок — отсюда наблюдатель, иначе поле остаётся на старом размере.
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => resize()).observe(canvas);
 
 /* ──────────────────────────────── Рендер ──────────────────────────────── */
 
 function draw(now: number) {
   const rect = canvas.getBoundingClientRect();
+  // Если буфер холста разошёлся с его CSS-размером, всё поле уезжает за край и
+  // видно один увеличенный фон. Проверяем каждый кадр — это дёшево.
+  const dprNow = Math.min(window.devicePixelRatio || 1, 2);
+  if (
+    canvas.width !== Math.max(1, Math.floor(rect.width * dprNow)) ||
+    canvas.height !== Math.max(1, Math.floor(rect.height * dprNow))
+  ) {
+    resize();
+  }
   const levelIndex = session ? (session.mode === 'daily' ? 33 : session.levelNumber) : 1;
   const tier = tierOf(levelIndex);
   const accent = session ? (session.mode === 'daily' ? '#ffc24b' : tier.accent) : tier.accent;
@@ -873,8 +901,29 @@ window.addEventListener('keydown', (ev) => {
   if (ev.key === 'r' || ev.key === 'R') $('btnReset').click();
   if (ev.key === 'h' || ev.key === 'H') $('btnHint').click();
   if (ev.key === 'a' || ev.key === 'A') toggleRender();
+  if (ev.key === 'd' || ev.key === 'D') showDiagnostics();
   if (ev.key === 'Escape') openMenu();
 });
+
+/**
+ * Служебная строка состояния (клавиша D): размеры холста, плотность пикселей,
+ * арт и геометрия поля. Когда поле выглядит «просто увеличенным фоном», эти
+ * числа говорят, что именно разошлось — буфер холста, арт или вёрстка.
+ */
+function showDiagnostics(): void {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const geo = geometry();
+  const lines = [
+    `холст: CSS ${Math.round(rect.width)}×${Math.round(rect.height)}, буфер ${canvas.width}×${canvas.height}, dpr ${dpr}`,
+    `поле: ${geo.size}×${geo.size}, ячейка ${geo.cell}, сдвиг ${geo.ox},${geo.oy}`,
+    `арт: ${art.pack ? 'загружен' : `нет (${art.error ?? 'ещё грузится'})`}, вид «${renderMode}»`,
+  ];
+  banner.textContent = lines.join(' · ');
+  banner.classList.add('is-visible');
+  setTimeout(() => banner.classList.remove('is-visible'), 9000);
+  console.log('[амперград] ' + lines.join('\n'));
+}
 
 /* ──────────────────────────────── Цикл ──────────────────────────────── */
 
@@ -891,7 +940,13 @@ requestAnimationFrame(loop);
 
 // Арт грузим после старта: игра открывается мгновенно, картинки догоняют.
 void art.load().then((ok) => {
-  if (!ok) console.warn('арт не загрузился, играем схемой:', art.error);
+  if (!ok) {
+    console.warn('арт не загрузился, играем схемой:', art.error);
+    // Молчать нельзя: игрок видит пустое поле и думает, что игра сломана.
+    banner.textContent = `Арт не загрузился (${art.error}) — играем схемой. Проверь, что папка packages/lab/public/art на месте.`;
+    banner.classList.add('is-visible');
+    setTimeout(() => banner.classList.remove('is-visible'), 8000);
+  }
   setRenderLabel();
   if (view === 'menu') setScreen('menu');
 });
