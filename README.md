@@ -112,11 +112,20 @@ cd ~/Desktop/Amperograd/app-android
 Контент и тест-векторы копируются в ресурсы модуля задачей `syncContent` перед
 сборкой, поэтому свежий клон собирается без дополнительных шагов.
 
-Чтобы приложение ходило в локальный сервер, адрес задаётся при сборке:
+Чтобы приложение ходило в локальный сервер, адрес задаётся при сборке. В отладочной
+сборке разрешён http (файл `app-android/app/src/debug/AndroidManifest.xml`), в
+релизной — только https, как требует витрина:
 
 ```bash
-./gradlew :app:assembleDebug -PserverUrl=http://10.0.2.2:8787      # эмулятор Android
-./gradlew :app:assembleDebug -PserverUrl=http://192.168.1.42:8787  # телефон в той же сети Wi-Fi, IP Mac
+# эмулятор: 10.0.2.2 — это хост-машина
+./gradlew :app:assembleDebug -PserverUrl=http://10.0.2.2:8787
+
+# телефон по USB: сначала проброс порта, потом адрес localhost
+adb reverse tcp:8787 tcp:8787
+./gradlew :app:assembleDebug -PserverUrl=http://127.0.0.1:8787
+
+# телефон по Wi-Fi: IP Mac в локальной сети
+./gradlew :app:assembleDebug -PserverUrl=http://$(ipconfig getifaddr en0):8787
 ```
 
 Игра работает и без сервера: кошелёк, клейм и рейтинг дня просто остаются
@@ -153,6 +162,8 @@ cd app-android
   транзакций и комиссий со стороны игрока).
 - Адрес сервера задаётся при сборке: `-PserverUrl=https://...` (по умолчанию —
   заглушка `https://api.ampergrad.example`, игра работает офлайн и без него).
+  Отладочная сборка дополнительно разрешает http — чтобы подключаться к
+  локальному серверу (`src/debug/AndroidManifest.xml`); релиз ходит только по https.
 - Подпись релиза: переменные `AMPERGRAD_KEYSTORE` (путь), `AMPERGRAD_KEYSTORE_PASSWORD`,
   `AMPERGRAD_KEY_ALIAS`, `AMPERGRAD_KEY_PASSWORD`. В CI — секрет
   `AMPERGRAD_KEYSTORE_B64` (keystore в base64) и остальные три.

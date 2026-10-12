@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Отладочная сборка: разрешаем http, чтобы приложение могло ходить в локальный
+  сервер клейма (`npm run server` → http://10.0.2.2:8787 для эмулятора или
+  http://127.0.0.1:8787 через `adb reverse tcp:8787 tcp:8787`).
+
+  В релизной сборке этого файла нет: там cleartext запрещён, и приложение
+  общается только по https — как того требует dApp Store.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>
