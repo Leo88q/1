@@ -307,6 +307,33 @@ describe('контент: магазин, реестр, названия ква�
     expect((await app.request('/shop/нет-такого')).status).toBe(404);
   });
 
+  it('отдаёт реестр сразу на двух языках: все 60 записей переведены', async () => {
+    const { app } = buildApp();
+    const list = (await (await app.request('/registry')).json()) as {
+      count: number;
+      entries: Array<{ id: string; titleEn: string; sourceEn: string; speakerEn: string }>;
+    };
+    expect(list.count).toBe(60);
+    expect(list.entries.length).toBe(60);
+
+    const cyrillic = /[А-Яа-яЁё]/;
+    for (const entry of list.entries) {
+      expect(entry.titleEn?.length, `${entry.id}: нет EN-названия`).toBeGreaterThan(3);
+      expect(entry.sourceEn?.length, `${entry.id}: нет EN-источника`).toBeGreaterThan(3);
+      for (const value of [entry.titleEn, entry.sourceEn, entry.speakerEn]) {
+        expect(cyrillic.test(value), `${entry.id}: «${value}» не переведено`).toBe(false);
+      }
+    }
+
+    const one = await app.request('/registry/reg-s2-05');
+    expect(one.status).toBe(200);
+    const entry = (await one.json()) as { title: string; titleEn: string; textEn: string; speakerEn: string };
+    expect(entry.title.length).toBeGreaterThan(3);
+    expect(entry.titleEn.length).toBeGreaterThan(3);
+    expect(entry.textEn.length).toBeGreaterThan(30);
+    expect(entry.speakerEn).toBe('Marta Volt');
+  });
+
   it('отдаёт английскую карточку предмета вместе с русской', async () => {
     const { app } = buildApp();
     const catalog = (await (await app.request('/shop')).json()) as {

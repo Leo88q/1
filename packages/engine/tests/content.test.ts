@@ -94,6 +94,24 @@ describe('лор-реестр и магазин (M3)', () => {
     expect(new Set(REGISTRY.map((r) => r.textEn)).size).toBe(REGISTRY.length);
   });
 
+  it('в переводах нет опечаток вёрстки', () => {
+    // Механическая вычитка: двойные пробелы, пробел перед знаком, обрыв без точки,
+    // название со строчной буквы. Такие опечатки легко приносит копипаст.
+    for (const entry of REGISTRY) {
+      for (const [field, value] of Object.entries({
+        titleEn: entry.titleEn,
+        textEn: entry.textEn,
+        sourceEn: entry.sourceEn,
+      })) {
+        expect(/\s\s/.test(value), `${entry.id}.${field}: двойной пробел`).toBe(false);
+        expect(/\s[,.;:]/.test(value), `${entry.id}.${field}: пробел перед знаком`).toBe(false);
+        expect(value, `${entry.id}.${field}: пробел в конце`).toBe(value.trim());
+      }
+      expect(entry.titleEn[0], `${entry.id}: название со строчной`).toBe(entry.titleEn[0].toUpperCase());
+      expect(/[.!?…]$/.test(entry.textEn), `${entry.id}: текст без знака в конце`).toBe(true);
+    }
+  });
+
   it('голоса города переведены и словарь полный', () => {
     const speakers = new Set(REGISTRY.map((r) => r.speaker));
     for (const speaker of speakers) {

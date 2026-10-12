@@ -18,6 +18,7 @@ import {
   cosmeticById,
   quarterForLevel,
   registryById,
+  speakerForLang,
   tierForLevel,
 } from '@ampergrad/engine';
 import type { ServerEnv } from './env';
@@ -151,6 +152,8 @@ export function createApp(deps: AppDeps): Hono {
   });
 
   // Лор: список записей и полный текст конкретной (она же — награда-страница).
+  // Как и карточки магазина, запись отдаётся сразу на двух языках: русские поля
+  // плюс titleEn/textEn/sourceEn/speakerEn — перевод всех 60 записей лежит в каноне.
   app.get('/registry', (c) =>
     c.json({
       engine: ENGINE_VERSION,
@@ -159,8 +162,11 @@ export function createApp(deps: AppDeps): Hono {
         id: r.id,
         season: r.season,
         title: r.title,
+        titleEn: r.titleEn,
         speaker: r.speaker,
+        speakerEn: speakerForLang(r.speaker, 'en'),
         source: r.source,
+        sourceEn: r.sourceEn,
         tiers: r.tiers,
       })),
     }),
@@ -169,7 +175,7 @@ export function createApp(deps: AppDeps): Hono {
   app.get('/registry/:entryId', (c) => {
     const entry = registryById(c.req.param('entryId'));
     if (!entry) return c.json({ error: 'запись реестра не найдена' }, 404);
-    return c.json(entry);
+    return c.json({ ...entry, speakerEn: speakerForLang(entry.speaker, 'en') });
   });
 
   // Название квартала и ярус для уровня — используется интерфейсом игры.
