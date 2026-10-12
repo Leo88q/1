@@ -57,6 +57,10 @@ import com.ampergrad.game.engine.hint
 import com.ampergrad.game.engine.isSolved
 import com.ampergrad.game.engine.poweredCells
 import com.ampergrad.game.net.ClaimClient
+import com.ampergrad.game.net.DailyScore
+import com.ampergrad.game.net.LeaderboardCodec
+import com.ampergrad.game.net.PlayProof
+import com.ampergrad.game.net.Turn
 import com.ampergrad.game.solana.Base58
 import com.ampergrad.game.solana.MwaWallet
 import com.ampergrad.game.ui.Board
@@ -81,7 +85,20 @@ class GameSession(val mode: Mode, val levelNumber: Int, val level: Level) {
     var hintIndex by mutableStateOf<Int?>(null)
     var hintUntil by mutableLongStateOf(0L)
     var reward by mutableStateOf(RewardState())
+    /** Последовательность поворотов: доказательство решения для сервера. */
+    val turns = mutableListOf<Turn>()
+    /** Место в рейтинге дня (после отправки результата) и текст о результате. */
+    var rank by mutableStateOf<Int?>(null)
+    var scoreNote by mutableStateOf<String?>(null)
+    var scoreBusy by mutableStateOf(false)
     val startedAt: Long = System.currentTimeMillis()
+
+    /** Доказательство текущей партии: для уровня или для челленджа дня. */
+    fun proof(engine: String): PlayProof = if (mode == Mode.DAILY) {
+        PlayProof.daily(day = startedAt / 86_400_000L, turns = turns.toList(), engine = engine)
+    } else {
+        PlayProof.level(levelNumber = levelNumber, turns = turns.toList(), engine = engine)
+    }
 }
 
 data class RewardState(
@@ -112,10 +129,15 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     var walletAddress by remember { mutableStateOf(store.walletAddress) }
     var walletError by remember { mutableStateOf<String?>(null) }
     var walletBusy by remember { mutableStateOf(false) }
+    var boardOpen by remember { mutableStateOf(false) }
+    var board by remember { mutableStateOf<List<DailyScore>>(emptyList()) }
+    var boardLoading by remember { mutableStateOf(false) }
+    var boardError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         wallet.restore(store.walletAuthToken, store.walletAddress)
         walletAddress = wallet.address
+        board = LeaderboardCodec.decode(store.leaderboardJson)
     }
 
     fun showBanner(text: String) {
@@ -161,6 +183,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             store.recordWin(0, stars, current.moves, day)
             store.dailyDoneDay = day
             if (store.dailyBestMoves == 0 || current.moves < store.dailyBestMoves) store.dailyBestMoves = current.moves
+            if (walletAddress != null) submitDaily(current)
         }
         showBanner("Пломба. Квартал дышит светом.")
     }
@@ -172,7 +195,10 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             showBanner("Клемма: «Крест не вращается, мастер. Регламент 2.7»")
             return
         }
-        if (current.level.tiles[index].rot != before) current.moves += 1
+        if (current.level.tiles[index].rot != before) {
+            current.moves += 1
+            current.turns += Turn(index, dir)
+        }
         sound.rotate()
         if (isSolved(current.level)) finish(current)
     }
@@ -191,6 +217,68 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         }
     }
 
+    /**
+     * Отправляет результат челленджа дня в рейтинг.
+     *
+     * Сервер проверяет подпись кошелька и проигрывает ходы движком, поэтому
+     * в рейтинг попадает только честно собранный квартал. Без кошелька игра
+     * продолжает работать: результат просто остаётся на устройстве.
+     */
+    fun submitDaily(current: GameSession) {
+        if (current.mode != Mode.DAILY || current.scoreBusy || current.turns.isEmpty()) return
+        val proof = current.proof(BuildConfig.ENGINE_VERSION)
+        scope.launch {
+            current.scoreBusy = true
+            current.scoreNote = null
+            try {
+                val address = walletAddress ?: wallet.connect().also {
+                    walletAddress = it
+                    store.walletAddress = it
+                    store.walletAuthToken = wallet.authToken
+                }
+                val challenge = claimApi.dailyStart(
+                    address = address,
+                    day = proof.day ?: 0L,
+                    moves = proof.moves,
+                    engineVersion = BuildConfig.ENGINE_VERSION,
+                )
+                val signature = wallet.signMessage(challenge.message.toByteArray())
+                val result = claimApi.dailySubmit(
+                    address = address,
+                    nonce = challenge.nonce,
+                    signatureBase58 = Base58.encode(signature),
+                    proof = proof,
+                )
+                current.rank = result.rank
+                current.scoreNote = if (result.rank != null) {
+                    "Рейтинг дня: место ${result.rank} из ${maxOf(result.leaderboard.size, result.rank)}"
+                } else {
+                    "Результат дня принят: ${result.moves} ходов"
+                }
+                store.leaderboardJson = encodeBoard(result.leaderboard)
+            } catch (e: Exception) {
+                current.scoreNote = e.message ?: "Не удалось отправить результат дня"
+            } finally {
+                current.scoreBusy = false
+            }
+        }
+    }
+
+    fun loadLeaderboard() {
+        scope.launch {
+            boardLoading = true
+            try {
+                board = claimApi.leaderboard(System.currentTimeMillis() / 86_400_000L)
+                boardError = null
+                store.leaderboardJson = encodeBoard(board)
+            } catch (e: Exception) {
+                boardError = e.message ?: "Рейтинг недоступен"
+            } finally {
+                boardLoading = false
+            }
+        }
+    }
+
     fun claimReward(current: GameSession) {
         if (current.reward.busy) return
         scope.launch {
@@ -201,13 +289,15 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     store.walletAddress = it
                     store.walletAuthToken = wallet.authToken
                 }
-                val challenge = claimApi.start(address, BuildConfig.ENGINE_VERSION)
+                val proof = current.proof(BuildConfig.ENGINE_VERSION)
+                val challenge = claimApi.start(address, BuildConfig.ENGINE_VERSION, proof)
                 val signature = wallet.signMessage(challenge.message.toByteArray())
                 val result = claimApi.submit(
                     address = address,
                     nonce = challenge.nonce,
                     signatureBase58 = Base58.encode(signature),
                     rewardId = challenge.rewardId,
+                    proof = proof,
                 )
                 store.claimedCount += 1
                 store.lastClaimJson = result.txSignature
@@ -220,7 +310,10 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     assetId = result.assetId,
                 )
             } catch (e: Exception) {
-                current.reward = RewardState(message = e.message ?: "Не удалось забрать награду", isError = true)
+                current.reward = RewardState(
+                    message = e.message ?: "Не удалось забрать награду",
+                    isError = true,
+                )
             }
         }
     }
@@ -237,6 +330,10 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 onWallet = { walletOpen = true },
                 onRegistry = { registryOpen = true },
                 onShop = { shopOpen = true },
+                onBoard = {
+                    boardOpen = true
+                    loadLeaderboard()
+                },
                 onReset = {
                     store.reset()
                     session = null
@@ -258,6 +355,17 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     sound.enabled = !sound.enabled
                     showBanner(if (sound.enabled) "Звук включён" else "Звук выключен")
                 },
+            )
+        }
+
+        if (boardOpen) {
+            LeaderboardOverlay(
+                day = System.currentTimeMillis() / 86_400_000L,
+                entries = board,
+                loading = boardLoading,
+                error = boardError,
+                onRefresh = { loadLeaderboard() },
+                onClose = { boardOpen = false },
             )
         }
 
@@ -334,6 +442,9 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     }
 }
 
+/** Разбор/сборка рейтинга — в net/LeaderboardCodec, здесь короткая обёртка. */
+private fun encodeBoard(scores: List<DailyScore>): String = LeaderboardCodec.encode(scores)
+
 /* ─────────────────────────────── Основные экраны ─────────────────────────────── */
 
 @Composable
@@ -346,6 +457,7 @@ private fun MenuScreen(
     onWallet: () -> Unit,
     onRegistry: () -> Unit,
     onShop: () -> Unit,
+    onBoard: () -> Unit,
     onReset: () -> Unit,
 ) {
     Column(
@@ -402,6 +514,10 @@ private fun MenuScreen(
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onShop, modifier = Modifier.fillMaxWidth()) {
             Text("ВИТРИНА")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onBoard, modifier = Modifier.fillMaxWidth()) {
+            Text("РЕЙТИНГ ДНЯ")
         }
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onReset) {
@@ -582,6 +698,24 @@ private fun WinOverlay(
                     textAlign = TextAlign.Center,
                 )
 
+                if (session.mode == Mode.DAILY) {
+                    val note = when {
+                        session.scoreBusy -> "Отправляю результат в рейтинг…"
+                        session.scoreNote != null -> session.scoreNote
+                        walletAddress == null -> "Подключите кошелёк, чтобы попасть в рейтинг дня"
+                        else -> null
+                    }
+                    if (note != null) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (session.scoreNote != null) Grad.Gold else Grad.InkDim,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+
                 if (session.mode == Mode.LEVEL) {
                     lore?.registryForLevel(session.levelNumber)?.let { entry ->
                         Spacer(Modifier.height(16.dp))
@@ -748,6 +882,96 @@ private fun RegistryOverlay(
 }
 
 /** Витрина косметики: только вид. Каталог — общий с сервером (/shop). */
+/** Рейтинг дня: один квартал для всех, сортировка по числу ходов. */
+@Composable
+private fun LeaderboardOverlay(
+    day: Long,
+    entries: List<DailyScore>,
+    loading: Boolean,
+    error: String?,
+    onRefresh: () -> Unit,
+    onClose: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xF203050A))
+            .systemBarsPadding()
+            .padding(20.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("РЕЙТИНГ ДНЯ", style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                    Text("день $day", style = MaterialTheme.typography.labelSmall, color = Grad.InkDim)
+                }
+                TextButton(onClick = onClose) { Text("ЗАКРЫТЬ", color = Grad.InkDim) }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Квартал дня одинаков для всех мастеров. Сервер проигрывает ходы движком, " +
+                    "поэтому в рейтинге только честные решения.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Grad.InkDim,
+            )
+            Spacer(Modifier.height(14.dp))
+
+            when {
+                loading -> Text("Запрашиваю реестр…", style = MaterialTheme.typography.bodyMedium, color = Grad.Metal)
+                error != null -> Text(error, style = MaterialTheme.typography.bodyMedium, color = Grad.Danger)
+                entries.isEmpty() -> Text(
+                    "Сегодня ещё никто не отправил результат. Соберите квартал дня — " +
+                        "и город запишет вас первым.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Grad.Metal,
+                )
+                else -> entries.forEach { row ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                        colors = CardDefaults.cardColors(containerColor = Grad.Panel),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                "${row.rank}. ${row.wallet}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (row.rank == 1) Grad.Gold else Grad.Ink,
+                            )
+                            Text(
+                                "${row.moves} ход.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Grad.InkDim,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
+                Text("ОБНОВИТЬ")
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
 @Composable
 private fun ShopOverlay(shop: Shop?, onClose: () -> Unit) {
     Box(
