@@ -174,7 +174,7 @@ fun Board(
                     }
                     // Шина красится «источником» из гардероба (канон — золото),
                     // поэтому покупка источника видна и поверх арта.
-                    if (tile.role == Role.BUS) drawArtBus(artPack, cx, cy, cell, skin.source, pulse)
+                    if (tile.role == Role.BUS) drawArtBus(artPack, cx, cy, cell, skin, pulse)
                 } else {
                     drawTile(level, index, cx, cy, cell, angles[index], powered[index], burst, skin)
                     if (tile.role == Role.BUS) drawBus(cx, cy, cell, accent, skin, pulse)
@@ -431,7 +431,7 @@ private fun DrawScope.drawArtBus(
     cx: Float,
     cy: Float,
     cell: Float,
-    accent: Color,
+    skin: BoardSkin,
     phase: Float,
 ) {
     art.round("cap")?.let { cap ->
@@ -446,8 +446,10 @@ private fun DrawScope.drawArtBus(
             )
         }
     }
+    // Кольцо — это ореол шины, его и красит купленный «источник»: каноническая
+    // шина и так золотая, поэтому цвет самого колпака предмет не меняет.
     drawCircle(
-        color = accent.copy(alpha = 0.25f + 0.35f * phase),
+        color = skin.sourceRing.copy(alpha = 0.25f + 0.35f * phase),
         radius = cell * 0.34f,
         center = Offset(cx, cy),
         style = Stroke(width = 2f),

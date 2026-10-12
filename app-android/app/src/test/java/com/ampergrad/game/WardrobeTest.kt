@@ -112,8 +112,13 @@ class WardrobeTest {
 
         // Ток: цвет палитры. Без него среда в арте всегда цвета яруса.
         assertNotEquals(BoardSkin.Default.current, skin.current, "палитра не меняет цвет тока")
-        // Шина: источник. В арте это кольцо и колпак поверх детали.
-        assertNotEquals(BoardSkin.Default.source, skin.source, "источник не меняет шину")
+        // Шина: источник меняет ореол (в арте это кольцо поверх колпака). Сам цвет
+        // шины может совпасть с каноном — каноническая шина уже золотая, как
+        // предмет source-gold, — поэтому смотрим на пару «шина + ореол».
+        assertTrue(
+            skin.source != BoardSkin.Default.source || skin.sourceRing != BoardSkin.Default.sourceRing,
+            "источник не меняет вид шины",
+        )
         // Тон поля: тема красит подложку под трубами (плиту поверх фона яруса).
         assertNotEquals(BoardSkin.Default.field, skin.field, "тема не меняет фон поля")
     }
