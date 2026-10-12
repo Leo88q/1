@@ -72,6 +72,7 @@ if [ "$REBUILD" = "1" ]; then
     "$PYTHON" art/tools/cut_pipes.py
     "$PYTHON" art/tools/cut_props.py
     "$PYTHON" art/tools/cut_rewards.py
+    "$PYTHON" art/tools/mock_seals.py
     "$PYTHON" art/tools/mock_board.py
     "$PYTHON" art/tools/make_promo.py
     "$PYTHON" art/tools/make_index.py
