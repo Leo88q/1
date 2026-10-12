@@ -276,9 +276,11 @@ fun hint(level: Level): Hint? {
             if (r == original) continue
             t.rot = r
             val gain = current - componentCount(level)
-            if (immediate == null || gain > immediate!!.gain) immediate = Hint(i, r, gain)
+            val best = immediate
+            if (best == null || gain > best.gain) immediate = Hint(i, r, gain)
             if (original % period != level.solutionRot[i] % period && r % period == level.solutionRot[i] % period) {
-                if (towardSolution == null || gain > towardSolution!!.gain) towardSolution = Hint(i, r, gain)
+                val bestToward = towardSolution
+                if (bestToward == null || gain > bestToward.gain) towardSolution = Hint(i, r, gain)
             }
             t.rot = original
         }

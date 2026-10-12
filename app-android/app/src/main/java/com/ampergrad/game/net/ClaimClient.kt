@@ -48,8 +48,8 @@ class ClaimClient(private val baseUrl: String) {
     ) { json ->
         ClaimResult(
             status = json.optString("status", "unknown"),
-            assetId = json.optString("assetId", null),
-            txSignature = json.optString("txSignature", null),
+            assetId = json.optString("assetId").takeIf { it.isNotEmpty() && it != "null" },
+            txSignature = json.optString("txSignature").takeIf { it.isNotEmpty() && it != "null" },
         )
     }
 
