@@ -162,61 +162,6 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         }
     }
 
-    fun finish(current: GameSession) {
-        if (current.finishedAt != null) return
-        val now = System.currentTimeMillis()
-        current.finishedAt = now
-        current.solving = true
-        sound.solved()
-        val par = current.level.parMoves
-        var stars = when {
-            current.moves <= par -> 3
-            current.moves <= (par * 1.5).toInt() + 1 -> 2
-            else -> 1
-        }
-        if (current.hintsUsed > 0) stars = minOf(stars, 2)
-        current.stars = stars
-        val day = now / 86_400_000L
-        if (current.mode == Mode.LEVEL) {
-            store.recordWin(current.levelNumber, stars, current.moves, day)
-        } else {
-            store.recordWin(0, stars, current.moves, day)
-            store.dailyDoneDay = day
-            if (store.dailyBestMoves == 0 || current.moves < store.dailyBestMoves) store.dailyBestMoves = current.moves
-            if (walletAddress != null) submitDaily(current)
-        }
-        showBanner("Пломба. Квартал дышит светом.")
-    }
-
-    fun rotate(current: GameSession, index: Int, dir: Int) {
-        if (current.finishedAt != null) return
-        val before = current.level.tiles[index].rot
-        if (!applyRotate(current.level, index, dir)) {
-            showBanner("Клемма: «Крест не вращается, мастер. Регламент 2.7»")
-            return
-        }
-        if (current.level.tiles[index].rot != before) {
-            current.moves += 1
-            current.turns += Turn(index, dir)
-        }
-        sound.rotate()
-        if (isSolved(current.level)) finish(current)
-    }
-
-    fun useHint(current: GameSession) {
-        if (current.finishedAt != null) return
-        val h = hint(current.level) ?: return
-        current.hintsUsed += 1
-        current.hintIndex = h.index
-        current.hintUntil = System.currentTimeMillis() + 2500
-        sound.hint()
-        showBanner("Клемма: «Позиция 4.2 — доверните фрагмент до упора»")
-        scope.launch {
-            delay(2600)
-            if (current.hintIndex == h.index) current.hintIndex = null
-        }
-    }
-
     /**
      * Отправляет результат челленджа дня в рейтинг.
      *
@@ -276,6 +221,61 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             } finally {
                 boardLoading = false
             }
+        }
+    }
+
+    fun finish(current: GameSession) {
+        if (current.finishedAt != null) return
+        val now = System.currentTimeMillis()
+        current.finishedAt = now
+        current.solving = true
+        sound.solved()
+        val par = current.level.parMoves
+        var stars = when {
+            current.moves <= par -> 3
+            current.moves <= (par * 1.5).toInt() + 1 -> 2
+            else -> 1
+        }
+        if (current.hintsUsed > 0) stars = minOf(stars, 2)
+        current.stars = stars
+        val day = now / 86_400_000L
+        if (current.mode == Mode.LEVEL) {
+            store.recordWin(current.levelNumber, stars, current.moves, day)
+        } else {
+            store.recordWin(0, stars, current.moves, day)
+            store.dailyDoneDay = day
+            if (store.dailyBestMoves == 0 || current.moves < store.dailyBestMoves) store.dailyBestMoves = current.moves
+            if (walletAddress != null) submitDaily(current)
+        }
+        showBanner("Пломба. Квартал дышит светом.")
+    }
+
+    fun rotate(current: GameSession, index: Int, dir: Int) {
+        if (current.finishedAt != null) return
+        val before = current.level.tiles[index].rot
+        if (!applyRotate(current.level, index, dir)) {
+            showBanner("Клемма: «Крест не вращается, мастер. Регламент 2.7»")
+            return
+        }
+        if (current.level.tiles[index].rot != before) {
+            current.moves += 1
+            current.turns += Turn(index, dir)
+        }
+        sound.rotate()
+        if (isSolved(current.level)) finish(current)
+    }
+
+    fun useHint(current: GameSession) {
+        if (current.finishedAt != null) return
+        val h = hint(current.level) ?: return
+        current.hintsUsed += 1
+        current.hintIndex = h.index
+        current.hintUntil = System.currentTimeMillis() + 2500
+        sound.hint()
+        showBanner("Клемма: «Позиция 4.2 — доверните фрагмент до упора»")
+        scope.launch {
+            delay(2600)
+            if (current.hintIndex == h.index) current.hintIndex = null
         }
     }
 
