@@ -104,7 +104,7 @@ class WardrobeTest {
      * предмет перестанет менять цвет, покупка перестанет быть видна игроку.
      */
     @Test
-    fun `надетое видно и поверх арта: ток, шина и тон поля`() {
+    fun `надетое видно и поверх арта — ток, шина и тон поля`() {
         val palette = assertNotNull(shop.byId("palette-mercury"))
         val theme = assertNotNull(shop.byId("theme-plateau"))
         val source = assertNotNull(shop.byId("source-gold"))

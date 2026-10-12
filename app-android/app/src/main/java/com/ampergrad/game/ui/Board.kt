@@ -326,21 +326,19 @@ private fun DrawScope.drawArtTile(
     val tile = level.tiles[index]
     val piece = piecesForMask(tile.base).firstOrNull() ?: "straight"
     val image = art.sprite(setName, piece) ?: art.sprite("base", piece) ?: return
-    // Поворот вокруг центра ячейки на угол фрагмента: спрайт нарисован в положении
-    // своей маски, поэтому поворот на угол маски и есть стыковка с соседями.
-    // Без scale/rotate-блоков: прямоугольник назначения задаём сами.
-    val span = cell.toInt()
-    val half = span / 2
+    // Размер задаём трансформацией, а не dstSize: тот целочисленный, и округление
+    // cell вниз оставляло бы между соседними деталями зазор в долю пикселя — трубы
+    // перестали бы стыковаться. Лишний пиксель сверху перекрывает сглаженный край,
+    // как это делает веб-рендер (там -cell/2-0.5 … cell+1).
     withTransform({
         translate(cx, cy)
         rotate(angle * 90f, Offset.Zero)
+        scale((cell + 1f) / image.width, (cell + 1f) / image.height, Offset.Zero)
     }) {
         drawImage(
             image = image,
-            srcOffset = IntOffset(0, 0),
-            srcSize = IntSize(image.width, image.height),
-            dstOffset = IntOffset(-half, -half),
-            dstSize = IntSize(span, span),
+            dstOffset = IntOffset(-image.width / 2, -image.height / 2),
+            dstSize = IntSize(image.width, image.height),
         )
     }
 }
@@ -398,21 +396,21 @@ private fun DrawScope.drawArtReceiver(
         mask and W != 0 -> 90f
         else -> 0f
     }
-    // Горловина: тот же прямоугольник назначения, что в вебе (−0.47…0.47 клетки),
-    // поэтому приёмник встаёт на место без подгонки масштаба.
-    val half = cell * 0.47f
+    // Горловина: те же пропорции, что в вебе (0.94 клетки), но размер задан
+    // трансформацией — иначе округляется и деталь садится с зазором.
     withTransform({
         translate(cx, cy)
         rotate(spin, Offset.Zero)
     }) {
         if (mouth != null) {
-            drawImage(
-                image = mouth,
-                srcOffset = IntOffset(0, 0),
-                srcSize = IntSize(mouth.width, mouth.height),
-                dstOffset = IntOffset((-half).toInt(), (-half).toInt()),
-                dstSize = IntSize((half * 2f).toInt(), (half * 2f).toInt()),
-            )
+            val k = cell * 0.94f / mouth.width
+            withTransform({ scale(k, k, Offset.Zero) }) {
+                drawImage(
+                    image = mouth,
+                    dstOffset = IntOffset(-mouth.width / 2, -mouth.height / 2),
+                    dstSize = IntSize(mouth.width, mouth.height),
+                )
+            }
         }
         if (on) {
             drawLine(
@@ -437,14 +435,16 @@ private fun DrawScope.drawArtBus(
     phase: Float,
 ) {
     art.round("cap")?.let { cap ->
-        val half = cell * 0.43f
-        drawImage(
-            image = cap,
-            srcOffset = IntOffset(0, 0),
-            srcSize = IntSize(cap.width, cap.height),
-            dstOffset = IntOffset((cx - half).toInt(), (cy - half).toInt()),
-            dstSize = IntSize((half * 2f).toInt(), (half * 2f).toInt()),
-        )
+        withTransform({
+            translate(cx, cy)
+            scale(cell * 0.86f / cap.width, cell * 0.86f / cap.height, Offset.Zero)
+        }) {
+            drawImage(
+                image = cap,
+                dstOffset = IntOffset(-cap.width / 2, -cap.height / 2),
+                dstSize = IntSize(cap.width, cap.height),
+            )
+        }
     }
     drawCircle(
         color = accent.copy(alpha = 0.25f + 0.35f * phase),
