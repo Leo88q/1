@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.ampergrad.game.ui.Art
 import com.ampergrad.game.ui.ArtPack
 import com.ampergrad.game.ui.artTierIndex
+import com.ampergrad.game.ui.packIsUsable
 import com.ampergrad.game.ui.colorOfHex
 import com.ampergrad.game.ui.piecesForMask
 import com.ampergrad.game.ui.rewardForStars
@@ -12,6 +13,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertFalse
 import kotlin.test.fail
 import kotlin.test.assertTrue
 
@@ -38,11 +40,42 @@ class ArtPackTest {
 
     private val masksOfKind = mapOf("stub" to 1, "straight" to 5, "elbow" to 3, "tee" to 7, "cross" to 15)
 
+    /**
+     * Все файлы контракта: по ним проверяем, что арт «подъемный» — то есть
+     * декодировано всё, без чего поле окажется пустым при рабочем web.json.
+     */
+    private fun allFiles(): Set<String> {
+        val files = HashSet<String>()
+        for (pieces in pack.sets.values) for (ref in pieces.values) files += ref.file
+        files += pack.round.values
+        files += pack.rewards.values
+        return files
+    }
+
+    @Test
+    fun `арт рабочий, только если декодирован канонный набор и круглые детали`() {
+        val files = allFiles()
+        assertTrue(packIsUsable(pack, files), "при полном наборе файлов арт обязан рисоваться")
+        assertFalse(
+            packIsUsable(pack, files - requireNotNull(pack.round["mouth"])),
+            "без приёмника поле пустое — арт не должен считаться рабочим",
+        )
+        val base = requireNotNull(pack.sets["base"])
+        val piece = requireNotNull(base["elbow"])
+        assertFalse(
+            packIsUsable(pack, files - piece.file),
+            "без детали канонного набора арт нерабочий: поле было бы пустым",
+        )
+        assertFalse(packIsUsable(pack, emptySet()), "ничего не декодировалось — рисуем схему")
+    }
+
     @Test
     fun `в контракте пять ярусов, у каждого два фона и цвет среды`() {
         assertEquals(5, pack.tiers.size, "ярусов должно быть пять — по 15 уровней на ярус")
         assertEquals(
-            listOf("plateau", "mercury", "terminal", "old-diode", "veins"),
+            // Порядок и состав — как в каноне лора: пятый ярус «Плавильня», а не
+            // «Жилы массива» (под именем из арта HUD расходился бы с реестром).
+            listOf("plateau", "mercury", "terminal", "old-diode", "melter"),
             pack.tiers.map { it.id },
             "порядок ярусов задаёт и фон, и металл поля",
         )
@@ -117,6 +150,23 @@ class ArtPackTest {
         assertEquals(4, artTierIndex(75, 5), "75-й — последний квартал Жил")
         assertEquals(0, artTierIndex(0, 5), "нулевой уровень не должен падать")
         assertEquals(4, artTierIndex(999, 5), "за пределами канона берём последний ярус")
+    }
+
+    @Test
+    fun `цвет среды яруса из палитры Guttercaps`() {
+        val flows = pack.tiers.associate { it.id to it.flowHex }
+        assertEquals("#B6FF3C", flows["plateau"], "acid")
+        assertEquals("#16E5D9", flows["mercury"], "cyan")
+        assertEquals("#FF7A1A", flows["terminal"], "orange")
+        // Пятый ярус — тот же acid: два яруса одного цвета допустимы, цвет среды
+        // подсказывает материал, а не номер.
+        assertEquals("#B6FF3C", flows["melter"], "acid")
+        for (tier in pack.tiers) {
+            assertTrue(
+                colorOfHex(tier.flowHex) != Color.Transparent,
+                "ярус ${tier.id}: цвет ${tier.flowHex} не разобрался",
+            )
+        }
     }
 
     @Test

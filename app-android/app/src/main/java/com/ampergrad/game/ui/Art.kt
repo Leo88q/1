@@ -82,6 +82,20 @@ fun artTierIndex(levelNumber: Int, tiers: Int): Int = ((levelNumber - 1) / 15).c
 /** Пломба за число звёзд: 3 — чисто, 2 — с подсказкой, 1 — с трудом. */
 fun rewardForStars(stars: Int): Int = stars.coerceIn(1, 3)
 
+/**
+ * Артом можно рисовать: декодирован канонный набор и обе круглые детали.
+ *
+ * Проверяем не «web.json прочитан», а «есть чем рисовать»: если файл контракта на
+ * месте, а картинки не декодировались (не тот формат, битый ассет, не хватило
+ * памяти), поле оказалось бы пустым — но играбельным с виду. Такой арт считаем
+ * нерабочим, и игра честно уходит в схему.
+ */
+fun packIsUsable(pack: ArtPack, decoded: Set<String>): Boolean {
+    val pieces = pack.sets["base"] ?: return false
+    if (pieces.values.any { it.file !in decoded }) return false
+    return pack.round.values.all { it in decoded }
+}
+
 class Art(private val context: Context, private val base: String = "art/") {
 
     var pack: ArtPack? = null
@@ -92,9 +106,15 @@ class Art(private val context: Context, private val base: String = "art/") {
         private set
 
     private val images = HashMap<String, ImageBitmap>()
-    private var background: Pair<String, ImageBitmap>? = null
+    // Оба кадра фона текущего яруса: уровни внутри яруса чередуют их, и держать
+    // два дешевле, чем декодировать 720×1290 при каждом переходе (фон мигал бы).
+    private val backgrounds = arrayOfNulls<ImageBitmap>(2)
+    private var backgroundsFor: String? = null
 
-    val ready: Boolean get() = pack != null
+    val ready: Boolean get() = pack != null && decodedAll
+
+    /** Все спрайты, названные в контракте, реально декодировались. */
+    private val decodedAll: Boolean get() = pack?.let { packIsUsable(it, images.keys) } ?: false
 
     /** Читает контракт и раскладывает спрайты в память (декодирование — вне главного потока). */
     suspend fun load() = withContext(Dispatchers.IO) {
@@ -108,7 +128,7 @@ class Art(private val context: Context, private val base: String = "art/") {
             for (file in parsed.round.values) decode(file)?.let { images[file] = it }
             for (file in parsed.rewards.values) decode(file)?.let { images[file] = it }
             pack = parsed
-            error = null
+            error = if (decodedAll) null else "спрайты из web.json не декодировались — рисуем схему"
         } catch (err: Exception) {
             error = err.message ?: err.toString()
         }
@@ -125,15 +145,28 @@ class Art(private val context: Context, private val base: String = "art/") {
     fun reward(stars: Int): ImageBitmap? = images[pack?.rewards?.get(rewardForStars(stars)) ?: return null]
 
     /**
-     * Фон яруса: держим в памяти только текущий — декодированные фоны по 720×1290
-     * весят по несколько мегабайт, кэшировать все десять незачем.
+     * Фон яруса `variant` (0 или 1 — кадры a/b). Оба кадра яруса держим в памяти и
+     * отдаём синхронно, если уже декодировали: иначе поле мигает пустотой на
+     * каждом переходе между уровнями. Декодирование — только вне главного потока.
      */
     fun background(tier: ArtTier, variant: Int): ImageBitmap? {
-        val file = tier.bg.getOrNull(variant % tier.bg.size.coerceAtLeast(1)) ?: return null
-        background?.let { if (it.first == file) return it.second }
-        val img = decode(file) ?: return null
-        background = file to img
+        val files = tier.bg
+        if (files.isEmpty()) return null
+        val slot = variant % files.size
+        val img = decode(files[slot]) ?: return null
+        if (backgroundsFor != tier.id) {
+            backgroundsFor = tier.id
+            backgrounds[0] = null
+            backgrounds[1] = null
+        }
+        backgrounds[slot] = img
         return img
+    }
+
+    /** Уже декодированный кадр фона — без чтения с диска: с главного потока можно. */
+    fun cachedBackground(tier: ArtTier, variant: Int): ImageBitmap? {
+        if (backgroundsFor != tier.id || tier.bg.isEmpty()) return null
+        return backgrounds[variant % tier.bg.size]
     }
 
     private fun decode(file: String): ImageBitmap? = try {

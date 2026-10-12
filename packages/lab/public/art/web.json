@@ -246,8 +246,8 @@
       "accent": "#FFB040"
     },
     {
-      "id": "veins",
-      "name": "ЖИЛЫ МАССИВА",
+      "id": "melter",
+      "name": "ПЛАВИЛЬНЯ (ЯДРО)",
       "sets": [
         "glass"
       ],

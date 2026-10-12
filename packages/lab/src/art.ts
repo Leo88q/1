@@ -61,7 +61,15 @@ export class Art {
       }
       for (const round of Object.values(this.pack.round)) files.add(round.file);
       for (const file of Object.values(this.pack.rewards)) files.add(file);
+      // Ошибки отдельных картинок не роняют загрузку: наборов много, и отсутствие
+      // одного металла ещё не значит «не играть». Но если не встал канонный набор,
+      // поле оказалось бы пустым при включённом арт-режиме — это провал целиком.
       await Promise.all([...files].map((file) => this.image(file).catch(() => null)));
+      if (!this.usable()) {
+        this.error = 'спрайты из web.json не загрузились — рисуем схему';
+        this.pack = null;
+        return false;
+      }
       return true;
     } catch (err) {
       this.error = err instanceof Error ? err.message : String(err);
@@ -87,6 +95,26 @@ export class Art {
     });
     img.src = this.base + file;
     return done;
+  }
+
+  /**
+   * Артом можно рисовать: загружен канонный набор и обе круглые детали.
+   *
+   * Проверка не «web.json прочитан», а «есть чем рисовать». Контракт может лежать
+   * на месте, а картинки — не встать (не тот формат, битый ассет, сеть): тогда
+   * поле выглядело бы пустым, но играбельным. Такой арт считаем нерабочим.
+   */
+  usable(): boolean {
+    const pack = this.pack;
+    if (!pack) return false;
+    const base = pack.sets['base'];
+    if (!base) return false;
+    const ok = (file: string): boolean => {
+      const img = this.images.get(file);
+      return !!img && img.complete && img.naturalWidth > 0;
+    };
+    if (!Object.values(base).every((ref) => ok(ref.file))) return false;
+    return Object.values(pack.round).every((ref) => ok(ref.file));
   }
 
   /** Уже загруженная картинка или null — рендер не ждёт сеть. */

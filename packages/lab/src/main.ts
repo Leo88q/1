@@ -145,7 +145,7 @@ try {
 }
 
 function artReady(): boolean {
-  return renderMode === 'art' && art.pack !== null;
+  return renderMode === 'art' && art.usable();
 }
 
 /** Какой деталью нарисована ячейка: тупик (маска 1) — половина прямой трубы. */

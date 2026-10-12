@@ -18,6 +18,10 @@ const REPO = resolve(LAB, '../..');
 const PUBLIC_ART = join(LAB, 'public', 'art');
 const WEB_JSON = join(PUBLIC_ART, 'web.json');
 const MANIFEST = join(REPO, 'art', 'tiles', 'manifest.json');
+// Канон лора: оттуда же, откуда имена кварталов в игре. Идентификаторы ярусов в
+// арте обязаны совпадать — иначе HUD назовёт пятый ярус «ЖИЛЫ МАССИВА», а реестр
+// и Android-клиент — «ПЛАВИЛЬНЯ». Расхождение уже случалось, поэтому проверяем.
+const LORE = join(REPO, 'packages', 'engine', 'content', 'lore.json');
 
 const problems = [];
 const note = (msg) => problems.push(msg);
@@ -104,7 +108,28 @@ for (const tier of web.tiers) {
   }
 }
 
-// 5. Экраны и пломбы.
+// 5. Ярусы арта == ярусы канона лора: тот же состав и тот же порядок.
+if (existsSync(LORE)) {
+  const lore = readJson(LORE);
+  const canon = (lore?.tiers ?? []).map((t) => t.id);
+  const art = web.tiers.map((t) => t.id);
+  if (canon.length !== art.length || canon.join(',') !== art.join(',')) {
+    note(`ярусы арта (${art.join(', ')}) не совпадают с каноном лора (${canon.join(', ')}) — пересоберите: npm run art:web`);
+  } else {
+    for (const tier of web.tiers) {
+      const canonTier = (lore.tiers ?? []).find((t) => t.id === tier.id);
+      if (!canonTier) continue;
+      const canonName = String(canonTier.name ?? '').toUpperCase();
+      if (canonName && canonName !== tier.name) {
+        note(`ярус ${tier.id}: в арте «${tier.name}», в каноне «${canonName}» — пересоберите: npm run art:web`);
+      }
+    }
+  }
+} else {
+  note(`нет канона лора (${LORE.replace(REPO + '/', '')}) — выполните npm run content`);
+}
+
+// 6. Экраны и пломбы.
 for (const [key, rel] of Object.entries(web.screens)) assetOk(rel);
 for (const stars of ['1', '2', '3']) {
   const rel = web.rewards[stars];

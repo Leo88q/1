@@ -42,6 +42,11 @@ interface UiStrings {
     val soundOff: String
     val artOn: String
     val artOff: String
+    /** Короткие подписи кнопки вида (в строку управления внизу). */
+    val artShort: String
+    val schemeShort: String
+    /** Арт не доехал в этой сборке (пояснение, а не молчание). */
+    val artMissing: String
 
     /* Игровой экран */
     val moves: String
@@ -214,6 +219,9 @@ object Ru : UiStrings {
     override val soundOff = "Звук выключен"
     override val artOn = "Трубы из арта"
     override val artOff = "Схема поля"
+    override val artShort = "ТРУБЫ"
+    override val schemeShort = "СХЕМА"
+    override val artMissing = "Арт не попал в сборку — поле остаётся схемой"
 
     override val moves = "ХОДЫ"
     override val time = "ВРЕМЯ"
@@ -369,6 +377,9 @@ object En : UiStrings {
     override val soundOff = "Sound off"
     override val artOn = "Pipes from art"
     override val artOff = "Field scheme"
+    override val artShort = "PIPES"
+    override val schemeShort = "SCHEME"
+    override val artMissing = "Art missing from this build — field stays schematic"
 
     override val moves = "MOVES"
     override val time = "TIME"

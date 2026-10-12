@@ -360,8 +360,8 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     }
 
     // Арт-ярус текущего квартала и его фон. Ярус берём по номеру уровня (те же
-    // 15 уровней на ярус, что в каноне), фон догружаем вне главного потока —
-    // декодированные кадры 720×1290 тяжёлые, держим только текущий.
+    // 15 уровней на ярус, что в каноне); внутри яруса уровни чередуют два кадра
+    // фона, оба держим в памяти — декодирование 720×1290 на каждый переход дорого.
     val currentTier: ArtTier? = if (artReady && artOn) {
         val tiers = art.pack?.tiers ?: emptyList()
         val number = session?.levelNumber
@@ -374,8 +374,17 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             return@LaunchedEffect
         }
         val variant = (session?.levelNumber ?: 1) % 2
-        artBackground = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        // Сначала то, что уже в памяти: тогда смена уровня внутри яруса не мигает.
+        art.cachedBackground(tier, variant)?.let { artBackground = it }
+        // Декодирование кадра 720×1290 — только вне главного потока. Старый фон
+        // остаётся на экране, пока не готов новый: пустота замечалась бы сильнее.
+        val loaded = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             art.background(tier, variant)
+        }
+        if (loaded != null) artBackground = loaded
+        // Второй кадр яруса грузим заранее: следующий уровень возьмёт его из кэша.
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            art.background(tier, 1 - variant)
         }
     }
 
@@ -419,7 +428,6 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 banner = banner,
                 soundEnabled = sound.enabled,
                 art = if (artReady && artOn) art else null,
-                artAvailable = artReady,
                 artOn = artOn,
                 artTier = currentTier,
                 background = artBackground,
@@ -432,8 +440,14 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     showBanner(if (sound.enabled) t.soundOn else t.soundOff)
                 },
                 onToggleArt = {
-                    artOn = !artOn
-                    showBanner(if (artOn) t.artOn else t.artOff)
+                    if (artReady) {
+                        artOn = !artOn
+                        showBanner(if (artOn) t.artOn else t.artOff)
+                    } else {
+                        // Серая кнопка молчала бы — игрок не понял бы, почему вид
+                        // не меняется. Говорим прямо: арт не доехал в этой сборке.
+                        showBanner(t.artMissing)
+                    }
                 },
             )
         }
@@ -695,9 +709,6 @@ private fun GameScreen(
     banner: String?,
     soundEnabled: Boolean,
     art: Art?,
-    // artAvailable — арт вообще собран в APK; artOn — игрок выбрал рисовать трубами.
-    // Разделяем: выключив арт, кнопкой вида его всё равно надо вернуть.
-    artAvailable: Boolean,
     artOn: Boolean,
     artTier: ArtTier?,
     background: androidx.compose.ui.graphics.ImageBitmap?,
@@ -710,7 +721,13 @@ private fun GameScreen(
 ) {
     val tier: Tier = tierOf(session.levelNumber)
     val quarter = lore?.quarter(session.levelNumber)
-    val accent = if (session.mode == Mode.DAILY) Grad.Gold else tier.accent
+    // Акцент берём из арта, когда поле нарисовано им: иначе HUD светится одним
+    // цветом (старая схематичная палитра), а трубы — другим (палитра Guttercaps).
+    val accent = when {
+        session.mode == Mode.DAILY -> Grad.Gold
+        artTier != null -> artTier.flow
+        else -> tier.accent
+    }
     val powered = poweredCells(session.level)
 
     Column(
@@ -789,13 +806,12 @@ private fun GameScreen(
             OutlinedButton(onClick = onMenu, modifier = Modifier.weight(1f)) { Text(t.menu) }
             OutlinedButton(
                 onClick = onToggleArt,
-                modifier = Modifier.width(56.dp),
-                // Кнопка вида: трубы из арта («▩») против чистой схемы («▢»).
-                // Без арта в APK переключать нечего — кнопка молчит.
-                enabled = artAvailable,
+                // Подписи, а не символы ▩/▢: этих глифов может не быть в шрифте
+                // устройства, и вместо переключателя игрок увидит «тофу».
+                modifier = Modifier.width(72.dp),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
             ) {
-                Text(if (artOn) "▩" else "▢")
+                Text(if (artOn) t.artShort else t.schemeShort, style = MaterialTheme.typography.labelSmall)
             }
             OutlinedButton(onClick = onToggleSound, modifier = Modifier.width(56.dp)) {
                 Text(if (soundEnabled) "♪" else "×")

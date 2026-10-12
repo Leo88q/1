@@ -28,19 +28,47 @@ OUT = os.path.join(LAB, "public", "art")
 TILE = 256
 BACK_W = 720
 
-# Ярусы: имя для HUD, наборы материалов поля, фон (два кадра на ярус), цвет среды.
+# Ярусы: файлы фонов и материалы поля заданы здесь (это про картинки), а имена и
+# идентификаторы берём из канона лора — иначе HUD веб-игры и канон расходятся
+# (так однажды и вышло: арт называл пятый ярус «ЖИЛЫ МАССИВА», канон — «ПЛАВИЛЬНЯ»).
 TIERS = [
-    {"id": "plateau", "name": "ПЛАТО ПЕРВОГО КОНТАКТА", "sets": ["zinc", "zinc2"],
-     "bg": ["tier-1-plateau.jpg", "tier-1-plateau-b.jpg"], "flow": "#B6FF3C"},
-    {"id": "mercury", "name": "РТУТНЫЙ ЯРУС", "sets": ["chrome"],
-     "bg": ["tier-2-mercury.jpg", "tier-2-mercury-b.jpg"], "flow": "#16E5D9"},
-    {"id": "terminal", "name": "ТЕРМИНАЛЬНЫЙ ЯРУС", "sets": ["rust", "rust2"],
-     "bg": ["tier-3-terminal.jpg", "tier-3-terminal-b.jpg"], "flow": "#FF7A1A"},
-    {"id": "old-diode", "name": "СТАРЫЙ ДИОД", "sets": ["cast"],
-     "bg": ["tier-4-old-diode.jpg", "tier-4-old-diode-b.jpg"], "flow": "#FFB040"},
-    {"id": "veins", "name": "ЖИЛЫ МАССИВА", "sets": ["glass"],
-     "bg": ["tier-5-veins.jpg", "tier-5-veins-b.jpg"], "flow": "#B6FF3C"},
+    {"id": "plateau", "sets": ["zinc", "zinc2"], "flow": "#B6FF3C",
+     "bg": ["tier-1-plateau.jpg", "tier-1-plateau-b.jpg"]},
+    {"id": "mercury", "sets": ["chrome"], "flow": "#16E5D9",
+     "bg": ["tier-2-mercury.jpg", "tier-2-mercury-b.jpg"]},
+    {"id": "terminal", "sets": ["rust", "rust2"], "flow": "#FF7A1A",
+     "bg": ["tier-3-terminal.jpg", "tier-3-terminal-b.jpg"]},
+    {"id": "old-diode", "sets": ["cast"], "flow": "#FFB040",
+     "bg": ["tier-4-old-diode.jpg", "tier-4-old-diode-b.jpg"]},
+    {"id": "melter", "sets": ["glass"], "flow": "#B6FF3C",
+     "bg": ["tier-5-veins.jpg", "tier-5-veins-b.jpg"]},
 ]
+
+# Резервные имена, если канон не собран (клон без Node): игра остаётся играбельной.
+FALLBACK_NAMES = {
+    "plateau": "ПЛАТО ПЕРВОГО КОНТАКТА",
+    "mercury": "РТУТНЫЙ ЯРУС",
+    "terminal": "ТЕРМИНАЛЬНЫЙ ЯРУС",
+    "old-diode": "СТАРЫЙ ДИОД",
+    "melter": "ПЛАВИЛЬНЯ (ЯДРО)",
+}
+
+
+def canon_tier_names():
+    """Имена ярусов из канона лора (`packages/engine/content/lore.json`)."""
+    path = os.path.join(REPO, "packages", "engine", "content", "lore.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            tiers = json.load(fh)["tiers"]
+    except (OSError, KeyError, ValueError) as err:
+        print(f"канон лора не прочитан ({err}) — имена берём из резервного списка")
+        return {}, False
+    names = {}
+    for tier in tiers:
+        name = tier.get("name") or ""
+        names[tier["id"]] = name.upper()
+    print(f"имена ярусов: из канона ({len(names)} шт.)")
+    return names, True
 
 SCREENS = {"menu": "screen-menu.jpg", "victory": "screen-victory.jpg", "shop": "screen-shop.jpg"}
 REWARDS = {"1": "reward-disc.png", "2": "reward-rings.png", "3": "reward-star.png"}
@@ -102,6 +130,7 @@ def main():
     print("круглые детали: mouth, cap")
 
     # 3. Фоны ярусов и экранов.
+    names, from_canon = canon_tier_names()
     for tier in TIERS:
         bgs = []
         for name in tier["bg"]:
@@ -111,7 +140,8 @@ def main():
             rel = save_webp(img, os.path.join(OUT, "back", name.replace(".jpg", ".webp")), 76)
             total += os.path.getsize(os.path.join(OUT, rel))
             bgs.append(rel)
-        pack["tiers"].append({"id": tier["id"], "name": tier["name"], "sets": tier["sets"],
+        name = names.get(tier["id"]) or FALLBACK_NAMES[tier["id"]]
+        pack["tiers"].append({"id": tier["id"], "name": name, "sets": tier["sets"],
                               "bg": bgs, "flow": tier["flow"], "accent": tier["flow"]})
     for key, name in SCREENS.items():
         img = Image.open(os.path.join(ART, "backgrounds", name)).convert("RGB")
@@ -121,6 +151,10 @@ def main():
         total += os.path.getsize(os.path.join(OUT, rel))
         pack["screens"][key] = rel
     print("фоны:", len(pack["tiers"]), "ярусов +", len(pack["screens"]), "экрана")
+    if not from_canon:
+        print("внимание: имена ярусов — резервные, пересоберите контент: npm run content")
+    elif names and set(names) != {t["id"] for t in TIERS}:
+        print("внимание: состав ярусов в каноне и в арте разошёлся:", sorted(names))
 
     # 4. Пломбы за звёзды.
     for stars, name in REWARDS.items():
