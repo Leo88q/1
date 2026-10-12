@@ -25,17 +25,17 @@ interface UiStrings {
 
     /* Меню */
     val tagline: String
-    val startShift: (level: Int) -> String
+    fun startShift(level: Int): String
     val dailyChallenge: String
     val connectWallet: String
-    val walletShort: (String) -> String
+    fun walletShort(address: String): String
     val registryButton: String
     val shopButton: String
     val boardButton: String
     val resetButton: String
     val menuAbout: String
     val menuEngineNote: String
-    val menuProgress: (solved: Int, stars: Int, streak: Int) -> String
+    fun menuProgress(solved: Int, stars: Int, streak: Int): String
     /** Название яруса по порядку (1–5). */
     fun tierName(order: Int): String
     val soundOn: String
@@ -45,61 +45,61 @@ interface UiStrings {
     val moves: String
     val time: String
     val daily: String
-    val level: (n: Int) -> String
-    val commonQuarter: (size: Int) -> String
+    fun level(n: Int): String
+    fun commonQuarter(size: Int): String
     val reset: String
     val hint: String
     val menu: String
 
     /* Подсказки и баннеры */
     val bannerDailyStart: String
-    val bannerLevelStart: (receivers: Int) -> String
+    fun bannerLevelStart(receivers: Int): String
     val bannerSealed: String
     val bannerSealedLong: String
     val bannerCrossFixed: String
     val bannerHint: String
     val bannerReset: String
-    val bannerWalletConnected: (String) -> String
+    fun bannerWalletConnected(short: String): String
 
     /* Победа */
     val seal: String
     val districtAlive: String
-    val winStats: (moves: Int, par: Int, time: String, hints: Int) -> String
+    fun winStats(moves: Int, par: Int, time: String, hints: Int): String
     val claimNeedsWallet: String
     val claimBusy: String
     val claimButton: String
     val claimMinted: String
     val claimQueued: String
-    val claimStatus: (String) -> String
+    fun claimStatus(status: String): String
     val claimFailed: String
-    val registryRef: (String) -> String
+    fun registryRef(short: String): String
     val nextQuarter: String
     val again: String
     val toMenu: String
-    val openEntry: (id: String, title: String) -> String
+    fun openEntry(id: String, title: String): String
 
     /* Рейтинг дня */
     val boardTitle: String
-    val boardDay: (Long) -> String
+    fun boardDay(day: Long): String
     val boardNote: String
     val boardLoading: String
     val boardEmpty: String
     val boardError: String
     val boardRefresh: String
-    val boardMoves: (Int) -> String
+    fun boardMoves(moves: Int): String
     val boardSubmitting: String
     val boardSubmittingShort: String
     val boardConnect: String
-    val boardRank: (rank: Int, total: Int) -> String
-    val boardAccepted: (moves: Int) -> String
+    fun boardRank(rank: Int, total: Int): String
+    fun boardAccepted(moves: Int): String
     val boardSendFailed: String
 
     /* Реестр */
     val registryTitle: String
-    val registryProgress: (open: Int, total: Int) -> String
+    fun registryProgress(open: Int, total: Int): String
     val registryNote: String
     val registryEmpty: String
-    val registryOpenedBy: (source: String, id: String) -> String
+    fun registryOpenedBy(source: String, id: String): String
     val close: String
 
     /* Витрина */
@@ -116,8 +116,8 @@ interface UiStrings {
     val shopNotePass: String
     val priceReward: String
     val priceSeason: String
-    val priceCoins: (Int) -> String
-    val priceUsd: (String) -> String
+    fun priceCoins(coins: Int): String
+    fun priceUsd(amount: String): String
     val rarityCommon: String
     val rarityRare: String
     val rarityEpic: String
@@ -147,10 +147,10 @@ interface UiStrings {
     val walletConnect: String
     val walletConnecting: String
     val walletDisconnect: String
-    val walletConnectedShort: (String) -> String
+    fun walletConnectedShort(short: String): String
     val walletConnectFailed: String
     val walletDisconnectFailed: String
-    val walletServer: (String) -> String
+    fun walletServer(url: String): String
     val networkMainnet: String
     val networkDevnet: String
 
