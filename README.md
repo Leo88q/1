@@ -96,6 +96,7 @@ npm run dev        # http://localhost:5173 — тап по ячейке пово
 ```bash
 # один раз: JDK 21 и Android SDK
 brew install --cask temurin@21 android-studio
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # Gradle берёт JVM отсюда
 # в Android Studio: Settings → SDK Manager → Android 37 (compileSdk 37) и build-tools 37.0.0
 printf 'sdk.dir=%s\n' "$HOME/Library/Android/sdk" > ~/Desktop/Amperograd/app-android/local.properties
 
