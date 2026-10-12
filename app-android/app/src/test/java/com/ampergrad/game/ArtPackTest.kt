@@ -63,8 +63,7 @@ class ArtPackTest {
     fun `под каждую маску канона есть спрайт в каждом наборе`() {
         for ((set, pieces) in pack.sets) {
             for ((piece, mask) in masksOfKind) {
-                val ref = pieces[piece]
-                assertNotNull(ref, "в наборе $set нет детали $piece")
+                val ref = assertNotNull(pieces[piece], "в наборе $set нет детали $piece")
                 assertEquals(mask, ref.mask, "у $set/$piece должна быть маска $mask")
             }
         }
@@ -133,10 +132,7 @@ class ArtPackTest {
         val assets = listOf(
             File("src/main/assets/art"),
             File("app/src/main/assets/art"),
-        ).firstOrNull { it.isDirectory } ?: run {
-            // Арт не собран (`npm run art:web`) — игра стартует схемой, проверять нечего.
-            return
-        }
+        ).firstOrNull { it.isDirectory } ?: return // арт не собран — игра стартует схемой
         val missing = ArrayList<String>()
         for (pieces in pack.sets.values) {
             for (ref in pieces.values) if (!File(assets, ref.file).isFile) missing += ref.file

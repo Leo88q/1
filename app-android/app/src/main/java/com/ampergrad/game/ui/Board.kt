@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.ampergrad.game.engine.E
 import com.ampergrad.game.engine.Level
@@ -286,13 +287,10 @@ private fun DrawScope.drawArtBackground(
         val h = image.height * scale
         drawImage(
             image = image,
-            srcOffset = androidx.compose.ui.unit.IntOffset(0, 0),
-            srcSize = androidx.compose.ui.unit.IntSize(image.width, image.height),
-            dstOffset = androidx.compose.ui.unit.IntOffset(
-                ((area.width - w) / 2f).toInt(),
-                (top + (height - h) / 2f).toInt(),
-            ),
-            dstSize = androidx.compose.ui.unit.IntSize(w.toInt(), h.toInt()),
+            srcOffset = IntOffset(0, 0),
+            srcSize = IntSize(image.width, image.height),
+            dstOffset = IntOffset(((area.width - w) / 2f).toInt(), (top + (height - h) / 2f).toInt()),
+            dstSize = IntSize(w.toInt(), h.toInt()),
         )
     }
     val plate = cell * 0.16f
@@ -319,12 +317,22 @@ private fun DrawScope.drawArtTile(
     val tile = level.tiles[index]
     val piece = piecesForMask(tile.base).firstOrNull() ?: "straight"
     val image = art.sprite(setName, piece) ?: art.sprite("base", piece) ?: return
+    // Поворот вокруг центра ячейки на угол фрагмента: спрайт нарисован в положении
+    // своей маски, поэтому поворот на угол маски и есть стыковка с соседями.
+    // Без scale/rotate-блоков: прямоугольник назначения задаём сами.
+    val span = cell.toInt()
+    val half = span / 2
     withTransform({
-        translate(cx - cell / 2f, cy - cell / 2f)
-        rotate(angle * 90f, Offset(cell / 2f, cell / 2f))
-        scale(cell / image.width, cell / image.height, Offset.Zero)
+        translate(cx, cy)
+        rotate(angle * 90f, Offset.Zero)
     }) {
-        drawImage(image)
+        drawImage(
+            image = image,
+            srcOffset = IntOffset(0, 0),
+            srcSize = IntSize(image.width, image.height),
+            dstOffset = IntOffset(-half, -half),
+            dstSize = IntSize(span, span),
+        )
     }
 }
 
@@ -381,14 +389,21 @@ private fun DrawScope.drawArtReceiver(
         mask and W != 0 -> 90f
         else -> 0f
     }
+    // Горловина: тот же прямоугольник назначения, что в вебе (−0.47…0.47 клетки),
+    // поэтому приёмник встаёт на место без подгонки масштаба.
+    val half = cell * 0.47f
     withTransform({
         translate(cx, cy)
         rotate(spin, Offset.Zero)
     }) {
         if (mouth != null) {
-            scale((cell * 0.94f) / mouth.width, (cell * 0.94f) / mouth.height, Offset.Zero) {
-                drawImage(mouth)
-            }
+            drawImage(
+                image = mouth,
+                srcOffset = IntOffset(0, 0),
+                srcSize = IntSize(mouth.width, mouth.height),
+                dstOffset = IntOffset((-half).toInt(), (-half).toInt()),
+                dstSize = IntSize((half * 2f).toInt(), (half * 2f).toInt()),
+            )
         }
         if (on) {
             drawLine(
@@ -413,12 +428,14 @@ private fun DrawScope.drawArtBus(
     phase: Float,
 ) {
     art.round("cap")?.let { cap ->
-        withTransform({
-            translate(cx, cy)
-            scale((cell * 0.86f) / cap.width, (cell * 0.86f) / cap.height, Offset.Zero)
-        }) {
-            drawImage(cap)
-        }
+        val half = cell * 0.43f
+        drawImage(
+            image = cap,
+            srcOffset = IntOffset(0, 0),
+            srcSize = IntSize(cap.width, cap.height),
+            dstOffset = IntOffset((cx - half).toInt(), (cy - half).toInt()),
+            dstSize = IntSize((half * 2f).toInt(), (half * 2f).toInt()),
+        )
     }
     drawCircle(
         color = accent.copy(alpha = 0.25f + 0.35f * phase),
