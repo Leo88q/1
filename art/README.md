@@ -40,6 +40,7 @@
 | `preview/tileset.jpg` | лист деталей: 8 наборов × 4 детали + служебные, с масками и подписями — для художника и для витрины |
 | `preview/props.jpg` | лист служебных деталей: указатели потока и запасные детали с подписями |
 | `preview/rewards.jpg` | лист пломб квартала: шесть наград с подписями |
+| `preview/index.jpg` | **обзор всего арта одним листом**: по картинке из каждой группы с подписями — для быстрого просмотра |
 | `tools/cut_pipes.py` | нарезка листов в спрайты (pillow) |
 | `tools/cut_props.py` | нарезка служебных деталей в спрайты + `props.json` (pillow) |
 | `tools/cut_rewards.py` | нарезка медальонов наград + `rewards.json` (pillow) |
@@ -188,6 +189,7 @@ python3 art/tools/cut_props.py      # листы пропсов → tiles/prop-*
 python3 art/tools/cut_rewards.py    # лист пломб → tiles/reward-*.png + rewards.json
 python3 art/tools/mock_board.py     # уровни движка → preview/*.jpg (поля, листы деталей и наград)
 python3 art/tools/make_promo.py     # витрина → promo/listing/*.jpg (OG, фича, сезон, квадрат)
+python3 art/tools/make_index.py     # обзор всего арта → preview/index.jpg
 ```
 
 `mock_board.py` берёт уровни не «на глазок», а из `packages/engine/vectors/levels.json`
