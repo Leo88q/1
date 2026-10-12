@@ -13,6 +13,7 @@ import {
   generateLevel,
   hint as findHint,
   isSolved,
+  kindOf,
   levelConfig,
   poweredCells,
   tileMask,
@@ -22,20 +23,27 @@ import {
   W,
   type Level,
 } from '@ampergrad/engine';
+import { Art, type TierArt } from './art';
 
 /* ────────────────────────────── Ярусы и палитра ───────────────────────────── */
 
-const TIERS = [
-  { name: 'ПЛАТО ПЕРВОГО КОНТАКТА', accent: '#00e5c7' },
-  { name: 'РТУТНЫЙ ЯРУС', accent: '#2ad9c4' },
-  { name: 'ТЕРМИНАЛЬНЫЙ ЯРУС', accent: '#5cc8ff' },
-  { name: 'СТАРЫЙ ДИОД', accent: '#ffc24b' },
-  { name: 'ПЛАВИЛЬНЯ', accent: '#ff3d81' },
+/**
+ * Ярусы. Имена — по канону лора (`packages/engine/content/lore.json`), цвета — из
+ * палитры арта (Guttercaps): acid, cyan, orange. Если арт не загрузился, эти
+ * значения работают сами: игра остаётся играбельной в схематичном режиме.
+ */
+const TIERS: TierArt[] = [
+  { id: 'plateau', name: 'ПЛАТО ПЕРВОГО КОНТАКТА', sets: ['zinc', 'zinc2'], bg: [], flow: '#B6FF3C', accent: '#B6FF3C' },
+  { id: 'mercury', name: 'РТУТНЫЙ ЯРУС', sets: ['chrome'], bg: [], flow: '#16E5D9', accent: '#16E5D9' },
+  { id: 'terminal', name: 'ТЕРМИНАЛЬНЫЙ ЯРУС', sets: ['rust', 'rust2'], bg: [], flow: '#FF7A1A', accent: '#FF7A1A' },
+  { id: 'old-diode', name: 'СТАРЫЙ ДИОД', sets: ['cast'], bg: [], flow: '#FFB040', accent: '#FFB040' },
+  { id: 'melter', name: 'ПЛАВИЛЬНЯ (ЯДРО)', sets: ['glass'], bg: [], flow: '#B6FF3C', accent: '#B6FF3C' },
 ];
 
-function tierOf(level: number) {
+/** Ярус уровня: арт-данные, если арт загружен, иначе встроенный набор. */
+function tierOf(level: number): TierArt {
   const idx = Math.max(0, Math.min(TIERS.length - 1, Math.floor((level - 1) / 15)));
-  return TIERS[idx];
+  return art.tier(idx) ?? TIERS[idx];
 }
 
 /* ─────────────────────────────────── Звук ─────────────────────────────────── */
@@ -118,6 +126,59 @@ function saveProgress(p: Progress) {
   }
 }
 
+/* ──────────────────────────────── Арт ──────────────────────────────── */
+
+/**
+ * Арт включается сам, когда рядом лежат ассеты (`public/art`, их собирает
+ * `packages/lab/scripts/build-art.py`). Режим «схема» остаётся: он полезен, чтобы
+ * видеть чистые маски, и он же спасает, если картинки не отдались.
+ */
+const art = new Art();
+const RENDER_KEY = 'ampergrad.render.v1';
+
+type RenderMode = 'art' | 'scheme';
+let renderMode: RenderMode = 'art';
+try {
+  if (localStorage.getItem(RENDER_KEY) === 'scheme') renderMode = 'scheme';
+} catch {
+  /* приватный режим — играем с артом */
+}
+
+function artReady(): boolean {
+  return renderMode === 'art' && art.pack !== null;
+}
+
+/** Какой деталью нарисована ячейка: тупик (маска 1) — половина прямой трубы. */
+function pieceForMask(mask: number): string {
+  const kind = kindOf(mask);
+  return kind === 'cap' ? 'stub' : kind;
+}
+
+/** Набор материалов ячейки: в ярусе с двумя наборами они чередуются по полю. */
+function setForCell(sets: string[], x: number, y: number, index: number): string {
+  if (sets.length === 0) return 'base';
+  return sets[(x + y + index) % sets.length];
+}
+
+/** Картинка фона, залитая по размеру холста (cover). */
+function drawCover(img: HTMLImageElement, rect: DOMRect) {
+  const scale = Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+  const w = img.naturalWidth * scale;
+  const h = img.naturalHeight * scale;
+  ctx.drawImage(img, (rect.width - w) / 2, (rect.height - h) / 2, w, h);
+}
+
+/** Фоновый кадр под открытый оверлей: меню, победа, магазин. */
+function setScreen(name: 'menu' | 'victory' | 'shop' | null) {
+  const file = name ? art.pack?.screens[name] : undefined;
+  const img = art.get(file);
+  document.documentElement.style.setProperty('--art-screen', img ? `url("${artImageUrl(file!)}")` : 'none');
+}
+
+function artImageUrl(file: string): string {
+  return `/art/${file}`;
+}
+
 /* ──────────────────────────────── Разметка ─────────────────────────────── */
 
 const app = document.getElementById('app')!;
@@ -143,6 +204,7 @@ app.innerHTML = `
       <button class="btn" id="btnReset">Сброс</button>
       <button class="btn" id="btnHint">Подсказка</button>
       <button class="btn btn--ghost" id="btnMenu">Меню</button>
+      <button class="btn btn--ghost" id="btnArt" title="Вид поля (клавиша A)">Вид: арт</button>
       <button class="btn btn--icon" id="btnSound" title="Звук">♪</button>
     </footer>
   </div>
@@ -170,6 +232,7 @@ app.innerHTML = `
   <div class="overlay" id="winOverlay">
     <div class="card card--win">
       <div class="win__label">ПЛОМБА</div>
+      <div class="seal" id="winSeal"></div>
       <h2 id="winTitle">Квартал дышит светом</h2>
       <div class="stars" id="winStars"></div>
       <div class="win__stats" id="winStats"></div>
@@ -240,6 +303,11 @@ function startLevel(levelNumber: number, mode: 'level' | 'daily' = 'level') {
   banner.textContent = `Подай ток на ${level.receivers.length} приёмник(а): все ячейки квартала должны быть подключены к шине`;
   banner.classList.add('is-visible');
   setTimeout(() => banner.classList.remove('is-visible'), 3200);
+
+  // Фон яруса тянем заранее: первый кадр поля уже с картинкой, без мигания.
+  const tier = tierOf(configLevel);
+  const bgFile = tier.bg.length ? tier.bg[(configLevel - 1) % tier.bg.length] : undefined;
+  if (bgFile) void art.image(bgFile).catch(() => null);
 }
 
 function refreshMenu() {
@@ -334,8 +402,21 @@ function finish() {
   if (session.hintsUsed > 0) stars = Math.min(stars, 2);
   sfx.solved();
 
+  // Пломба на экране победы: медальон арта по числу звёзд.
+  const sealFile = art.pack?.rewards[String(Math.max(1, Math.min(3, stars)))];
+  const seal = art.get(sealFile);
+  const sealEl = $<HTMLDivElement>('winSeal');
+  if (seal) {
+    sealEl.style.backgroundImage = `url("${artImageUrl(sealFile!)}")`;
+    sealEl.classList.add('is-on');
+  } else {
+    sealEl.classList.remove('is-on');
+  }
+  setScreen('victory');
+
   // Разлёт искр
   const { ox, oy, cell } = geometry();
+  const sparkColor = tierOf(session.mode === 'daily' ? 33 : session.levelNumber).flow;
   const size = session.level.size;
   for (let i = 0; i < 140; i++) {
     const x = ox + Math.random() * cell * size;
@@ -348,7 +429,7 @@ function finish() {
       vx: Math.cos(a) * sp,
       vy: Math.sin(a) * sp - 0.15,
       life: 1,
-      hue: Math.random() < 0.75 ? '#00e5c7' : '#ffc24b',
+      hue: Math.random() < 0.75 ? sparkColor : '#ffffff',
     });
   }
 
@@ -410,14 +491,26 @@ window.addEventListener('resize', resize);
 
 function draw(now: number) {
   const rect = canvas.getBoundingClientRect();
-  const accent = session ? (session.mode === 'daily' ? '#ffc24b' : tierOf(session.levelNumber).accent) : '#00e5c7';
+  const levelIndex = session ? (session.mode === 'daily' ? 33 : session.levelNumber) : 1;
+  const tier = tierOf(levelIndex);
+  const accent = session ? (session.mode === 'daily' ? '#ffc24b' : tier.accent) : tier.accent;
+  const artMode = artReady();
+  const flow = artMode ? tier.flow : '#00e5c7';
 
-  // Фон
-  const bg = ctx.createLinearGradient(0, 0, 0, rect.height);
-  bg.addColorStop(0, '#070b13');
-  bg.addColorStop(1, '#04060b');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, rect.width, rect.height);
+  // Фон: кадр яруса из арта, иначе — прежний градиент.
+  const bgFile = tier.bg.length ? tier.bg[(levelIndex - 1) % tier.bg.length] : undefined;
+  const bgImg = artMode ? art.get(bgFile) : null;
+  if (bgImg) {
+    drawCover(bgImg, rect);
+    ctx.fillStyle = 'rgba(4,6,11,0.52)'; // притеняем: трубы и ток должны читаться
+    ctx.fillRect(0, 0, rect.width, rect.height);
+  } else {
+    const bg = ctx.createLinearGradient(0, 0, 0, rect.height);
+    bg.addColorStop(0, '#070b13');
+    bg.addColorStop(1, '#04060b');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, rect.width, rect.height);
+  }
 
   if (!session) return;
   const { ox, oy, cell, size } = geometry();
@@ -425,9 +518,9 @@ function draw(now: number) {
   const powered = session.finishedAt ? level.tiles.map(() => true) : poweredCells(level);
   const solvedT = session.solvedAt ? Math.min(1, (now - session.solvedAt) / 800) : 0;
 
-  // Сетка-подложка
+  // Сетка-подложка: в арт-режиме деликатнее — трубы сами читаются как поле.
   ctx.save();
-  ctx.strokeStyle = 'rgba(90,120,160,0.10)';
+  ctx.strokeStyle = artMode ? 'rgba(190,210,235,0.055)' : 'rgba(90,120,160,0.10)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= size; i++) {
     ctx.beginPath();
@@ -449,68 +542,129 @@ function draw(now: number) {
     else session.angle[i] += diff * 0.25;
   }
 
-  // Провода и поток
   const flowPhase = (now % 2200) / 2200;
+  const PORTHOLE: Record<number, readonly [number, number]> = {
+    1: [0, -1],
+    2: [1, 0],
+    4: [0, 1],
+    8: [-1, 0],
+  };
+
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = y * size + x;
       const tile = level.tiles[i];
-      const mask = tileMask(level, i);
       const cx = ox + x * cell + cell / 2;
       const cy = oy + y * cell + cell / 2;
       const on = powered[i];
+      const rot = (session.angle[i] * Math.PI) / 2;
 
-      // Корпус ячейки
-      ctx.save();
-      ctx.fillStyle = tile.role === 'bus' ? 'rgba(0,229,199,0.05)' : 'rgba(255,255,255,0.015)';
-      const r = cell * 0.42;
-      roundRect(ctx, cx - r, cy - r, r * 2, r * 2, cell * 0.16);
-      ctx.fill();
-      ctx.restore();
+      if (artMode) {
+        // Деталь трубы из арта: спрайт нарисован в положении своей маски, поэтому
+        // его поворот равен повороту маски фрагмента — детали соседей стыкуются.
+        const setName = setForCell(tier.sets, x, y, i);
+        const sprite = art.sprite(setName, pieceForMask(tile.base));
+        const img = art.get(sprite?.file);
+        if (img) {
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(rot);
+          ctx.drawImage(img, -cell / 2 - 0.5, -cell / 2 - 0.5, cell + 1, cell + 1);
+          ctx.restore();
+        }
 
-      // Сегменты магистрали (рисуем по канонической маске с визуальным углом)
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate((session.angle[i] * Math.PI) / 2);
-      const len = cell * 0.5;
-      const width = Math.max(4, cell * 0.12);
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      for (const [bit, ang] of [
-        [N, -Math.PI / 2],
-        [E, 0],
-        [S, Math.PI / 2],
-        [W, Math.PI],
-      ] as const) {
-        if (!(tile.base & bit)) continue;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(ang) * len, Math.sin(ang) * len);
-        ctx.strokeStyle = on ? '#00e5c7' : '#26334a';
-        ctx.lineWidth = width;
-        ctx.shadowColor = on ? 'rgba(0,229,199,0.85)' : 'transparent';
-        ctx.shadowBlur = on ? (cell * 0.28 + solvedT * cell * 0.3) : 0;
-        ctx.stroke();
-      }
-      // Ядро соединения
-      ctx.beginPath();
-      ctx.arc(0, 0, width * 0.62, 0, Math.PI * 2);
-      ctx.fillStyle = on ? '#eafff9' : '#16202f';
-      ctx.fill();
-      ctx.restore();
+        // Приёмник — открытый конец трубы: горловина смотрит по своему порту.
+        // (Порядок поворотов тот же, что в макете поля: art/tools/mock_board.py.)
+        if (tile.role === 'receiver') {
+          const mouth = art.get(art.pack?.round.mouth?.file);
+          const mask = tileMask(level, i);
+          const spin = mask & 1 ? Math.PI : mask & 2 ? -Math.PI / 2 : mask & 8 ? Math.PI / 2 : 0;
+          if (mouth) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(spin);
+            ctx.drawImage(mouth, -cell * 0.47, -cell * 0.47, cell * 0.94, cell * 0.94);
+            ctx.restore();
+          }
+        }
 
-      // Бегущая волна тока
-      if (on) {
+        // Шина — колпак поверх детали: отсюда среда уходит в квартал.
+        if (tile.role === 'bus') {
+          const cap = art.get(art.pack?.round.cap?.file);
+          if (cap) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.drawImage(cap, -cell * 0.43, -cell * 0.43, cell * 0.86, cell * 0.86);
+            ctx.restore();
+          }
+        }
+      } else {
+        // Схема: тело ячейки, сегменты по маске и ядро соединения.
         ctx.save();
-        ctx.globalAlpha = 0.35 + 0.35 * Math.sin(flowPhase * Math.PI * 2 + (x + y) * 0.7);
-        ctx.fillStyle = '#00e5c7';
+        ctx.fillStyle = tile.role === 'bus' ? 'rgba(0,229,199,0.05)' : 'rgba(255,255,255,0.015)';
+        const r = cell * 0.42;
+        roundRect(ctx, cx - r, cy - r, r * 2, r * 2, cell * 0.16);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rot);
+        const len = cell * 0.5;
+        const width = Math.max(4, cell * 0.12);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (const [bit, ang] of [
+          [N, -Math.PI / 2],
+          [E, 0],
+          [S, Math.PI / 2],
+          [W, Math.PI],
+        ] as const) {
+          if (!(tile.base & bit)) continue;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(ang) * len, Math.sin(ang) * len);
+          ctx.strokeStyle = on ? flow : '#26334a';
+          ctx.lineWidth = width;
+          ctx.shadowColor = on ? flow : 'transparent';
+          ctx.shadowBlur = on ? cell * 0.28 + solvedT * cell * 0.3 : 0;
+          ctx.stroke();
+        }
         ctx.beginPath();
-        ctx.arc(cx, cy, width * 0.34, 0, Math.PI * 2);
+        ctx.arc(0, 0, width * 0.62, 0, Math.PI * 2);
+        ctx.fillStyle = on ? '#eafff9' : '#16202f';
         ctx.fill();
         ctx.restore();
       }
 
-      // Шина
+      // Среда внутри трубы: узкая светящаяся полоса от центра к портам плюс
+      // ядро соединения. Так же нарисован макет поля, поэтому вид совпадает.
+      if (on) {
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = flow;
+        ctx.shadowColor = flow;
+        ctx.shadowBlur = cell * (0.2 + solvedT * 0.3);
+        ctx.globalAlpha = 0.52 + 0.22 * Math.sin(flowPhase * Math.PI * 2 + (x + y) * 0.7);
+        for (const bit of [N, E, S, W]) {
+          if (!(tile.base & bit)) continue;
+          const [dx, dy] = PORTHOLE[bit];
+          const ang = rot + Math.atan2(dy, dx);
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(ang) * cell * 0.5, cy + Math.sin(ang) * cell * 0.5);
+          ctx.lineWidth = Math.max(3, cell * 0.075);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(2.5, cell * 0.06), 0, Math.PI * 2);
+        ctx.fillStyle = flow;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Шина: пульсирующее кольцо источника тока.
       if (tile.role === 'bus') {
         const pulse = 0.75 + 0.25 * Math.sin(now / 320);
         ctx.save();
@@ -519,23 +673,23 @@ function draw(now: number) {
         ctx.shadowColor = accent;
         ctx.shadowBlur = 14 * pulse;
         ctx.beginPath();
-        ctx.arc(cx, cy, cell * 0.3, 0, Math.PI * 2);
+        ctx.arc(cx, cy, cell * 0.32, 0, Math.PI * 2);
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(cx, cy, cell * 0.2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ((now / 1400) % 1));
+        ctx.arc(cx, cy, cell * 0.22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ((now / 1400) % 1));
         ctx.stroke();
         ctx.restore();
       }
 
-      // Приёмник
+      // Приёмник: отметка цели (в арт-режиме — рамка поверх горловины).
       if (tile.role === 'receiver') {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(Math.PI / 4);
-        const d = cell * 0.3;
-        ctx.strokeStyle = on ? '#ffc24b' : '#3a4a63';
+        const d = cell * (artMode ? 0.36 : 0.3);
+        ctx.strokeStyle = on ? accent : artMode ? 'rgba(255,176,64,0.55)' : '#3a4a63';
         ctx.lineWidth = 2;
-        ctx.shadowColor = on ? '#ffc24b' : 'transparent';
+        ctx.shadowColor = on ? accent : 'transparent';
         ctx.shadowBlur = on ? 16 : 0;
         ctx.strokeRect(-d, -d, d * 2, d * 2);
         ctx.restore();
@@ -545,7 +699,7 @@ function draw(now: number) {
       const hintUntil = session.hintCells.get(i);
       if (hintUntil && hintUntil > now) {
         ctx.save();
-        ctx.strokeStyle = '#ff3d81';
+        ctx.strokeStyle = '#ff2e8a';
         ctx.lineWidth = 3;
         ctx.globalAlpha = 0.5 + 0.5 * Math.sin(now / 160);
         ctx.beginPath();
@@ -595,6 +749,8 @@ function openMenu() {
   refreshMenu();
   $('menuOverlay').classList.add('is-open');
   $('winOverlay').classList.remove('is-open');
+  setScreen('menu');
+  setRenderLabel();
 }
 
 $('btnPlay').addEventListener('click', () => startLevel(progress.level));
@@ -627,6 +783,29 @@ $('btnNext').addEventListener('click', () => {
   if (session.mode === 'daily') startLevel(33, 'daily');
   else startLevel(session.levelNumber + 1);
 });
+/** Подпись кнопки вида: сразу видно, какой режим включён. */
+function setRenderLabel() {
+  const ready = art.pack !== null;
+  const label = renderMode === 'scheme' ? 'Вид: схема' : ready ? 'Вид: арт' : 'Вид: арт (нет)';
+  $('btnArt').textContent = label;
+  $('btnArt').title = ready
+    ? 'Вид поля: трубы из арта или чистая схема (клавиша A)'
+    : 'Ассеты арта не найдены — собираются скриптом packages/lab/scripts/build-art.py';
+}
+
+function toggleRender() {
+  renderMode = renderMode === 'art' ? 'scheme' : 'art';
+  try {
+    localStorage.setItem(RENDER_KEY, renderMode);
+  } catch {
+    /* приватный режим — просто переключаем на время сессии */
+  }
+  setRenderLabel();
+  if (art.pack) setScreen(view === 'menu' ? 'menu' : null);
+}
+
+$('btnArt').addEventListener('click', toggleRender);
+
 $('btnSound').addEventListener('click', () => {
   sfx.enabled = !sfx.enabled;
   $('btnSound').classList.toggle('is-off', !sfx.enabled);
@@ -635,6 +814,7 @@ $('btnSound').addEventListener('click', () => {
 window.addEventListener('keydown', (ev) => {
   if (ev.key === 'r' || ev.key === 'R') $('btnReset').click();
   if (ev.key === 'h' || ev.key === 'H') $('btnHint').click();
+  if (ev.key === 'a' || ev.key === 'A') toggleRender();
   if (ev.key === 'Escape') openMenu();
 });
 
@@ -647,8 +827,16 @@ function loop(now: number) {
 
 resize();
 refreshMenu();
+setRenderLabel();
 openMenu();
 requestAnimationFrame(loop);
+
+// Арт грузим после старта: игра открывается мгновенно, картинки догоняют.
+void art.load().then((ok) => {
+  if (!ok) console.warn('арт не загрузился, играем схемой:', art.error);
+  setRenderLabel();
+  if (view === 'menu') setScreen('menu');
+});
 
 // Служебный экспорт для отладки в консоли (например, чтобы проверить уровень).
 (window as unknown as { ampergrad: unknown }).ampergrad = { startLevel, generateLevel, levelConfig, tileMask, E, N, S, W };

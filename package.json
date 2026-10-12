@@ -10,6 +10,10 @@
   ],
   "scripts": {
     "dev": "npm --workspace @ampergrad/lab run dev",
+    "play": "npm --workspace @ampergrad/lab run dev",
+    "art:web": "python3 packages/lab/scripts/build-art.py",
+    "art:check": "node packages/lab/scripts/check-web-art.mjs",
+    "art:smoke": "npm run build && node packages/lab/scripts/smoke-render.mjs",
     "build": "npm --workspace @ampergrad/lab run build",
     "test": "npm --workspace @ampergrad/engine run test && npm --workspace @ampergrad/server run test",
     "typecheck": "tsc -p packages/engine --noEmit && tsc -p packages/lab --noEmit && tsc -p server --noEmit",

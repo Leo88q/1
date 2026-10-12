@@ -1,0 +1,272 @@
+{
+  "tile": 256,
+  "sets": {
+    "base": {
+      "straight": {
+        "file": "tiles/base-straight.webp",
+        "mask": 5
+      },
+      "stub": {
+        "file": "tiles/base-stub.webp",
+        "mask": 1
+      },
+      "elbow": {
+        "file": "tiles/base-elbow.webp",
+        "mask": 3
+      },
+      "tee": {
+        "file": "tiles/base-tee.webp",
+        "mask": 7
+      },
+      "cross": {
+        "file": "tiles/base-cross.webp",
+        "mask": 15
+      },
+      "straight2": {
+        "file": "tiles/base-straight2.webp",
+        "mask": 5
+      }
+    },
+    "cast": {
+      "straight": {
+        "file": "tiles/cast-straight.webp",
+        "mask": 5
+      },
+      "stub": {
+        "file": "tiles/cast-stub.webp",
+        "mask": 1
+      },
+      "elbow": {
+        "file": "tiles/cast-elbow.webp",
+        "mask": 3
+      },
+      "tee": {
+        "file": "tiles/cast-tee.webp",
+        "mask": 7
+      },
+      "cross": {
+        "file": "tiles/cast-cross.webp",
+        "mask": 15
+      }
+    },
+    "chrome": {
+      "straight": {
+        "file": "tiles/chrome-straight.webp",
+        "mask": 5
+      },
+      "stub": {
+        "file": "tiles/chrome-stub.webp",
+        "mask": 1
+      },
+      "elbow": {
+        "file": "tiles/chrome-elbow.webp",
+        "mask": 3
+      },
+      "tee": {
+        "file": "tiles/chrome-tee.webp",
+        "mask": 7
+      },
+      "cross": {
+        "file": "tiles/chrome-cross.webp",
+        "mask": 15
+      }
+    },
+    "glass": {
+      "straight": {
+        "file": "tiles/glass-straight.webp",
+        "mask": 5
+      },
+      "stub": {
+        "file": "tiles/glass-stub.webp",
+        "mask": 1
+      },
+      "elbow": {
+        "file": "tiles/glass-elbow.webp",
+        "mask": 3
+      },
+      "tee": {
+        "file": "tiles/glass-tee.webp",
+        "mask": 7
+      },
+      "cross": {
+        "file": "tiles/glass-cross.webp",
+        "mask": 15
+      }
+    },
+    "rust": {
+      "straight": {
+        "file": "tiles/rust-straight.webp",
+        "mask": 5
+      },
+      "stub": {
+        "file": "tiles/rust-stub.webp",
+        "mask": 1
+      },
+      "elbow": {
+        "file": "tiles/rust-elbow.webp",
+        "mask": 3
+      },
+      "tee": {
+        "file": "tiles/rust-tee.webp",
+        "mask": 7
+      },
+      "cross": {
+        "file": "tiles/rust-cross.webp",
+        "mask": 15
+      }
+    },
+    "rust2": {
+      "straight": {
+        "file": "tiles/rust2-straight.webp",
+        "mask": 5
+      },
+      "stub": {
+        "file": "tiles/rust2-stub.webp",
+        "mask": 1
+      },
+      "elbow": {
+        "file": "tiles/rust2-elbow.webp",
+        "mask": 3
+      },
+      "tee": {
+        "file": "tiles/rust2-tee.webp",
+        "mask": 7
+      },
+      "cross": {
+        "file": "tiles/rust2-cross.webp",
+        "mask": 15
+      }
+    },
+    "zinc": {
+      "straight": {
+        "file": "tiles/zinc-straight.webp",
+        "mask": 5
+      },
+      "stub": {
+        "file": "tiles/zinc-stub.webp",
+        "mask": 1
+      },
+      "elbow": {
+        "file": "tiles/zinc-elbow.webp",
+        "mask": 3
+      },
+      "tee": {
+        "file": "tiles/zinc-tee.webp",
+        "mask": 7
+      },
+      "cross": {
+        "file": "tiles/zinc-cross.webp",
+        "mask": 15
+      }
+    },
+    "zinc2": {
+      "straight": {
+        "file": "tiles/zinc2-straight.webp",
+        "mask": 5
+      },
+      "stub": {
+        "file": "tiles/zinc2-stub.webp",
+        "mask": 1
+      },
+      "elbow": {
+        "file": "tiles/zinc2-elbow.webp",
+        "mask": 3
+      },
+      "tee": {
+        "file": "tiles/zinc2-tee.webp",
+        "mask": 7
+      },
+      "cross": {
+        "file": "tiles/zinc2-cross.webp",
+        "mask": 15
+      }
+    }
+  },
+  "round": {
+    "mouth": {
+      "file": "tiles/mouth.webp"
+    },
+    "cap": {
+      "file": "tiles/cap.webp"
+    }
+  },
+  "tiers": [
+    {
+      "id": "plateau",
+      "name": "ПЛАТО ПЕРВОГО КОНТАКТА",
+      "sets": [
+        "zinc",
+        "zinc2"
+      ],
+      "bg": [
+        "back/tier-1-plateau.webp",
+        "back/tier-1-plateau-b.webp"
+      ],
+      "flow": "#B6FF3C",
+      "accent": "#B6FF3C"
+    },
+    {
+      "id": "mercury",
+      "name": "РТУТНЫЙ ЯРУС",
+      "sets": [
+        "chrome"
+      ],
+      "bg": [
+        "back/tier-2-mercury.webp",
+        "back/tier-2-mercury-b.webp"
+      ],
+      "flow": "#16E5D9",
+      "accent": "#16E5D9"
+    },
+    {
+      "id": "terminal",
+      "name": "ТЕРМИНАЛЬНЫЙ ЯРУС",
+      "sets": [
+        "rust",
+        "rust2"
+      ],
+      "bg": [
+        "back/tier-3-terminal.webp",
+        "back/tier-3-terminal-b.webp"
+      ],
+      "flow": "#FF7A1A",
+      "accent": "#FF7A1A"
+    },
+    {
+      "id": "old-diode",
+      "name": "СТАРЫЙ ДИОД",
+      "sets": [
+        "cast"
+      ],
+      "bg": [
+        "back/tier-4-old-diode.webp",
+        "back/tier-4-old-diode-b.webp"
+      ],
+      "flow": "#FFB040",
+      "accent": "#FFB040"
+    },
+    {
+      "id": "veins",
+      "name": "ЖИЛЫ МАССИВА",
+      "sets": [
+        "glass"
+      ],
+      "bg": [
+        "back/tier-5-veins.webp",
+        "back/tier-5-veins-b.webp"
+      ],
+      "flow": "#B6FF3C",
+      "accent": "#B6FF3C"
+    }
+  ],
+  "screens": {
+    "menu": "screens/screen-menu.webp",
+    "victory": "screens/screen-victory.webp",
+    "shop": "screens/screen-shop.webp"
+  },
+  "rewards": {
+    "1": "rewards/reward-disc.webp",
+    "2": "rewards/reward-rings.webp",
+    "3": "rewards/reward-star.webp"
+  }
+}
