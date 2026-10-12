@@ -34,7 +34,10 @@ fees — the project server performs the mint.
 - the city registry: 60 short lore entries unlocked by playing;
 - a daily challenge with streak tracking;
 - a cosmetics shop — appearance only: palettes, tier themes, power sources,
-  seals. Nothing that affects play.
+  seals. Nothing that affects play. Some items are unlocked with **in-game
+  coins** earned by clearing districts (20 plus 10 per star, plus 20 for the
+  daily challenge); coins are never sold, bought or cashed out and live only
+  on the device. On-chain rewards are minted solely for server-verified solves.
 
 **About rewards, honestly:** this is not "earn a token". Rewards are collectible
 achievements; they are not sold and promise no income. A seasonal prize pool, if
