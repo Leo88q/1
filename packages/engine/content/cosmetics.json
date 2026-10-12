@@ -1,5 +1,10 @@
 {
   "engineVersion": "0.1.0",
+  "economy": {
+    "coinsPerSolve": 20,
+    "coinsPerStar": 10,
+    "dailyBonus": 20
+  },
   "cosmetics": [
     {
       "id": "plomba-first",
@@ -104,7 +109,7 @@
       "rarity": "common",
       "channel": "coins",
       "priceUsd": null,
-      "priceCoins": 600,
+      "priceCoins": 450,
       "how": "магазин за монеты",
       "lore": "Цвета старого телетайпа: жёлтый на зелёном, шум на кадре.",
       "colors": [
@@ -121,7 +126,7 @@
       "rarity": "rare",
       "channel": "coins",
       "priceUsd": null,
-      "priceCoins": 1200,
+      "priceCoins": 900,
       "how": "магазин за монеты",
       "lore": "Цвет живого металла. На солнце выглядит как вода, в темноте — как кабель.",
       "colors": [
@@ -138,7 +143,7 @@
       "rarity": "common",
       "channel": "coins",
       "priceUsd": null,
-      "priceCoins": 900,
+      "priceCoins": 700,
       "how": "магазин за монеты",
       "lore": "Верхний ярус: пальмы, реклама, свет по лицензии. Лицензия давно истекла.",
       "colors": [
@@ -155,7 +160,7 @@
       "rarity": "legendary",
       "channel": "coins",
       "priceUsd": null,
-      "priceCoins": 5000,
+      "priceCoins": 2000,
       "how": "магазин за монеты (сезонное предложение)",
       "lore": "Анимированный источник. Такой источник был на первом вольт-мастере, когда тот ещё носил инструмент сам.",
       "colors": [

@@ -7,7 +7,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { COSMETICS, ENGINE_VERSION, QUARTERS, REGISTRY, TIERS } from '../src';
+import { COSMETICS, ECONOMY, ENGINE_VERSION, QUARTERS, REGISTRY, TIERS } from '../src';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, '..', 'content');
@@ -28,6 +28,7 @@ write('lore.json', {
 
 write('cosmetics.json', {
   engineVersion: ENGINE_VERSION,
+  economy: ECONOMY,
   cosmetics: COSMETICS,
 });
 

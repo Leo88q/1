@@ -35,6 +35,7 @@ import com.ampergrad.game.engine.N
 import com.ampergrad.game.engine.Role
 import com.ampergrad.game.engine.S
 import com.ampergrad.game.engine.W
+import com.ampergrad.game.content.BoardSkin
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
@@ -51,6 +52,7 @@ fun Board(
     level: Level,
     powered: BooleanArray,
     accent: Color,
+    skin: BoardSkin,
     hintIndex: Int?,
     solving: Boolean,
     modifier: Modifier = Modifier,
@@ -124,7 +126,7 @@ fun Board(
         val oy = (size.height - cell * gridSize) / 2f
         val burst = if (solving) min(1f, burstFrames / 60f) else 0f
 
-        drawGrid(ox, oy, cell, gridSize)
+        drawGrid(ox, oy, cell, gridSize, skin)
 
         for (y in 0 until gridSize) {
             for (x in 0 until gridSize) {
@@ -142,9 +144,9 @@ fun Board(
                     cornerRadius = CornerRadius(cell * 0.16f),
                 )
 
-                drawTile(level, index, cx, cy, cell, angles[index], powered[index], burst)
+                drawTile(level, index, cx, cy, cell, angles[index], powered[index], burst, skin)
 
-                if (tile.role == Role.BUS) drawBus(cx, cy, cell, accent, pulse)
+                if (tile.role == Role.BUS) drawBus(cx, cy, cell, accent, skin, pulse)
                 if (tile.role == Role.RECEIVER) drawReceiver(cx, cy, cell, powered[index])
 
                 if (hintIndex == index) {
@@ -160,8 +162,8 @@ fun Board(
     }
 }
 
-private fun DrawScope.drawGrid(ox: Float, oy: Float, cell: Float, gridSize: Int) {
-    val line = Grad.Line.copy(alpha = 0.35f)
+private fun DrawScope.drawGrid(ox: Float, oy: Float, cell: Float, gridSize: Int, skin: BoardSkin) {
+    val line = skin.grid.copy(alpha = 0.35f)
     for (i in 0..gridSize) {
         val x = ox + i * cell
         drawLine(line, Offset(x, oy), Offset(x, oy + gridSize * cell), strokeWidth = 1f)
@@ -179,11 +181,12 @@ private fun DrawScope.drawTile(
     angle: Float,
     on: Boolean,
     burst: Float,
+    skin: BoardSkin,
 ) {
     val tile = level.tiles[index]
     val len = cell * 0.5f
     val width = maxOf(4f, cell * 0.12f)
-    val color = if (on) Grad.Mint else Grad.Metal
+    val color = if (on) skin.current else skin.idle
     val glow = if (on) 1f + burst else 0f
 
     rotate(degrees = angle * 90f, pivot = Offset(cx, cy)) {
@@ -200,16 +203,16 @@ private fun DrawScope.drawTile(
             drawLine(color, start, end, strokeWidth = width, cap = StrokeCap.Round)
         }
         // Ядро соединения.
-        drawCircle(if (on) Color(0xFFEAFFF9) else Grad.Hub, radius = width * 0.62f, center = Offset(cx, cy))
+        drawCircle(if (on) Color(0xFFEAFFF9) else skin.hub, radius = width * 0.62f, center = Offset(cx, cy))
     }
 }
 
-private fun DrawScope.drawBus(cx: Float, cy: Float, cell: Float, accent: Color, pulse: Float) {
-    drawCircle(accent.copy(alpha = 0.25f + 0.35f * pulse), radius = cell * 0.3f, center = Offset(cx, cy), style = Stroke(width = 2f))
+private fun DrawScope.drawBus(cx: Float, cy: Float, cell: Float, accent: Color, skin: BoardSkin, pulse: Float) {
+    drawCircle(skin.sourceRing.copy(alpha = 0.25f + 0.35f * pulse), radius = cell * 0.3f, center = Offset(cx, cy), style = Stroke(width = 2f))
     val start = -90f
     val sweep = 360f * pulse
     drawArc(
-        color = accent,
+        color = skin.source,
         startAngle = start,
         sweepAngle = sweep,
         useCenter = false,

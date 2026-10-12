@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   COSMETICS,
+  ECONOMY,
   QUARTERS,
   REGISTRY,
   SPEAKERS_EN,
   TIERS,
+  canAfford,
+  coinPurchasable,
+  coinsForSolve,
   cosmeticById,
   quarterForLevel,
   registryById,
@@ -162,4 +166,42 @@ describe('лор-реестр и магазин (M3)', () => {
     }
   });
 
+});
+
+describe('экономика монет', () => {
+  it('монеты начисляются за игру и растут со звёздами', () => {
+    expect(coinsForSolve(3)).toBe(ECONOMY.coinsPerSolve + ECONOMY.coinsPerStar * 3);
+    expect(coinsForSolve(3)).toBe(50);
+    expect(coinsForSolve(1)).toBe(30);
+    expect(coinsForSolve(0)).toBe(20);
+    expect(coinsForSolve(3, true)).toBe(70);
+  });
+
+  it('звёзды вне диапазона не ломают начисление', () => {
+    expect(coinsForSolve(-5)).toBe(20);
+    expect(coinsForSolve(99)).toBe(50);
+    expect(coinsForSolve(2.7)).toBe(40);
+  });
+
+  it('за монеты продаётся только внешний вид', () => {
+    const coinItems = COSMETICS.filter((c) => c.channel === 'coins');
+    expect(coinItems.length).toBeGreaterThanOrEqual(4);
+    for (const item of COSMETICS) {
+      if (coinPurchasable(item.channel)) {
+        expect(item.priceCoins, item.id).toBeGreaterThan(0);
+        expect(item.priceUsd, item.id).toBeNull();
+      } else {
+        // Ни награды за игру, ни витрина, ни Battle Pass за монеты не продаются.
+        if (item.channel !== 'coins') expect(item.priceCoins, item.id).toBeNull();
+      }
+    }
+  });
+
+  it('предмет за монеты достижим без покупок: самый дорогой — до 40 решений', () => {
+    const mostExpensive = Math.max(...COSMETICS.filter((c) => c.priceCoins !== null).map((c) => c.priceCoins!));
+    const solvesFor = (stars: number) => Math.ceil(mostExpensive / coinsForSolve(stars));
+    expect(solvesFor(3)).toBeLessThanOrEqual(40);
+    // Даже при одной звезде за уровень предмет остаётся достижимым.
+    expect(solvesFor(1)).toBeLessThanOrEqual(70);
+  });
 });

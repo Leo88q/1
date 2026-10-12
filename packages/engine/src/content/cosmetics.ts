@@ -5,6 +5,11 @@
  * задаются в магазине платформы. Игрок НИЧЕГО не платит за награды за игру.
  */
 
+/**
+ * Цены за монеты сбалансированы под кампанию: 75 уровней дают примерно
+ * 3750 монет при трёх звёздах (50 за квартал) плюс дейлики. Самый дорогой
+ * предмет за монеты — сезонный, около 40 собранных кварталов.
+ */
 export type CosmeticType = 'palette' | 'theme' | 'wing' | 'source' | 'seal' | 'registry';
 export type CosmeticRarity = 'common' | 'rare' | 'epic' | 'legendary';
 /** Как предмет существует: бесплатно из игры, за монеты или за деньги в магазине платформы. */
@@ -119,7 +124,7 @@ export const COSMETICS: Cosmetic[] = [
     rarity: 'common',
     channel: 'coins',
     priceUsd: null,
-    priceCoins: 600,
+    priceCoins: 450,
     how: 'магазин за монеты',
     lore: 'Цвета старого телетайпа: жёлтый на зелёном, шум на кадре.',
     colors: ['#6CFFB0', '#FFC24B', '#06080E'],
@@ -132,7 +137,7 @@ export const COSMETICS: Cosmetic[] = [
     rarity: 'rare',
     channel: 'coins',
     priceUsd: null,
-    priceCoins: 1200,
+    priceCoins: 900,
     how: 'магазин за монеты',
     lore: 'Цвет живого металла. На солнце выглядит как вода, в темноте — как кабель.',
     colors: ['#9AA7FF', '#00E5C7', '#0B0F18'],
@@ -145,7 +150,7 @@ export const COSMETICS: Cosmetic[] = [
     rarity: 'common',
     channel: 'coins',
     priceUsd: null,
-    priceCoins: 900,
+    priceCoins: 700,
     how: 'магазин за монеты',
     lore: 'Верхний ярус: пальмы, реклама, свет по лицензии. Лицензия давно истекла.',
     colors: ['#7DE9FF', '#FFC24B', '#0E1520'],
@@ -158,7 +163,7 @@ export const COSMETICS: Cosmetic[] = [
     rarity: 'legendary',
     channel: 'coins',
     priceUsd: null,
-    priceCoins: 5000,
+    priceCoins: 2000,
     how: 'магазин за монеты (сезонное предложение)',
     lore: 'Анимированный источник. Такой источник был на первом вольт-мастере, когда тот ещё носил инструмент сам.',
     colors: ['#FFC24B', '#FFF3C4', '#06080E'],

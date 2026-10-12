@@ -69,6 +69,56 @@ class ProgressStore(context: Context) {
         get() = prefs.getInt("daily_best_moves", 0)
         set(value) = prefs.edit().putInt("daily_best_moves", value).apply()
 
+    /** Монеты: зарабатываются за игру, тратятся только на вид. */
+    var coins: Int
+        get() = prefs.getInt("coins", 0)
+        set(value) = prefs.edit().putInt("coins", value.coerceAtLeast(0)).apply()
+
+    fun addCoins(delta: Int) {
+        coins = coins + delta
+    }
+
+    /** Владеет ли игрок предметом: куплен за монеты или получен наградой. */
+    fun owns(itemId: String): Boolean = prefs.getStringSet("owned", emptySet())!!.contains(itemId)
+
+    fun own(itemId: String) {
+        prefs.edit().putStringSet("owned", prefs.getStringSet("owned", emptySet())!! + itemId).apply()
+    }
+
+    /** Надетые предметы по слотам: палитра, тема, источник, знак. */
+    var equippedPalette: String?
+        get() = prefs.getString("wear_palette", null)
+        set(value) = prefs.edit().putString("wear_palette", value).apply()
+
+    var equippedTheme: String?
+        get() = prefs.getString("wear_theme", null)
+        set(value) = prefs.edit().putString("wear_theme", value).apply()
+
+    var equippedSource: String?
+        get() = prefs.getString("wear_source", null)
+        set(value) = prefs.edit().putString("wear_source", value).apply()
+
+    var equippedMark: String?
+        get() = prefs.getString("wear_mark", null)
+        set(value) = prefs.edit().putString("wear_mark", value).apply()
+
+    /** Слот гардероба по типу предмета (для надевания и снятия). */
+    fun equippedId(type: String): String? = when (type) {
+        "palette" -> equippedPalette
+        "theme" -> equippedTheme
+        "source" -> equippedSource
+        else -> equippedMark
+    }
+
+    fun equip(id: String?, type: String) {
+        when (type) {
+            "palette" -> equippedPalette = id
+            "theme" -> equippedTheme = id
+            "source" -> equippedSource = id
+            else -> equippedMark = id
+        }
+    }
+
     /** Язык интерфейса: "ru" или "en". Пусто — берём системный. */
     var lang: String?
         get() = prefs.getString("lang", null)

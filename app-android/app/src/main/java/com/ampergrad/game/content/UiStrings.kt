@@ -116,6 +116,23 @@ interface UiStrings {
     val shopNoteCoins: String
     val shopNoteStore: String
     val shopNotePass: String
+    /* Монеты и покупки */
+    fun coins(amount: Int): String
+    val shopOwned: String
+    val shopEquip: String
+    val shopUnequip: String
+    val shopEquipped: String
+    val shopBuy: String
+    fun shopNotEnough(need: Int): String
+    val shopPurchased: String
+    val shopInUse: String
+    val shopPlatform: String
+    val shopRewardHint: String
+    val menuCoins: (Int) -> String
+    val menuNothingWorn: String
+    fun menuWearing(what: String): String
+    fun coinsEarned(amount: Int): String
+
     val priceReward: String
     val priceSeason: String
     fun priceCoins(coins: Int): String
@@ -269,6 +286,22 @@ object Ru : UiStrings {
     override val shopNoteCoins = "монеты зарабатываются в игре, не покупаются"
     override val shopNoteStore = "покупки идут в фонд сезона и призы"
     override val shopNotePass = "сезонный трек, 8 недель"
+    override fun coins(amount: Int) = "$amount монет"
+    override val shopOwned = "КУПЛЕНО"
+    override val shopEquip = "НАДЕТЬ"
+    override val shopUnequip = "СНЯТЬ"
+    override val shopEquipped = "НАДЕТО"
+    override val shopBuy = "КУПИТЬ"
+    override fun shopNotEnough(need: Int) = "не хватает $need монет"
+    override val shopPurchased = "Куплено. Предмет сразу надет."
+    override val shopInUse = "Носить можно палитру, тему, источник и один знак одновременно."
+    override val shopPlatform = "витрина платформы"
+    override val shopRewardHint = "выдаётся за игру, покупке не подлежит"
+    override fun menuCoins(amount: Int) = "монет: $amount"
+    override val menuNothingWorn = "надето: канонический вид"
+    override fun menuWearing(what: String) = "надето: $what"
+    override fun coinsEarned(amount: Int) = "+$amount монет"
+
     override val priceReward = "за игру"
     override val priceSeason = "по сезону"
     override fun priceCoins(coins: Int) = "$coins монет"
@@ -405,6 +438,22 @@ object En : UiStrings {
     override val shopNoteCoins = "coins are earned in game, never bought"
     override val shopNoteStore = "purchases fund the season pool and prizes"
     override val shopNotePass = "season track, 8 weeks"
+    override fun coins(amount: Int) = "$amount coins"
+    override val shopOwned = "OWNED"
+    override val shopEquip = "WEAR"
+    override val shopUnequip = "REMOVE"
+    override val shopEquipped = "WORN"
+    override val shopBuy = "BUY"
+    override fun shopNotEnough(need: Int) = "$need coins short"
+    override val shopPurchased = "Bought. Worn right away."
+    override val shopInUse = "You can wear a palette, a theme, a source and one mark at the same time."
+    override val shopPlatform = "platform store"
+    override val shopRewardHint = "earned by playing, not for sale"
+    override fun menuCoins(amount: Int) = "coins: $amount"
+    override val menuNothingWorn = "worn: the canonical look"
+    override fun menuWearing(what: String) = "worn: $what"
+    override fun coinsEarned(amount: Int) = "+$amount coins"
+
     override val priceReward = "for play"
     override val priceSeason = "seasonal"
     override fun priceCoins(coins: Int) = "$coins coins"

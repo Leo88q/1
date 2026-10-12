@@ -70,7 +70,10 @@ import com.ampergrad.game.content.CosmeticItem
 import com.ampergrad.game.content.Lang
 import com.ampergrad.game.content.UiStrings
 import com.ampergrad.game.content.Lore
+import com.ampergrad.game.content.BoardSkin
 import com.ampergrad.game.content.Shop
+import com.ampergrad.game.content.Wardrobe
+import com.ampergrad.game.content.of
 import com.ampergrad.game.ui.tierOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -124,6 +127,12 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     val claimApi = remember { ClaimClient(BuildConfig.SERVER_URL) }
     val scope = rememberCoroutineScope()
     var lang by remember { mutableStateOf(Lang.of(store.lang ?: Lang.systemDefault().code)) }
+    var coins by remember { mutableIntStateOf(store.coins) }
+    var wardrobe by remember { mutableStateOf(currentWardrobe(store, shop)) }
+    val skin = remember(wardrobe) { BoardSkin.of(wardrobe) }
+    fun refreshWardrobe() {
+        wardrobe = currentWardrobe(store, shop)
+    }
     val t = remember(lang) { UiStrings.of(lang) }
 
     var session by remember { mutableStateOf<GameSession?>(null) }
@@ -245,6 +254,10 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         if (current.hintsUsed > 0) stars = minOf(stars, 2)
         current.stars = stars
         val day = now / 86_400_000L
+        val earned = (shop?.economy ?: com.ampergrad.game.content.EconomyRules.Default)
+            .coinsForSolve(stars, daily = current.mode == Mode.DAILY)
+        store.addCoins(earned)
+        coins = store.coins
         if (current.mode == Mode.LEVEL) {
             store.recordWin(current.levelNumber, stars, current.moves, day)
         } else {
@@ -253,7 +266,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
             if (store.dailyBestMoves == 0 || current.moves < store.dailyBestMoves) store.dailyBestMoves = current.moves
             if (walletAddress != null) submitDaily(current)
         }
-        showBanner(t.bannerSealed)
+        showBanner("${t.bannerSealed} · ${t.coinsEarned(earned)}")
     }
 
     fun rotate(current: GameSession, index: Int, dir: Int) {
@@ -312,6 +325,9 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 )
                 store.claimedCount += 1
                 store.lastClaimJson = result.txSignature
+                // Награда за игру сразу становится доступной в гардеробе.
+                store.own(challenge.rewardId)
+                refreshWardrobe()
                 current.reward = RewardState(
                     message = when (result.status) {
                         "minted" -> t.claimMinted
@@ -341,6 +357,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                     lang = if (lang == Lang.RU) Lang.EN else Lang.RU
                     store.lang = lang.code
                 },
+                worn = wardrobe,
                 walletAddress = walletAddress,
                 onPlay = { startLevel(store.level.coerceAtMost(75)) },
                 onDaily = { startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY) },
@@ -363,6 +380,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 session = current,
                 lore = lore,
                 t = t,
+                skin = skin,
                 banner = banner,
                 soundEnabled = sound.enabled,
                 onRotate = { index, dir -> rotate(current, index, dir) },
@@ -389,7 +407,29 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         }
 
         if (shopOpen) {
-            ShopOverlay(shop = shop, t = t, onClose = { shopOpen = false })
+            ShopOverlay(
+                shop = shop,
+                t = t,
+                coins = coins,
+                store = store,
+                onBuy = { item ->
+                    val price = item.priceCoins ?: 0
+                    if (shop != null && shop.coinPurchasable(item) && coins >= price) {
+                        store.addCoins(-price)
+                        store.own(item.id)
+                        store.equip(item.id, item.type)
+                        coins = store.coins
+                        refreshWardrobe()
+                        showBanner(t.shopPurchased)
+                    }
+                },
+                onEquip = { item ->
+                    val current = store.equippedId(item.type)
+                    store.equip(if (current == item.id) null else item.id, item.type)
+                    refreshWardrobe()
+                },
+                onClose = { shopOpen = false },
+            )
         }
 
         if (registryOpen) {
@@ -464,6 +504,23 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     }
 }
 
+/** Что надето сейчас: собираем из прогресса и каталога (косметика = только вид). */
+private fun currentWardrobe(store: ProgressStore, shop: Shop?): Wardrobe {
+    fun worn(id: String?) = id?.let { shop?.byId(it) }
+    return Wardrobe(
+        palette = worn(store.equippedPalette),
+        theme = worn(store.equippedTheme),
+        source = worn(store.equippedSource),
+        mark = worn(store.equippedMark),
+    )
+}
+
+/** Строка «надето: …» для меню: перечисляем слоты, которые заняты. */
+private fun wornLabel(worn: Wardrobe, t: UiStrings): String {
+    val names = listOfNotNull(worn.palette?.name, worn.theme?.name, worn.source?.name, worn.mark?.name)
+    return if (names.isEmpty()) t.menuNothingWorn else t.menuWearing(names.joinToString(", "))
+}
+
 /** Разбор/сборка рейтинга — в net/LeaderboardCodec, здесь короткая обёртка. */
 private fun encodeBoard(scores: List<DailyScore>): String = LeaderboardCodec.encode(scores)
 
@@ -476,6 +533,7 @@ private fun MenuScreen(
     t: UiStrings,
     lang: Lang,
     onToggleLang: () -> Unit,
+    worn: Wardrobe,
     walletAddress: String?,
     onPlay: () -> Unit,
     onDaily: () -> Unit,
@@ -503,7 +561,8 @@ private fun MenuScreen(
         )
         Spacer(Modifier.height(18.dp))
         Text(
-            text = t.menuProgress(store.solvedCount(), store.totalStars(), store.streak),
+            text = t.menuProgress(store.solvedCount(), store.totalStars(), store.streak) +
+                " · " + t.menuCoins(coins),
             style = MaterialTheme.typography.bodyMedium,
             color = Grad.InkDim,
         )
@@ -516,6 +575,12 @@ private fun MenuScreen(
         ) {
             Text(t.startShift(store.level.coerceAtMost(75)))
         }
+        Text(
+            wornLabel(worn, t),
+            style = MaterialTheme.typography.labelSmall,
+            color = if (worn.isEmpty) Grad.Metal else Grad.Mint,
+        )
+        Spacer(Modifier.height(10.dp))
         lore?.quarter(store.level.coerceAtMost(75))?.let { quarter ->
             Spacer(Modifier.height(6.dp))
             Text(
@@ -575,6 +640,7 @@ private fun GameScreen(
     session: GameSession,
     lore: Lore?,
     t: UiStrings,
+    skin: BoardSkin,
     banner: String?,
     soundEnabled: Boolean,
     onRotate: (Int, Int) -> Unit,
@@ -629,12 +695,13 @@ private fun GameScreen(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
                 .border(1.dp, Grad.Line, RoundedCornerShape(16.dp))
-                .background(Color(0xFF070B13), RoundedCornerShape(16.dp)),
+                .background(skin.field, RoundedCornerShape(16.dp)),
         ) {
             Board(
                 level = session.level,
                 powered = powered,
                 accent = accent,
+                skin = skin,
                 hintIndex = if ((session.hintUntil) > System.currentTimeMillis()) session.hintIndex else null,
                 solving = session.solving,
                 modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -1007,7 +1074,15 @@ private fun LeaderboardOverlay(
 }
 
 @Composable
-private fun ShopOverlay(shop: Shop?, t: UiStrings, onClose: () -> Unit) {
+private fun ShopOverlay(
+    shop: Shop?,
+    t: UiStrings,
+    coins: Int,
+    store: ProgressStore,
+    onBuy: (CosmeticItem) -> Unit,
+    onEquip: (CosmeticItem) -> Unit,
+    onClose: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1026,7 +1101,10 @@ private fun ShopOverlay(shop: Shop?, t: UiStrings, onClose: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(t.shopTitle, style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                Column {
+                    Text(t.shopTitle, style = MaterialTheme.typography.titleMedium, color = Grad.Mint)
+                    Text(t.coins(coins), style = MaterialTheme.typography.labelSmall, color = Grad.Gold)
+                }
                 TextButton(onClick = onClose) { Text(t.close, color = Grad.InkDim) }
             }
             Spacer(Modifier.height(4.dp))
@@ -1035,6 +1113,8 @@ private fun ShopOverlay(shop: Shop?, t: UiStrings, onClose: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = Grad.InkDim,
             )
+            Spacer(Modifier.height(4.dp))
+            Text(t.shopInUse, style = MaterialTheme.typography.bodySmall, color = Grad.Metal)
             Spacer(Modifier.height(16.dp))
 
             if (shop == null) {
@@ -1044,10 +1124,42 @@ private fun ShopOverlay(shop: Shop?, t: UiStrings, onClose: () -> Unit) {
                     color = Grad.Metal,
                 )
             } else {
-                ShopSection(t.shopSectionRewards, shop.rewards, t.shopNoteRewards, t)
-                ShopSection(t.shopSectionCoins, shop.coins, t.shopNoteCoins, t)
-                ShopSection(t.shopSectionStore, shop.store, t.shopNoteStore, t)
-                ShopSection(t.shopSectionPass, shop.seasonPass, t.shopNotePass, t)
+                ShopSection(
+                    title = t.shopSectionRewards,
+                    items = shop.rewards,
+                    note = t.shopNoteRewards,
+                    t = t,
+                    state = { item -> cosmeticState(item, store, coins, shop) },
+                    onBuy = onBuy,
+                    onEquip = onEquip,
+                )
+                ShopSection(
+                    title = t.shopSectionCoins,
+                    items = shop.coins,
+                    note = t.shopNoteCoins,
+                    t = t,
+                    state = { item -> cosmeticState(item, store, coins, shop) },
+                    onBuy = onBuy,
+                    onEquip = onEquip,
+                )
+                ShopSection(
+                    title = t.shopSectionStore,
+                    items = shop.store,
+                    note = t.shopNoteStore,
+                    t = t,
+                    state = { item -> cosmeticState(item, store, coins, shop) },
+                    onBuy = onBuy,
+                    onEquip = onEquip,
+                )
+                ShopSection(
+                    title = t.shopSectionPass,
+                    items = shop.seasonPass,
+                    note = t.shopNotePass,
+                    t = t,
+                    state = { item -> cosmeticState(item, store, coins, shop) },
+                    onBuy = onBuy,
+                    onEquip = onEquip,
+                )
             }
             Spacer(Modifier.height(12.dp))
         }
@@ -1055,18 +1167,68 @@ private fun ShopOverlay(shop: Shop?, t: UiStrings, onClose: () -> Unit) {
 }
 
 @Composable
-private fun ShopSection(title: String, items: List<CosmeticItem>, note: String, t: UiStrings) {
+/** Состояние карточки: что можно сделать с предметом прямо сейчас. */
+private enum class CosmeticAction { BUY, EQUIP, UNEQUIP, NONE }
+
+private data class CosmeticState(
+    val owned: Boolean,
+    val equipped: Boolean,
+    val action: CosmeticAction,
+    /** Почему кнопки нет: витрина платформы, сезон, награда за игру или нехватка монет. */
+    val hint: CosmeticHint? = null,
+    /** Сколько монет не хватает (только для CosmeticHint.COINS). */
+    val missingCoins: Int = 0,
+)
+
+private enum class CosmeticHint { PLATFORM, PASS, REWARD, COINS }
+
+private fun cosmeticState(item: CosmeticItem, store: ProgressStore, coins: Int, shop: Shop?): CosmeticState {
+    val owned = store.owns(item.id)
+    val equipped = store.equippedId(item.type) == item.id
+    val economy = shop?.economy ?: com.ampergrad.game.content.EconomyRules.Default
+    return when {
+        equipped -> CosmeticState(owned, true, CosmeticAction.UNEQUIP, null)
+        owned -> CosmeticState(true, false, CosmeticAction.EQUIP, null)
+        shop != null && shop.coinPurchasable(item) && economy.canAfford(coins, item.priceCoins) ->
+            CosmeticState(false, false, CosmeticAction.BUY)
+        shop != null && shop.coinPurchasable(item) ->
+            CosmeticState(
+                owned = false,
+                equipped = false,
+                action = CosmeticAction.NONE,
+                hint = CosmeticHint.COINS,
+                missingCoins = (item.priceCoins ?: 0) - coins,
+            )
+        item.channel == "store" -> CosmeticState(false, false, CosmeticAction.NONE, CosmeticHint.PLATFORM)
+        item.channel == "battle-pass" -> CosmeticState(false, false, CosmeticAction.NONE, CosmeticHint.PASS)
+        else -> CosmeticState(false, false, CosmeticAction.NONE, CosmeticHint.REWARD)
+    }
+}
+
+@Composable
+private fun ShopSection(
+    title: String,
+    items: List<CosmeticItem>,
+    note: String,
+    t: UiStrings,
+    state: (CosmeticItem) -> CosmeticState,
+    onBuy: (CosmeticItem) -> Unit,
+    onEquip: (CosmeticItem) -> Unit,
+) {
     if (items.isEmpty()) return
     Text(title, style = MaterialTheme.typography.labelSmall, color = Grad.Gold)
     Spacer(Modifier.height(6.dp))
     Text(note, style = MaterialTheme.typography.bodySmall, color = Grad.InkDim)
     Spacer(Modifier.height(8.dp))
     items.forEach { item ->
+        val current = state(item)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = Grad.Panel),
+            colors = CardDefaults.cardColors(
+                containerColor = if (current.equipped) Color(0xFF10202A) else Grad.Panel,
+            ),
             shape = RoundedCornerShape(12.dp),
         ) {
             Column(Modifier.padding(12.dp)) {
@@ -1076,7 +1238,11 @@ private fun ShopSection(title: String, items: List<CosmeticItem>, note: String, 
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(item.name, style = MaterialTheme.typography.titleMedium, color = Grad.Ink)
-                    Text(item.priceLabel(t), style = MaterialTheme.typography.labelSmall, color = Grad.Mint)
+                    Text(
+                        text = if (current.equipped) t.shopEquipped else item.priceLabel(t),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (current.equipped) Grad.Mint else Grad.Mint,
+                    )
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -1086,6 +1252,37 @@ private fun ShopSection(title: String, items: List<CosmeticItem>, note: String, 
                 )
                 Spacer(Modifier.height(6.dp))
                 Text("«${item.lore}»", style = MaterialTheme.typography.bodySmall, color = Grad.Ink)
+
+                Spacer(Modifier.height(10.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    when (current.action) {
+                        CosmeticAction.BUY -> Button(
+                            onClick = { onBuy(item) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Grad.Gold,
+                                contentColor = Color(0xFF231703),
+                            ),
+                        ) {
+                            Text("${t.shopBuy} · ${item.priceLabel(t)}")
+                        }
+                        CosmeticAction.EQUIP -> OutlinedButton(onClick = { onEquip(item) }) {
+                            Text(t.shopEquip)
+                        }
+                        CosmeticAction.UNEQUIP -> OutlinedButton(onClick = { onEquip(item) }) {
+                            Text(t.shopUnequip)
+                        }
+                        CosmeticAction.NONE -> Text(
+                            text = when (current.hint) {
+                                CosmeticHint.PLATFORM -> t.shopPlatform
+                                CosmeticHint.PASS -> t.shopNotePass
+                                CosmeticHint.REWARD -> t.shopRewardHint
+                                else -> t.shopNotEnough(current.missingCoins)
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Grad.InkDim,
+                        )
+                    }
+                }
             }
         }
     }

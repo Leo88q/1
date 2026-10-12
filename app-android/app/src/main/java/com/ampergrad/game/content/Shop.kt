@@ -33,18 +33,55 @@ data class CosmeticItem(
     fun priceLabel(t: UiStrings): String = t.priceLabel(priceUsd, priceCoins, channel)
 }
 
-class Shop(val items: List<CosmeticItem>) {
+/** Правила экономики монет (канон: packages/engine/src/content/economy.ts). */
+data class EconomyRules(
+    val coinsPerSolve: Int = 20,
+    val coinsPerStar: Int = 10,
+    val dailyBonus: Int = 20,
+) {
+    /** Монеты за решение: базовые плюс по звезде, для челленджа дня — с добавкой. */
+    fun coinsForSolve(stars: Int, daily: Boolean = false): Int {
+        val clean = stars.coerceIn(0, 3)
+        return coinsPerSolve + coinsPerStar * clean + if (daily) dailyBonus else 0
+    }
+
+    fun canAfford(coins: Int, priceCoins: Int?): Boolean = priceCoins != null && coins >= priceCoins
+
+    companion object {
+        /** Резерв на случай, если контент не попал в сборку: числа совпадают с каноном. */
+        val Default = EconomyRules()
+    }
+}
+
+class Shop(
+    val items: List<CosmeticItem>,
+    val economy: EconomyRules = EconomyRules.Default,
+) {
 
     val rewards: List<CosmeticItem> get() = items.filter { it.channel == "reward" }
     val coins: List<CosmeticItem> get() = items.filter { it.channel == "coins" }
     val store: List<CosmeticItem> get() = items.filter { it.channel == "store" }
     val seasonPass: List<CosmeticItem> get() = items.filter { it.channel == "battle-pass" }
 
+    /** Предмет по идентификатору. */
+    fun byId(id: String): CosmeticItem? = items.firstOrNull { it.id == id }
+
+    /** За монеты продаётся только внешний вид (канон: coinPurchasable). */
+    fun coinPurchasable(item: CosmeticItem): Boolean = item.channel == "coins" && item.priceCoins != null
+
     companion object {
         const val ASSET = "cosmetics.json"
 
         fun parse(json: String): Shop {
-            val array = JSONObject(json).getJSONArray("cosmetics")
+            val root = JSONObject(json)
+            val economy = root.optJSONObject("economy")?.let { e ->
+                EconomyRules(
+                    coinsPerSolve = e.optInt("coinsPerSolve", EconomyRules.Default.coinsPerSolve),
+                    coinsPerStar = e.optInt("coinsPerStar", EconomyRules.Default.coinsPerStar),
+                    dailyBonus = e.optInt("dailyBonus", EconomyRules.Default.dailyBonus),
+                )
+            } ?: EconomyRules.Default
+            val array = root.getJSONArray("cosmetics")
             val items = (0 until array.length()).map { index ->
                 val o = array.getJSONObject(index)
                 CosmeticItem(
@@ -61,7 +98,7 @@ class Shop(val items: List<CosmeticItem>) {
                     standard = if (o.isNull("standard")) null else o.getString("standard"),
                 )
             }
-            return Shop(items)
+            return Shop(items, economy)
         }
 
         fun load(context: Context): Shop? = try {
