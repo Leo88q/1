@@ -465,6 +465,40 @@ def render_tileset(sprites, path, size=None):
     return path
 
 
+def render_props(path, cell=230, gap=30, margin=70):
+    """Лист служебных деталей: указатели потока и запасные детали поля."""
+    with open(os.path.join(TILES, "props.json"), encoding="utf-8") as fh:
+        props = json.load(fh)
+    groups = [
+        ("УКАЗАТЕЛИ ПОТОКА · waypoint", [k for k, v in props.items() if v["kind"] == "waypoint"]),
+        ("ЗАПАСНЫЕ ДЕТАЛИ · стыки и декор квартала", [k for k, v in props.items() if v["kind"] == "spare"]),
+    ]
+    columns = max(len(names) for _, names in groups)
+    size = (margin * 2 + columns * cell + (columns - 1) * gap,
+            100 + len(groups) * (cell + gap + 34) + 30)
+    img = Image.new("RGB", size, SHEET_BG)
+    draw = ImageDraw.Draw(img)
+    for x in range(0, size[0], 40):
+        draw.line([(x, 0), (x, size[1])], fill=(32, 31, 37), width=1)
+    for y in range(0, size[1], 40):
+        draw.line([(0, y), (size[0], y)], fill=(32, 31, 37), width=1)
+    draw.text((margin, 26), "АМПЕРГРАД · служебные детали", font=font("bold", 32), fill=ACID)
+
+    for row, (title, names) in enumerate(groups):
+        y = 100 + row * (cell + gap + 34)
+        draw.text((margin, y - 24), title, font=font("mono", 19), fill=DIM)
+        for col, name in enumerate(names):
+            x = margin + col * (cell + gap)
+            art = Image.open(os.path.join(TILES, props[name]["file"])).convert("RGBA")
+            art.thumbnail((cell - 16, cell - 16), Image.LANCZOS)
+            img.paste(art, (x + (cell - art.width) // 2, y + (cell - art.height) // 2), art)
+            draw.text((x + cell // 2, y + cell + 6), props[name]["caption"], font=font("regular", 19),
+                      fill=INK, anchor="ma")
+
+    img.save(path, "JPEG", quality=90)
+    return path
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     sprites = load_tiles()
@@ -476,6 +510,7 @@ def main():
         print("записано:", os.path.relpath(path, REPO))
 
     print("записано:", os.path.relpath(render_tileset(sprites, os.path.join(OUT, "tileset.jpg")), REPO))
+    print("записано:", os.path.relpath(render_props(os.path.join(OUT, "props.jpg")), REPO))
 
 
 if __name__ == "__main__":

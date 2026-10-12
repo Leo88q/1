@@ -1,0 +1,54 @@
+{
+  "prop-arrow-up": {
+    "file": "prop-arrow-up.png",
+    "kind": "waypoint",
+    "caption": "вверх",
+    "source": "promo/arrows-topdown.jpg",
+    "points": "up"
+  },
+  "prop-arrow-right": {
+    "file": "prop-arrow-right.png",
+    "kind": "waypoint",
+    "caption": "вправо",
+    "source": "promo/arrows-topdown.jpg",
+    "points": "right"
+  },
+  "prop-arrow-down": {
+    "file": "prop-arrow-down.png",
+    "kind": "waypoint",
+    "caption": "вниз",
+    "source": "promo/arrows-topdown.jpg",
+    "points": "down"
+  },
+  "prop-arrow-left": {
+    "file": "prop-arrow-left.png",
+    "kind": "waypoint",
+    "caption": "влево",
+    "source": "promo/arrows-topdown.jpg",
+    "points": "left"
+  },
+  "prop-spare-blind": {
+    "file": "prop-spare-blind.png",
+    "kind": "spare",
+    "caption": "глухая плита",
+    "source": "promo/spare-topdown.jpg"
+  },
+  "prop-spare-coupling": {
+    "file": "prop-spare-coupling.png",
+    "kind": "spare",
+    "caption": "муфта",
+    "source": "promo/spare-topdown.jpg"
+  },
+  "prop-spare-flange": {
+    "file": "prop-spare-flange.png",
+    "kind": "spare",
+    "caption": "фланец",
+    "source": "promo/spare-topdown.jpg"
+  },
+  "prop-spare-wheel": {
+    "file": "prop-spare-wheel.png",
+    "kind": "spare",
+    "caption": "маховик",
+    "source": "promo/spare-topdown.jpg"
+  }
+}
