@@ -72,6 +72,7 @@ import com.ampergrad.game.content.UiStrings
 import com.ampergrad.game.content.Lore
 import com.ampergrad.game.content.BoardSkin
 import com.ampergrad.game.ui.Art
+import com.ampergrad.game.ui.screenBackdrop
 import com.ampergrad.game.ui.ArtTier
 import com.ampergrad.game.ui.artTierIndex
 import com.ampergrad.game.content.Shop
@@ -396,6 +397,8 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         if (current == null || menuOpen) {
             MenuScreen(
                 store = store,
+                art = if (artReady && artOn) art else null,
+                skin = skin,
                 lore = lore,
                 t = t,
                 lang = lang,
@@ -471,6 +474,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         if (shopOpen) {
             ShopOverlay(
                 shop = shop,
+                art = if (artReady && artOn) art else null,
                 t = t,
                 coins = coins,
                 store = store,
@@ -597,6 +601,8 @@ private fun encodeBoard(scores: List<DailyScore>): String = LeaderboardCodec.enc
 @Composable
 private fun MenuScreen(
     store: ProgressStore,
+    art: Art?,
+    skin: BoardSkin,
     lore: Lore?,
     t: UiStrings,
     lang: Lang,
@@ -615,6 +621,9 @@ private fun MenuScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // Фон экрана из арта: меню — первое, что видит игрок, поэтому кадр
+            // здесь важнее, чем где-либо. Без арта модификатор ничего не делает.
+            .screenBackdrop(art = art, name = "menu", dim = 0.70f, tint = skin.field)
             .systemBarsPadding()
             .padding(20.dp)
             .verticalScroll(rememberScrollState()),
@@ -849,7 +858,13 @@ private fun WinOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xD903050A))
+            .then(
+                if (art != null) {
+                    Modifier.screenBackdrop(art, "victory", dim = 0.76f, tint = Color(0xFF03050A))
+                } else {
+                    Modifier.background(Color(0xD903050A))
+                },
+            )
             .systemBarsPadding()
             .padding(20.dp),
         contentAlignment = Alignment.Center,
@@ -1179,6 +1194,7 @@ private fun LeaderboardOverlay(
 @Composable
 private fun ShopOverlay(
     shop: Shop?,
+    art: Art?,
     t: UiStrings,
     coins: Int,
     store: ProgressStore,
@@ -1189,7 +1205,13 @@ private fun ShopOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xF203050A))
+            .then(
+                if (art != null) {
+                    Modifier.screenBackdrop(art, "shop", dim = 0.78f, tint = Color(0xFF03050A))
+                } else {
+                    Modifier.background(Color(0xF203050A))
+                },
+            )
             .systemBarsPadding()
             .padding(20.dp),
         contentAlignment = Alignment.TopCenter,

@@ -127,6 +127,9 @@ class Art(private val context: Context, private val base: String = "art/") {
             }
             for (file in parsed.round.values) decode(file)?.let { images[file] = it }
             for (file in parsed.rewards.values) decode(file)?.let { images[file] = it }
+            // Фоны экранов (меню, победа, витрина): их заметно сразу, поэтому
+            // греем вместе с остальным, а не по первому показу.
+            for (file in parsed.screens.values) decode(file)?.let { images[file] = it }
             pack = parsed
             error = if (decodedAll) null else "спрайты из web.json не декодировались — рисуем схему"
         } catch (err: Exception) {
@@ -143,6 +146,9 @@ class Art(private val context: Context, private val base: String = "art/") {
     fun round(name: String): ImageBitmap? = images[pack?.round?.get(name) ?: return null]
 
     fun reward(stars: Int): ImageBitmap? = images[pack?.rewards?.get(rewardForStars(stars)) ?: return null]
+
+    /** Фон экрана: меню, победа или витрина. */
+    fun screen(name: String): ImageBitmap? = images[pack?.screens?.get(name) ?: return null]
 
     /**
      * Фон яруса `variant` (0 или 1 — кадры a/b). Оба кадра яруса держим в памяти и

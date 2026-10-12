@@ -49,6 +49,7 @@ class ArtPackTest {
         for (pieces in pack.sets.values) for (ref in pieces.values) files += ref.file
         files += pack.round.values
         files += pack.rewards.values
+        files += pack.screens.values
         return files
     }
 
@@ -150,6 +151,19 @@ class ArtPackTest {
         assertEquals(4, artTierIndex(75, 5), "75-й — последний квартал Жил")
         assertEquals(0, artTierIndex(0, 5), "нулевой уровень не должен падать")
         assertEquals(4, artTierIndex(999, 5), "за пределами канона берём последний ярус")
+    }
+
+    /**
+     * Фоны экранов: меню, победа и витрина. Они лежат в APK и должны
+     * использоваться — иначе это просто мёртвый груз в сборке.
+     */
+    @Test
+    fun `у трёх экранов есть фон`() {
+        for (name in listOf("menu", "victory", "shop")) {
+            val file = pack.screens[name]
+            assertNotNull(file, "в контракте нет фона экрана «$name»")
+            assertTrue(file.endsWith(".webp"), "фон экрана $name: $file — ждали webp")
+        }
     }
 
     @Test
