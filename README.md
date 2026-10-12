@@ -64,6 +64,8 @@ gradle :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 gradle :app:assembleRelease        # подписывается, если заданы переменные окружения
 ```
 
+- Интерфейс — **русский и английский** (переключатель в меню, по умолчанию язык
+  системы): строки в `content/UiStrings.kt`, имена кварталов — в каноне контента.
 - Кошелёк: **Mobile Wallet Adapter 2.x** (`mobile-wallet-adapter-clientlib-ktx:2.2.0`).
   Приложение запускает системный выбор кошелька, поэтому **Phantom и Seed Vault
   работают одним и тем же кодом**; игрок подписывает только сообщение (никаких
@@ -73,6 +75,9 @@ gradle :app:assembleRelease        # подписывается, если зад
 - Подпись релиза: переменные `AMPERGRAD_KEYSTORE` (путь), `AMPERGRAD_KEYSTORE_PASSWORD`,
   `AMPERGRAD_KEY_ALIAS`, `AMPERGRAD_KEY_PASSWORD`. В CI — секрет
   `AMPERGRAD_KEYSTORE_B64` (keystore в base64) и остальные три.
+- Клейм и результат дня отправляются с **доказательством решения**: приложение
+  записывает последовательность поворотов, сервер проигрывает её ядром
+  (`server/src/verify.ts`). Подпись кошелька подтверждает владение, ходы — честность.
 - Клиент и сервер говорят на одной версии правил (`ENGINE_VERSION` в BuildConfig).
   Тест-векторы берутся из `packages/engine/vectors/levels.json` — в CI их
   подкладывает workflow, локально: `npm run vectors && cp packages/engine/vectors/levels.json app-android/app/src/test/resources/`.
