@@ -20,7 +20,10 @@
         "#00E5C7",
         "#7DE9FF"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "The First Seal",
+      "howEn": "clear the first level",
+      "loreEn": "A guild seal for the first closed circuit. On the back — a date you never chose."
     },
     {
       "id": "plomba-ten",
@@ -36,7 +39,10 @@
         "#00E5C7",
         "#FFC24B"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Dry Run ×10",
+      "howEn": "clear 10 levels",
+      "loreEn": "Ten districts with no overload. Klemma marks shifts like this in silence."
     },
     {
       "id": "film-mercury",
@@ -52,7 +58,10 @@
         "#9AA7FF",
         "#00E5C7"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Mercury Tier Film",
+      "howEn": "clear 15 levels",
+      "loreEn": "A peeled layer of living metal. It keeps its shape as long as someone is watching."
     },
     {
       "id": "mark-old-diode",
@@ -68,7 +77,10 @@
         "#FF3D81",
         "#9AA7FF"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Old Diode Mark",
+      "howEn": "reach level 46",
+      "loreEn": "A mark of the historic sector. Wearing it counts as bad taste — that is its main value."
     },
     {
       "id": "sign-daily",
@@ -84,7 +96,10 @@
         "#FFC24B",
         "#00E5C7"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Seal of the Day",
+      "howEn": "finish the daily challenge",
+      "loreEn": "One day, confirmed by witnesses. The witnesses are other players, and they stay quiet."
     },
     {
       "id": "sign-streak-seven",
@@ -100,7 +115,10 @@
         "#FF3D81",
         "#FFC24B"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Seal of Seven Days",
+      "howEn": "a 7-day streak",
+      "loreEn": "The guild respects a streak: seven days is a habit already, and a habit is a debt."
     },
     {
       "id": "palette-terminal",
@@ -117,7 +135,10 @@
         "#FFC24B",
         "#06080E"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Terminal Palette",
+      "howEn": "coin shop",
+      "loreEn": "Colours of an old teletype: yellow on green, noise on the frame."
     },
     {
       "id": "palette-mercury",
@@ -134,7 +155,10 @@
         "#00E5C7",
         "#0B0F18"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Mercury Palette",
+      "howEn": "coin shop",
+      "loreEn": "The colour of living metal. In daylight it looks like water, in the dark like a cable."
     },
     {
       "id": "theme-plateau",
@@ -151,7 +175,10 @@
         "#FFC24B",
         "#0E1520"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Plateau Theme",
+      "howEn": "coin shop",
+      "loreEn": "The upper tier: palms, ads, light by licence. The licence expired long ago."
     },
     {
       "id": "source-gold",
@@ -168,7 +195,10 @@
         "#FFF3C4",
         "#06080E"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Golden Bus",
+      "howEn": "coin shop (seasonal offer)",
+      "loreEn": "An animated source. The first volt-master carried one like this, back when he still carried his own tools."
     },
     {
       "id": "palette-melter",
@@ -185,7 +215,10 @@
         "#FF3D81",
         "#1A0E12"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Melter Palette",
+      "howEn": "platform store",
+      "loreEn": "Colours of the array floor: heat, glass, reflections. Current seems to run slower on this palette — an impression only."
     },
     {
       "id": "theme-old-diode",
@@ -202,7 +235,10 @@
         "#9AA7FF",
         "#0A0A12"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Old Diode Theme",
+      "howEn": "platform store",
+      "loreEn": "The historic sector: glass, dust, light almost switched off. Comes with silence instead of a track."
     },
     {
       "id": "wing-marta",
@@ -218,7 +254,10 @@
         "#00E5C7",
         "#FF3D81"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Film of Marta",
+      "howEn": "platform store",
+      "loreEn": "Left in the workshop together with the tool. Marta never takes things out of closed workshops."
     },
     {
       "id": "source-core",
@@ -235,7 +274,10 @@
         "#FF3D81",
         "#00E5C7"
       ],
-      "standard": "Core"
+      "standard": "Core",
+      "nameEn": "Core Source",
+      "howEn": "platform store, limited run",
+      "loreEn": "A premium source with the living rhythm of the array. The rhythm syncs with the pulse of the player — roughly."
     },
     {
       "id": "wing-klemma",
@@ -251,7 +293,10 @@
         "#7DE9FF",
         "#00E5C7"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Film of Klemma",
+      "howEn": "platform store",
+      "loreEn": "A service film of the dispatcher. Held to the light it reads as regulations, but only clauses 1.0 and 4.2."
     },
     {
       "id": "pass-s1-free",
@@ -267,7 +312,10 @@
         "#00E5C7",
         "#7DE9FF"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Season 1: Regulation Track",
+      "howEn": "free track of season 1",
+      "loreEn": "Twelve registry pages issued on schedule. The schedule is an appendix to the regulations."
     },
     {
       "id": "pass-s1-paid",
@@ -283,7 +331,10 @@
         "#FFC24B",
         "#9AA7FF"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Season 1: Three Districts Track",
+      "howEn": "paid track of season 1",
+      "loreEn": "All twenty entries of the season plus a page that is not in the archive. The copy is official."
     },
     {
       "id": "seal-guild-s1",
@@ -300,7 +351,10 @@
         "#FF3D81",
         "#00E5C7"
       ],
-      "standard": "cNFT"
+      "standard": "cNFT",
+      "nameEn": "Guild Seal, Season 1",
+      "howEn": "level 100 of the free track or top-100 of the leaderboard",
+      "loreEn": "Not for sale. Issued to those who closed the season before the counter was switched off."
     }
   ]
 }

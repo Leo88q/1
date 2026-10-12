@@ -518,7 +518,12 @@ private fun currentWardrobe(store: ProgressStore, shop: Shop?): Wardrobe {
 
 /** Строка «надето: …» для меню: перечисляем слоты, которые заняты. */
 private fun wornLabel(worn: Wardrobe, t: UiStrings): String {
-    val names = listOfNotNull(worn.palette?.name, worn.theme?.name, worn.source?.name, worn.mark?.name)
+    val names = listOfNotNull(
+        worn.palette?.name(t.lang),
+        worn.theme?.name(t.lang),
+        worn.source?.name(t.lang),
+        worn.mark?.name(t.lang),
+    )
     return if (names.isEmpty()) t.menuNothingWorn else t.menuWearing(names.joinToString(", "))
 }
 
@@ -1238,7 +1243,7 @@ private fun ShopSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(item.name, style = MaterialTheme.typography.titleMedium, color = Grad.Ink)
+                    Text(item.name(t.lang), style = MaterialTheme.typography.titleMedium, color = Grad.Ink)
                     Text(
                         text = if (current.equipped) t.shopEquipped else item.priceLabel(t),
                         style = MaterialTheme.typography.labelSmall,
@@ -1247,12 +1252,12 @@ private fun ShopSection(
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "${item.rarityLabel(t)} · ${item.how}",
+                    "${item.rarityLabel(t)} · ${item.how(t.lang)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Grad.InkDim,
                 )
                 Spacer(Modifier.height(6.dp))
-                Text("«${item.lore}»", style = MaterialTheme.typography.bodySmall, color = Grad.Ink)
+                Text(t.quoted(item.lore(t.lang)), style = MaterialTheme.typography.bodySmall, color = Grad.Ink)
 
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {

@@ -1,8 +1,10 @@
 import com.ampergrad.game.content.En
+import com.ampergrad.game.content.Lang
 import com.ampergrad.game.content.Ru
 import com.ampergrad.game.content.Shop
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -59,6 +61,22 @@ class ShopTest {
             assertTrue(item.lore.length > 20, "${item.id}: короткий лор")
             assertTrue(item.colors.size >= 2, "${item.id}: нет палитры")
             assertTrue(item.how.isNotBlank(), "${item.id}: не сказано, как получить")
+        }
+    }
+
+    @Test
+    fun `карточка предмета переведена целиком`() {
+        val cyrillic = Regex("[А-Яа-яЁё]")
+        for (item in shop.items) {
+            assertNotNull(item.nameEn, "${item.id}: нет английского названия")
+            assertNotNull(item.howEn, "${item.id}: нет английского способа получения")
+            assertNotNull(item.loreEn, "${item.id}: нет английского лора")
+            // Русская карточка не меняется, английская — без кириллицы.
+            assertEquals(item.name, item.name(Lang.RU), "${item.id}: русское название")
+            assertEquals(item.lore, item.lore(Lang.RU), "${item.id}: русский лор")
+            for (value in listOf(item.name(Lang.EN), item.how(Lang.EN), item.lore(Lang.EN))) {
+                assertFalse(cyrillic.containsMatchIn(value), "${item.id}: «$value» не переведено")
+            }
         }
     }
 

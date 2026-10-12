@@ -14,6 +14,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data", "scenes.json")
+# Каталог косметики — тот же файл, что уходит в assets приложения.
+COSMETICS = os.path.join(os.path.dirname(ROOT), "packages", "engine", "content", "cosmetics.json")
 
 # Наборы для витрины: русский (основной рынок) и английский (листинг dApp Store).
 TEXTS = {
@@ -26,7 +28,10 @@ TEXTS = {
         "footer": "АМПЕРГРАД · игра без кошелька и без токена",
         "stats": lambda moves, par, time: f"ходов {moves} · план {par} · {time}",
         "registry": "РЕЕСТР",
-        "registry_note": lambda scene: f"Открыта страница реестра: {scene['registry']['title']}",
+        "wardrobe": "ГАРДЕРОБ",
+        "coins_word": "монет",
+        "wardrobe_note": "Монеты зарабатываются в игре: 20 за собранный квартал плюс 10 за "
+                         "каждую звезду. Косметика меняет только вид поля и ничего не даёт в игре.",
         "title": lambda scene: scene["title"],
         "subtitle": lambda scene: scene["subtitle"],
         "feature": ("АМПЕРГРАД", "ВЕРНИ ГОРОДУ ТОК", "1–3 минуты на квартал",
@@ -42,6 +47,10 @@ TEXTS = {
         "stats": lambda moves, par, time: f"moves {moves} · par {par} · {time}",
         "registry": "REGISTRY",
         "registry": "REGISTRY",
+        "wardrobe": "WARDROBE",
+        "coins_word": "coins",
+        "wardrobe_note": "Coins are earned by playing: 20 per cleared district plus 10 per star. "
+                         "Cosmetics change the look of the field only and give no advantage.",
         "title": lambda scene: scene["titleEn"],
         "subtitle": lambda scene: scene["subtitleEn"],
         "feature": ("AMPERGRAD", "BRING THE CURRENT BACK", "1–3 minutes per district",
@@ -59,6 +68,17 @@ GOLD = (255, 194, 75)
 DANGER = (255, 61, 129)
 INK = (234, 255, 249)
 DIM = (107, 122, 143)
+
+# Канонический вид поля: совпадает с BoardSkin.Default в приложении.
+DEFAULT_SKIN = {
+    "current": MINT,
+    "idle": LINE,
+    "hub": (22, 32, 47),
+    "source": GOLD,
+    "source_ring": GOLD,
+    "grid": LINE,
+    "field": (7, 11, 19),
+}
 
 FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 MONO = os.path.join(FONT_DIR, "DejaVuSansMono-Bold.ttf")
@@ -92,16 +112,60 @@ def wrap(draw, s, f, max_width):
     return lines
 
 
-def draw_board(draw, scene, x0, y0, side):
+def hex_rgb(value):
+    """Строка «#RRGGBB» в каноне → тройка (r, g, b)."""
+    v = value.lstrip("#")
+    return tuple(int(v[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def blend(a, b, part):
+    """Смешивает два цвета: часть = 0 — первый, часть = 1 — второй."""
+    t = max(0.0, min(1.0, part))
+    return tuple(round(x + (y - x) * t) for x, y in zip(a, b))
+
+
+def load_cosmetics():
+    """Каталог магазина из канона (packages/engine/content/cosmetics.json)."""
+    try:
+        with open(COSMETICS, encoding="utf-8") as fh:
+            return {item["id"]: item for item in json.load(fh)["cosmetics"]}
+    except OSError:
+        return {}
+
+
+def wardrobe_skin(items, palette, theme, source):
+    """Повторяет маппинг гардероба приложения (content/Wardrobe.kt):
+    тема → фон и сетка; палитра → ток, подложка и ядро; источник → шина и ореол.
+    Порядок важен: подложка палитры считается от фона, который задала тема."""
+    skin = dict(DEFAULT_SKIN)
+    th = items.get(theme, {}).get("colors", [])
+    if th:
+        skin["field"] = hex_rgb(th[2]) if len(th) >= 3 else DEFAULT_SKIN["field"]
+        skin["grid"] = blend(skin["field"], hex_rgb(th[0]), 0.28)
+    pal = items.get(palette, {}).get("colors", [])
+    if pal:
+        skin["current"] = hex_rgb(pal[0])
+        skin["idle"] = blend(skin["field"], skin["current"], 0.30)
+        skin["hub"] = blend(skin["idle"], skin["field"], 0.5)
+    src = items.get(source, {}).get("colors", [])
+    if src:
+        skin["source"] = hex_rgb(src[0])
+        skin["source_ring"] = hex_rgb(src[1]) if len(src) >= 2 else hex_rgb(src[0])
+    return skin
+
+
+def draw_board(draw, scene, x0, y0, side, skin=None):
+    skin = skin or DEFAULT_SKIN
     size = scene["size"]
     cell = side / size
-    draw.rounded_rectangle([x0, y0, x0 + side, y0 + side], radius=28, fill=(7, 11, 19), outline=LINE, width=3)
+    draw.rounded_rectangle([x0, y0, x0 + side, y0 + side], radius=28, fill=skin["field"],
+                           outline=skin["grid"], width=3)
     cx0, cy0 = x0 + cell / 2, y0 + cell / 2
     stroke = max(6, int(cell * 0.2))
 
     for c in scene["cells"]:
         cx, cy = cx0 + c["x"] * cell, cy0 + c["y"] * cell
-        color = MINT if c["powered"] else LINE
+        color = skin["current"] if c["powered"] else skin["idle"]
         for bit, (dx, dy) in ((1, (0, -1)), (2, (1, 0)), (4, (0, 1)), (8, (-1, 0))):
             if c["mask"] & bit:
                 ex, ey = cx + dx * cell * 0.5, cy + dy * cell * 0.5
@@ -114,8 +178,9 @@ def draw_board(draw, scene, x0, y0, side):
     if bus:
         bx, by = cx0 + bus["x"] * cell, cy0 + bus["y"] * cell
         rr = cell * 0.28
-        draw.ellipse([bx - rr * 1.6, by - rr * 1.6, bx + rr * 1.6, by + rr * 1.6], outline=GOLD, width=4)
-        draw.ellipse([bx - rr, by - rr, bx + rr, by + rr], fill=GOLD)
+        draw.ellipse([bx - rr * 1.6, by - rr * 1.6, bx + rr * 1.6, by + rr * 1.6],
+                     outline=skin["source_ring"], width=4)
+        draw.ellipse([bx - rr, by - rr, bx + rr, by + rr], fill=skin["source"])
     for c in scene["cells"]:
         if c["role"] != "receiver":
             continue
@@ -286,6 +351,53 @@ def feature_graphic(path, txt):
     return path
 
 
+def swatch(draw, box, colors):
+    """Образец предмета: основной цвет, окантовка — второй."""
+    fill = hex_rgb(colors[0])
+    edge = hex_rgb(colors[1]) if len(colors) > 1 else fill
+    draw.rounded_rectangle(box, radius=16, fill=fill, outline=edge, width=4)
+
+
+def wardrobe_shot(scene, path, txt, skin, worn, lang):
+    """Кадр «гардероб»: поле с надетой косметикой, купленной за монеты.
+
+    Поле рисуется теми же правилами, что в приложении (тот же кадр, та же
+    раскладка), а строки берутся из каталога: название предмета и цена в монетах.
+    """
+    width, height = 1080, 1920
+    img = Image.new("RGB", (width, height), BG)
+    draw = ImageDraw.Draw(img)
+
+    header(draw, scene, width, txt)
+    side = 900
+    draw_board(draw, scene, (width - side) / 2, 260, side, skin)
+
+    f_label = font(MONO, 30)
+    f_name = font(SANS, 34)
+    f_price = font(MONO, 26)
+    f_note = font(SANS, 28)
+    text(draw, (80, 1230), txt["wardrobe"], f_label, MINT)
+
+    y = 1290
+    for item in worn:
+        swatch(draw, [80, y, 176, y + 96], item.get("colors", ["#00E5C7"]))
+        name = item["name"] if lang == "ru" else (item.get("nameEn") or item["name"])
+        text(draw, (202, y + 8), name, f_name, INK)
+        price = item.get("priceCoins")
+        if price:
+            text(draw, (202, y + 56), f"{price} {txt['coins_word']}", f_price, GOLD)
+        y += 124
+
+    note_y = y + 16
+    for line in wrap(draw, txt["wardrobe_note"], f_note, width - 160):
+        text(draw, (80, note_y), line, f_note, DIM)
+        note_y += 38
+
+    text(draw, (width / 2, 1878), txt["footer"], font(SANS, 26), DIM, anchor="mm")
+    img.save(path, "PNG")
+    return path
+
+
 def main():
     global LANG
     import sys
@@ -303,6 +415,15 @@ def main():
         path = os.path.join(out, f"{scene['id']}.png")
         screenshot(scene, path, txt)
         print("записано:", path)
+
+    # Кадр гардероба: поле с надетой косметикой, купленной за монеты.
+    items = load_cosmetics()
+    worn = [items[i] for i in ("palette-mercury", "theme-plateau", "source-gold") if i in items]
+    if worn:
+        skin = wardrobe_skin(items, "palette-mercury", "theme-plateau", "source-gold")
+        scene = next((s for s in data["scenes"] if not s.get("stars")), data["scenes"][0])
+        path = os.path.join(out, "screenshot-4.png")
+        print("записано:", wardrobe_shot(scene, path, txt, skin, worn, LANG))
     print("записано:", icon(os.path.join(out, "icon-512.png")))
     print("записано:", feature_graphic(os.path.join(out, "feature-graphic-1024x500.png"), txt))
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   COSMETICS,
+  COSMETICS_EN,
   ECONOMY,
   QUARTERS,
   REGISTRY,
@@ -166,6 +167,34 @@ describe('лор-реестр и магазин (M3)', () => {
     }
   });
 
+});
+
+describe('английские карточки магазина', () => {
+  it('каждый предмет переведён целиком', () => {
+    for (const item of COSMETICS) {
+      const en = COSMETICS_EN[item.id];
+      expect(en, `${item.id}: нет английской карточки`).toBeDefined();
+      expect(en.name.length, `${item.id}: пустое название`).toBeGreaterThan(0);
+      expect(en.how.length, `${item.id}: пустой способ получения`).toBeGreaterThan(0);
+      expect(en.lore.length, `${item.id}: пустой лор`).toBeGreaterThan(0);
+    }
+  });
+
+  it('в английских строках нет кириллицы', () => {
+    const cyrillic = /[А-Яа-яЁё]/;
+    for (const [id, en] of Object.entries(COSMETICS_EN)) {
+      for (const value of [en.name, en.how, en.lore]) {
+        expect(cyrillic.test(value), `${id}: «${value}» не переведено`).toBe(false);
+      }
+    }
+  });
+
+  it('перевод не остаётся без предмета', () => {
+    const ids = new Set(COSMETICS.map((c) => c.id));
+    for (const id of Object.keys(COSMETICS_EN)) {
+      expect(ids.has(id), `${id}: перевод без предмета`).toBe(true);
+    }
+  });
 });
 
 describe('экономика монет', () => {

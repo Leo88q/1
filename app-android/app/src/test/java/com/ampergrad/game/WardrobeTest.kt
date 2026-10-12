@@ -77,17 +77,19 @@ class WardrobeTest {
         val source = assertNotNull(shop.byId("source-gold"))
         val skin = BoardSkin.of(Wardrobe(palette = palette, theme = theme, source = source))
 
-        // Палитра: ток, ядро и тёмная подложка для обесточенных сегментов.
-        assertEquals(hexToColorOrNull(palette.colors[0]), skin.current)
-        assertEquals(hexToColorOrNull(palette.colors[1]), skin.hub)
-        assertEquals(hexToColorOrNull(palette.colors[2]), skin.idle)
+        val current = assertNotNull(hexToColorOrNull(palette.colors[0]))
+        val field = assertNotNull(hexToColorOrNull(theme.colors[2]))
+        // Ток — цвет палитры; обесточенные сегменты — он же, приглушённый к фону.
+        assertEquals(current, skin.current)
+        assertEquals(field, skin.field)
+        assertEquals(blend(field, current, 0.30f), skin.idle)
+        assertEquals(blend(skin.idle, field, 0.5f), skin.hub)
+        // И обесточенные сегменты видно: они светлее фона и тише тока.
+        assertTrue(luminance(skin.field) < luminance(skin.idle), "подложка темнее фона — линий не видно")
         assertTrue(luminance(skin.idle) < luminance(skin.current), "подложка должна быть тише тока")
-        // Тема: фон квартала как есть, сетка — тихая примесь акцента к фону.
-        assertEquals(hexToColorOrNull(theme.colors[2]), skin.field)
-        assertEquals(
-            blend(skin.field, assertNotNull(hexToColorOrNull(theme.colors[0])), 0.28f),
-            skin.grid,
-        )
+        assertTrue(colorDistance(skin.idle, skin.field) > 60f, "подложку не отличить от фона")
+        // Тема: фон как есть, сетка — тихая примесь её цвета к фону.
+        assertEquals(blend(field, assertNotNull(hexToColorOrNull(theme.colors[0])), 0.28f), skin.grid)
         assertTrue(skin.grid != skin.field, "тема должна быть видна на поле")
         // Источник: шина и её ореол.
         assertEquals(hexToColorOrNull(source.colors[0]), skin.source)
@@ -124,13 +126,15 @@ class WardrobeTest {
             standard = "cNFT",
         )
         val skin = BoardSkin.of(Wardrobe(palette = palette, theme = theme))
-        assertEquals(hexToColorOrNull("#00E5C7"), skin.current)
-        assertEquals(hexToColorOrNull("#FFC24B"), skin.hub)
-        assertEquals(blend(skin.current, BoardSkin.Default.field, 0.72f), skin.idle)
-        assertTrue(luminance(skin.idle) < luminance(skin.current), "подложка темнее тока")
+        val current = assertNotNull(hexToColorOrNull("#00E5C7"))
+        assertEquals(current, skin.current)
         // Тёмной основы у темы нет — фон остаётся каноническим, сетка берёт цвет темы.
         assertEquals(BoardSkin.Default.field, skin.field)
+        assertEquals(blend(BoardSkin.Default.field, current, 0.30f), skin.idle)
         assertEquals(blend(BoardSkin.Default.field, assertNotNull(hexToColorOrNull("#FF3D81")), 0.28f), skin.grid)
+        assertEquals(blend(skin.idle, BoardSkin.Default.field, 0.5f), skin.hub)
+        assertTrue(luminance(skin.field) < luminance(skin.idle), "подложка темнее фона")
+        assertTrue(luminance(skin.idle) < luminance(skin.current), "подложка тише тока")
     }
 
     @Test
@@ -153,6 +157,11 @@ class WardrobeTest {
     /** Светимость цвета: нужна, чтобы проверить «тихость» подложки и сетки. */
     private fun luminance(color: Color): Float =
         0.2126f * color.red + 0.7152f * color.green + 0.0722f * color.blue
+
+    /** Насколько цвета различимы: сумма разниц каналов (0…765). */
+    private fun colorDistance(a: Color, b: Color): Float =
+        (kotlin.math.abs(a.red - b.red) + kotlin.math.abs(a.green - b.green) +
+            kotlin.math.abs(a.blue - b.blue)) * 255f
 
     @Test
     fun `резервные правила экономики совпадают с каноном`() {

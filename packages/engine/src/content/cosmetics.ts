@@ -280,6 +280,116 @@ export const COSMETICS: Cosmetic[] = [
   },
 ];
 
+/**
+ * Английские строки магазина. Листинг dApp Store и интерфейс игры идут на двух
+ * языках, поэтому карточка предмета переводится целиком: название, способ
+ * получения и лор-строка. Ключ — id предмета; если перевода нет, клиент
+ * показывает русскую строку (так карточка не остаётся пустой).
+ */
+export interface CosmeticEn {
+  name: string;
+  how: string;
+  lore: string;
+}
+
+export const COSMETICS_EN: Record<string, CosmeticEn> = {
+  'plomba-first': {
+    name: 'The First Seal',
+    how: 'clear the first level',
+    lore: 'A guild seal for the first closed circuit. On the back — a date you never chose.',
+  },
+  'plomba-ten': {
+    name: 'Dry Run ×10',
+    how: 'clear 10 levels',
+    lore: 'Ten districts with no overload. Klemma marks shifts like this in silence.',
+  },
+  'film-mercury': {
+    name: 'Mercury Tier Film',
+    how: 'clear 15 levels',
+    lore: 'A peeled layer of living metal. It keeps its shape as long as someone is watching.',
+  },
+  'mark-old-diode': {
+    name: 'Old Diode Mark',
+    how: 'reach level 46',
+    lore: 'A mark of the historic sector. Wearing it counts as bad taste — that is its main value.',
+  },
+  'sign-daily': {
+    name: 'Seal of the Day',
+    how: 'finish the daily challenge',
+    lore: 'One day, confirmed by witnesses. The witnesses are other players, and they stay quiet.',
+  },
+  'sign-streak-seven': {
+    name: 'Seal of Seven Days',
+    how: 'a 7-day streak',
+    lore: 'The guild respects a streak: seven days is a habit already, and a habit is a debt.',
+  },
+  'palette-terminal': {
+    name: 'Terminal Palette',
+    how: 'coin shop',
+    lore: 'Colours of an old teletype: yellow on green, noise on the frame.',
+  },
+  'palette-mercury': {
+    name: 'Mercury Palette',
+    how: 'coin shop',
+    lore: 'The colour of living metal. In daylight it looks like water, in the dark like a cable.',
+  },
+  'theme-plateau': {
+    name: 'Plateau Theme',
+    how: 'coin shop',
+    lore: 'The upper tier: palms, ads, light by licence. The licence expired long ago.',
+  },
+  'source-gold': {
+    name: 'Golden Bus',
+    how: 'coin shop (seasonal offer)',
+    lore: 'An animated source. The first volt-master carried one like this, back when he still carried his own tools.',
+  },
+  'palette-melter': {
+    name: 'Melter Palette',
+    how: 'platform store',
+    lore: 'Colours of the array floor: heat, glass, reflections. Current seems to run slower on this palette — an impression only.',
+  },
+  'theme-old-diode': {
+    name: 'Old Diode Theme',
+    how: 'platform store',
+    lore: 'The historic sector: glass, dust, light almost switched off. Comes with silence instead of a track.',
+  },
+  'wing-marta': {
+    name: 'Film of Marta',
+    how: 'platform store',
+    lore: 'Left in the workshop together with the tool. Marta never takes things out of closed workshops.',
+  },
+  'source-core': {
+    name: 'Core Source',
+    how: 'platform store, limited run',
+    lore: 'A premium source with the living rhythm of the array. The rhythm syncs with the pulse of the player — roughly.',
+  },
+  'wing-klemma': {
+    name: 'Film of Klemma',
+    how: 'platform store',
+    lore: 'A service film of the dispatcher. Held to the light it reads as regulations, but only clauses 1.0 and 4.2.',
+  },
+  'pass-s1-free': {
+    name: 'Season 1: Regulation Track',
+    how: 'free track of season 1',
+    lore: 'Twelve registry pages issued on schedule. The schedule is an appendix to the regulations.',
+  },
+  'pass-s1-paid': {
+    name: 'Season 1: Three Districts Track',
+    how: 'paid track of season 1',
+    lore: 'All twenty entries of the season plus a page that is not in the archive. The copy is official.',
+  },
+  'seal-guild-s1': {
+    name: 'Guild Seal, Season 1',
+    how: 'level 100 of the free track or top-100 of the leaderboard',
+    lore: 'Not for sale. Issued to those who closed the season before the counter was switched off.',
+  },
+};
+
+/** Английская карточка предмета, если перевод есть. */
+export function cosmeticEnById(id: string): CosmeticEn | undefined {
+  return COSMETICS_EN[id];
+}
+
 export function cosmeticById(id: string): Cosmetic | undefined {
   return COSMETICS.find((c) => c.id === id);
 }

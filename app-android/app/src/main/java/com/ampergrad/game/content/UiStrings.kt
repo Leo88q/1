@@ -129,6 +129,8 @@ interface UiStrings {
     val shopPlatform: String
     val shopRewardHint: String
     fun menuCoins(amount: Int): String
+    /** Оформление лор-строки карточки: «…» или “…” по языку. */
+    fun quoted(text: String): String
     val menuNothingWorn: String
     fun menuWearing(what: String): String
     fun coinsEarned(amount: Int): String
@@ -298,6 +300,7 @@ object Ru : UiStrings {
     override val shopPlatform = "витрина платформы"
     override val shopRewardHint = "выдаётся за игру, покупке не подлежит"
     override fun menuCoins(amount: Int) = "монет: $amount"
+    override fun quoted(text: String) = "«$text»"
     override val menuNothingWorn = "надето: канонический вид"
     override fun menuWearing(what: String) = "надето: $what"
     override fun coinsEarned(amount: Int) = "+$amount монет"
@@ -450,6 +453,7 @@ object En : UiStrings {
     override val shopPlatform = "platform store"
     override val shopRewardHint = "earned by playing, not for sale"
     override fun menuCoins(amount: Int) = "coins: $amount"
+    override fun quoted(text: String) = "\u201C$text\u201D"
     override val menuNothingWorn = "worn: the canonical look"
     override fun menuWearing(what: String) = "worn: $what"
     override fun coinsEarned(amount: Int) = "+$amount coins"

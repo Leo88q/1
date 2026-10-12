@@ -25,9 +25,25 @@ data class CosmeticItem(
     val lore: String,
     val colors: List<String>,
     val standard: String?,
+    /** Английская карточка (nameEn/howEn/loreEn из канона). Нет перевода — показываем русский текст. */
+    val nameEn: String? = null,
+    val howEn: String? = null,
+    val loreEn: String? = null,
 ) {
     /** Метка редкости на языке интерфейса. */
     fun rarityLabel(t: UiStrings): String = t.rarity(rarity)
+
+    /** Название предмета на языке интерфейса (как Quarter.name в лоре). */
+    fun name(lang: Lang): String = localized(lang, nameEn, name)
+
+    /** Как предмет получают — строка для карточки. */
+    fun how(lang: Lang): String = localized(lang, howEn, how)
+
+    /** Лор-строка предмета на языке интерфейса. */
+    fun lore(lang: Lang): String = localized(lang, loreEn, lore)
+
+    private fun localized(lang: Lang, english: String?, russian: String): String =
+        if (lang == Lang.EN) english?.takeIf { it.isNotBlank() } ?: russian else russian
 
     /** Цена для карточки: деньги витрины, монеты игры или способ получения. */
     fun priceLabel(t: UiStrings): String = t.priceLabel(priceUsd, priceCoins, channel)
@@ -96,6 +112,9 @@ class Shop(
                     lore = o.getString("lore"),
                     colors = o.getJSONArray("colors").mapStrings(),
                     standard = if (o.isNull("standard")) null else o.getString("standard"),
+                    nameEn = o.optString("nameEn", "").takeIf { it.isNotBlank() },
+                    howEn = o.optString("howEn", "").takeIf { it.isNotBlank() },
+                    loreEn = o.optString("loreEn", "").takeIf { it.isNotBlank() },
                 )
             }
             return Shop(items, economy)

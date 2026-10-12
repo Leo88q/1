@@ -56,26 +56,28 @@ data class BoardSkin(
  * Превращает гардероб в цвета поля.
  *
  * Каждый предмет красит свою часть квартала и ничего больше:
- *  • палитра  — живой ток (colors[0]) и его приглушённая подложка для обесточенных
- *               сегментов (colors[2], а если её нет — затемнённый цвет тока),
- *               яркое ядро соединения (colors[1]);
  *  • тема     — фон квартала (colors[2], иначе канонический фон) и линии сетки —
  *               цвет темы (colors[0]), подмешанный к фону, чтобы разметка оставалась тихой;
+ *  • палитра  — цвет живого тока (colors[0]); обесточенные сегменты — тот же цвет,
+ *               приглушённый к фону (30 %), чтобы их было видно на любом фоне;
+ *               ядро соединения — ещё тише, только чтобы читался узел;
  *  • источник — шина питания (colors[0]) и её ореол (colors[1]).
+ * Порядок важен: палитра считает подложку от того фона, который задала тема.
  * Предметы без цветов (или отсутствующие) не меняют вид: поле остаётся каноническим.
  * Ни один цвет не влияет на правила, время и награды.
  */
 fun BoardSkin.Companion.of(wardrobe: Wardrobe): BoardSkin {
     var skin = BoardSkin.Default
-    wardrobe.palette?.let { item ->
-        item.colorAt(0)?.let { skin = skin.copy(current = it) }
-        val base = item.colorAt(2) ?: blend(skin.current, BoardSkin.Default.field, 0.72f)
-        skin = skin.copy(idle = base, hub = item.colorAt(1) ?: skin.current)
-    }
     wardrobe.theme?.let { item ->
         val field = item.colorAt(2) ?: BoardSkin.Default.field
         skin = skin.copy(field = field)
         item.colorAt(0)?.let { skin = skin.copy(grid = blend(field, it, 0.28f)) }
+    }
+    wardrobe.palette?.let { item ->
+        item.colorAt(0)?.let { current ->
+            val idle = blend(skin.field, current, 0.30f)
+            skin = skin.copy(current = current, idle = idle, hub = blend(idle, skin.field, 0.5f))
+        }
     }
     wardrobe.source?.let { item ->
         item.colorAt(0)?.let { skin = skin.copy(source = it) }
