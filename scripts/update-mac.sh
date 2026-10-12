@@ -91,7 +91,9 @@ if [ "$PLAY" = "1" ]; then
     npm install
   fi
   echo "→ поднимаю игру на http://localhost:$PORT"
-  npm run dev -- --port "$PORT" &
+  # Порт передаём vite напрямую: в npm-скрипте уже прописан --port 5173, и
+  # дописанный вторым аргумент он просто проигнорировал бы (проверено).
+  npm --workspace @ampergrad/lab exec -- vite --host 0.0.0.0 --port "$PORT" &
   DEV_PID=$!
   trap 'echo; echo "→ останавливаю игру"; kill "$DEV_PID" 2>/dev/null || true' EXIT INT TERM
 
