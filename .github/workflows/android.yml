@@ -123,6 +123,9 @@ jobs:
             cp "packages/engine/content/$f" "app-android/app/src/test/resources/$f"
             cp "packages/engine/content/$f" "app-android/app/src/main/assets/$f"
           done
+          # Контракт арта — для unit-теста ArtPackTest. Спрайты в assets кладёт
+          # gradle-задача syncContent, ей доступен весь каталог packages/lab/public/art.
+          cp packages/lab/public/art/web.json app-android/app/src/test/resources/web.json
 
       - name: Kotlin-ядро против TS-канона (unit-тесты)
         working-directory: app-android
@@ -135,6 +138,21 @@ jobs:
         run: |
           set -o pipefail
           gradle :app:assembleDebug --stacktrace --console=plain 2>&1 | tee ../build-apk.log
+
+      # Арт обязан лежать внутри APK: без него игра молча уедет в режим схемы,
+      # а внешне это выглядит как «сборка прошла». Поэтому проверяем содержимое.
+      - name: "Арт внутри APK"
+        working-directory: app-android
+        run: |
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          echo "APK: $APK"
+          COUNT=$(unzip -l "$APK" | grep -c 'assets/art/' || true)
+          echo "файлов арта в APK: $COUNT"
+          unzip -l "$APK" | grep 'assets/art/web.json' || {
+            echo "::error::в APK нет assets/art/web.json — арт не попал в сборку"
+            exit 1
+          }
+          test "$COUNT" -ge 55 || { echo "::error::в APK только $COUNT файлов арта, ожидалось не меньше 55"; exit 1; }
 
       - name: Релизный ключ подписи (если задан в секретах)
         if: env.KEYSTORE_B64 != ''

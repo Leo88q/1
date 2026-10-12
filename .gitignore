@@ -18,3 +18,7 @@ app-android/app/src/test/resources/lore.json
 app-android/app/src/main/assets/lore.json
 app-android/app/src/main/assets/cosmetics.json
 app-android/app/src/test/resources/cosmetics.json
+app-android/app/src/test/resources/web.json
+
+# Арт игры кладёт в assets gradle-задача syncContent (источник — packages/lab/public/art)
+app-android/app/src/main/assets/art/

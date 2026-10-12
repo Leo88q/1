@@ -23,10 +23,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntSize
 import com.ampergrad.game.engine.E
@@ -35,6 +38,7 @@ import com.ampergrad.game.engine.N
 import com.ampergrad.game.engine.Role
 import com.ampergrad.game.engine.S
 import com.ampergrad.game.engine.W
+import com.ampergrad.game.engine.tileMask
 import com.ampergrad.game.content.BoardSkin
 import kotlin.math.abs
 import kotlin.math.cos
@@ -55,9 +59,15 @@ fun Board(
     skin: BoardSkin,
     hintIndex: Int?,
     solving: Boolean,
+    // Арт поля. Если он не приехал (`art == null`) или не загрузился, рисуется
+    // схема: правила видны одинаково, отличается только картинка.
+    art: Art? = null,
+    artTier: ArtTier? = null,
+    background: ImageBitmap? = null,
     modifier: Modifier = Modifier,
     onRotate: (index: Int, dir: Int) -> Unit,
 ) {
+    val artTiles = if (art != null && art.ready && artTier != null) art to artTier else null
     // Визуальные углы (в четвертях оборота) с доводкой к логическому повороту.
     val angles = remember(level) { level.tiles.map { it.rot.toFloat() }.toMutableStateList() }
     var revision by remember(level) { mutableIntStateOf(0) }
@@ -126,7 +136,10 @@ fun Board(
         val oy = (size.height - cell * gridSize) / 2f
         val burst = if (solving) min(1f, burstFrames / 60f) else 0f
 
-        drawGrid(ox, oy, cell, gridSize, skin)
+        if (artTiles != null) {
+            drawArtBackground(background, cell * gridSize, ox, oy, cell, size)
+        }
+        drawGrid(ox, oy, cell, gridSize, skin, withArt = artTiles != null)
 
         for (y in 0 until gridSize) {
             for (x in 0 until gridSize) {
@@ -144,10 +157,22 @@ fun Board(
                     cornerRadius = CornerRadius(cell * 0.16f),
                 )
 
-                drawTile(level, index, cx, cy, cell, angles[index], powered[index], burst, skin)
-
-                if (tile.role == Role.BUS) drawBus(cx, cy, cell, accent, skin, pulse)
-                if (tile.role == Role.RECEIVER) drawReceiver(cx, cy, cell, powered[index])
+                if (artTiles != null) {
+                    val (artPack, tier) = artTiles
+                    val setName = setForCell(tier.sets, x, y, index)
+                    drawArtTile(artPack, level, index, setName, cx, cy, cell, angles[index])
+                    if (powered[index]) {
+                        drawArtFlow(level, index, cx, cy, cell, angles[index], tier.flow, pulse)
+                    }
+                    if (tile.role == Role.RECEIVER) {
+                        drawArtReceiver(artPack, level, index, cx, cy, cell, powered[index], tier.flow, pulse)
+                    }
+                    if (tile.role == Role.BUS) drawArtBus(artPack, cx, cy, cell, accent, pulse)
+                } else {
+                    drawTile(level, index, cx, cy, cell, angles[index], powered[index], burst, skin)
+                    if (tile.role == Role.BUS) drawBus(cx, cy, cell, accent, skin, pulse)
+                    if (tile.role == Role.RECEIVER) drawReceiver(cx, cy, cell, powered[index])
+                }
 
                 if (hintIndex == index) {
                     drawCircle(
@@ -162,8 +187,15 @@ fun Board(
     }
 }
 
-private fun DrawScope.drawGrid(ox: Float, oy: Float, cell: Float, gridSize: Int, skin: BoardSkin) {
-    val line = skin.grid.copy(alpha = 0.35f)
+private fun DrawScope.drawGrid(
+    ox: Float,
+    oy: Float,
+    cell: Float,
+    gridSize: Int,
+    skin: BoardSkin,
+    withArt: Boolean = false,
+) {
+    val line = skin.grid.copy(alpha = if (withArt) 0.12f else 0.35f)
     for (i in 0..gridSize) {
         val x = ox + i * cell
         drawLine(line, Offset(x, oy), Offset(x, oy + gridSize * cell), strokeWidth = 1f)
@@ -232,6 +264,168 @@ private fun DrawScope.drawReceiver(cx: Float, cy: Float, cell: Float, on: Boolea
             style = Stroke(width = 2.4f),
         )
     }
+}
+
+/**
+ * Фон яруса под полем: растягиваем по ширине, центрируем и гасим затемнением —
+ * иначе трубы теряются на светлых участках кадра.
+ */
+private fun DrawScope.drawArtBackground(
+    image: ImageBitmap?,
+    board: Float,
+    ox: Float,
+    oy: Float,
+    cell: Float,
+    area: Size,
+) {
+    val top = oy - cell * 0.1f
+    val height = board + cell * 0.2f
+    if (image != null) {
+        val scale = maxOf(area.width / image.width, height / image.height)
+        val w = image.width * scale
+        val h = image.height * scale
+        drawImage(
+            image = image,
+            srcOffset = androidx.compose.ui.unit.IntOffset(0, 0),
+            srcSize = androidx.compose.ui.unit.IntSize(image.width, image.height),
+            dstOffset = androidx.compose.ui.unit.IntOffset(
+                ((area.width - w) / 2f).toInt(),
+                (top + (height - h) / 2f).toInt(),
+            ),
+            dstSize = androidx.compose.ui.unit.IntSize(w.toInt(), h.toInt()),
+        )
+    }
+    val plate = cell * 0.16f
+    drawRoundRect(
+        color = Color(0x0F0A090D),
+        topLeft = Offset(ox - plate / 2f, top),
+        size = Size(board + plate, height),
+        cornerRadius = CornerRadius(plate),
+    )
+}
+
+/** Деталь трубы из арта: спрайт нарисован в положении своей маски, поэтому его
+ *  поворот равен повороту маски фрагмента — детали соседей стыкуются. */
+private fun DrawScope.drawArtTile(
+    art: Art,
+    level: Level,
+    index: Int,
+    setName: String,
+    cx: Float,
+    cy: Float,
+    cell: Float,
+    angle: Float,
+) {
+    val tile = level.tiles[index]
+    val piece = piecesForMask(tile.base).firstOrNull() ?: "straight"
+    val image = art.sprite(setName, piece) ?: art.sprite("base", piece) ?: return
+    withTransform({
+        translate(cx - cell / 2f, cy - cell / 2f)
+        rotate(angle * 90f, Offset(cell / 2f, cell / 2f))
+        scale(cell / image.width, cell / image.height, Offset.Zero)
+    }) {
+        drawImage(image)
+    }
+}
+
+/** Ток: цвет среды яруса по портам фрагмента — мягкая полоса и бегущий пунктир. */
+private fun DrawScope.drawArtFlow(
+    level: Level,
+    index: Int,
+    cx: Float,
+    cy: Float,
+    cell: Float,
+    angle: Float,
+    flow: Color,
+    phase: Float,
+) {
+    val tile = level.tiles[index]
+    rotate(degrees = angle * 90f, pivot = Offset(cx, cy)) {
+        val ports = listOf(N to -90f, E to 0f, S to 90f, W to 180f)
+        for ((bit, degrees) in ports) {
+            if (tile.base and bit == 0) continue
+            val rad = degrees * (Math.PI / 180f).toFloat()
+            val start = Offset(cx, cy)
+            val end = Offset(cx + cos(rad) * cell * 0.5f, cy + sin(rad) * cell * 0.5f)
+            drawLine(flow.copy(alpha = 0.22f), start, end, strokeWidth = cell * 0.13f, cap = StrokeCap.Round)
+            drawLine(
+                color = flow.copy(alpha = 0.85f),
+                start = start,
+                end = end,
+                strokeWidth = cell * 0.05f,
+                cap = StrokeCap.Round,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(cell * 0.12f, cell * 0.34f), -phase * cell * 0.9f),
+            )
+        }
+        drawCircle(Color.White.copy(alpha = 0.55f), radius = cell * 0.055f, center = Offset(cx, cy))
+    }
+}
+
+/** Приёмник: горловина открытого конца, а когда ток дошёл — струя по её порту. */
+private fun DrawScope.drawArtReceiver(
+    art: Art,
+    level: Level,
+    index: Int,
+    cx: Float,
+    cy: Float,
+    cell: Float,
+    on: Boolean,
+    flow: Color,
+    phase: Float,
+) {
+    val mouth = art.round("mouth")
+    val mask = tileMask(level, index)
+    val spin = when {
+        mask and N != 0 -> 180f
+        mask and E != 0 -> -90f
+        mask and W != 0 -> 90f
+        else -> 0f
+    }
+    withTransform({
+        translate(cx, cy)
+        rotate(spin, Offset.Zero)
+    }) {
+        if (mouth != null) {
+            scale((cell * 0.94f) / mouth.width, (cell * 0.94f) / mouth.height, Offset.Zero) {
+                drawImage(mouth)
+            }
+        }
+        if (on) {
+            drawLine(
+                color = flow.copy(alpha = 0.7f),
+                start = Offset(0f, cell * 0.1f),
+                end = Offset(0f, -cell * 0.52f),
+                strokeWidth = cell * 0.09f,
+                cap = StrokeCap.Round,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(cell * 0.08f, cell * 0.26f), -phase * cell * 1.4f),
+            )
+        }
+    }
+}
+
+/** Шина: колпак источника поверх детали и пульсирующее кольцо. */
+private fun DrawScope.drawArtBus(
+    art: Art,
+    cx: Float,
+    cy: Float,
+    cell: Float,
+    accent: Color,
+    phase: Float,
+) {
+    art.round("cap")?.let { cap ->
+        withTransform({
+            translate(cx, cy)
+            scale((cell * 0.86f) / cap.width, (cell * 0.86f) / cap.height, Offset.Zero)
+        }) {
+            drawImage(cap)
+        }
+    }
+    drawCircle(
+        color = accent.copy(alpha = 0.25f + 0.35f * phase),
+        radius = cell * 0.34f,
+        center = Offset(cx, cy),
+        style = Stroke(width = 2f),
+    )
 }
 
 private fun cellAt(offset: Offset, area: IntSize, gridSize: Int): Int? {

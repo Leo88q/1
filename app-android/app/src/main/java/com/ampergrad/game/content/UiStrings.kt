@@ -40,6 +40,8 @@ interface UiStrings {
     fun tierName(order: Int): String
     val soundOn: String
     val soundOff: String
+    val artOn: String
+    val artOff: String
 
     /* Игровой экран */
     val moves: String
@@ -210,6 +212,8 @@ object Ru : UiStrings {
     }
     override val soundOn = "Звук включён"
     override val soundOff = "Звук выключен"
+    override val artOn = "Трубы из арта"
+    override val artOff = "Схема поля"
 
     override val moves = "ХОДЫ"
     override val time = "ВРЕМЯ"
@@ -363,6 +367,8 @@ object En : UiStrings {
     }
     override val soundOn = "Sound on"
     override val soundOff = "Sound off"
+    override val artOn = "Pipes from art"
+    override val artOff = "Field scheme"
 
     override val moves = "MOVES"
     override val time = "TIME"

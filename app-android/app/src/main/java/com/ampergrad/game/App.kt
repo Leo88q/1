@@ -71,6 +71,9 @@ import com.ampergrad.game.content.Lang
 import com.ampergrad.game.content.UiStrings
 import com.ampergrad.game.content.Lore
 import com.ampergrad.game.content.BoardSkin
+import com.ampergrad.game.ui.Art
+import com.ampergrad.game.ui.ArtTier
+import com.ampergrad.game.ui.artTierIndex
 import com.ampergrad.game.content.Shop
 import com.ampergrad.game.content.Wardrobe
 import com.ampergrad.game.content.of
@@ -124,6 +127,17 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
     val store = remember { ProgressStore(context) }
     val lore = remember { Lore.load(context) }
     val shop = remember { Shop.load(context) }
+    // Арт поля: спрайты и фоны кладёт в assets gradle-задача syncContent, поэтому
+    // в клоне без Node игра всё равно стартует — просто в режиме схемы.
+    val art = remember { Art(context) }
+    var artReady by remember { mutableStateOf(false) }
+    var artOn by remember { mutableStateOf(true) }
+    var artBackground by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    LaunchedEffect(Unit) {
+        art.load()
+        artReady = art.ready
+        if (!art.ready) art.error?.let { android.util.Log.i("амперград", "арт не поднялся: $it") }
+    }
     val claimApi = remember { ClaimClient(BuildConfig.SERVER_URL) }
     val scope = rememberCoroutineScope()
     var lang by remember { mutableStateOf(Lang.of(store.lang ?: Lang.systemDefault().code)) }
@@ -345,6 +359,26 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
         }
     }
 
+    // Арт-ярус текущего квартала и его фон. Ярус берём по номеру уровня (те же
+    // 15 уровней на ярус, что в каноне), фон догружаем вне главного потока —
+    // декодированные кадры 720×1290 тяжёлые, держим только текущий.
+    val currentTier: ArtTier? = if (artReady && artOn) {
+        val tiers = art.pack?.tiers ?: emptyList()
+        val number = session?.levelNumber
+        if (number != null && tiers.isNotEmpty()) tiers.getOrNull(artTierIndex(number, tiers.size)) else null
+    } else null
+    LaunchedEffect(currentTier?.id, session?.levelNumber) {
+        val tier = currentTier
+        if (tier == null) {
+            artBackground = null
+            return@LaunchedEffect
+        }
+        val variant = (session?.levelNumber ?: 1) % 2
+        artBackground = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            art.background(tier, variant)
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         val current = session
         if (current == null || menuOpen) {
@@ -384,6 +418,11 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 skin = skin,
                 banner = banner,
                 soundEnabled = sound.enabled,
+                art = if (artReady && artOn) art else null,
+                artAvailable = artReady,
+                artOn = artOn,
+                artTier = currentTier,
+                background = artBackground,
                 onRotate = { index, dir -> rotate(current, index, dir) },
                 onHint = { useHint(current) },
                 onReset = { startLevel(current.levelNumber, current.mode) },
@@ -391,6 +430,10 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 onToggleSound = {
                     sound.enabled = !sound.enabled
                     showBanner(if (sound.enabled) t.soundOn else t.soundOff)
+                },
+                onToggleArt = {
+                    artOn = !artOn
+                    showBanner(if (artOn) t.artOn else t.artOff)
                 },
             )
         }
@@ -492,6 +535,7 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 session = finished,
                 lore = lore,
                 t = t,
+                art = if (artReady && artOn) art else null,
                 walletAddress = walletAddress,
                 onNext = {
                     if (finished.mode == Mode.DAILY) startLevel(DAILY_CONFIG_LEVEL, Mode.DAILY)
@@ -650,11 +694,19 @@ private fun GameScreen(
     skin: BoardSkin,
     banner: String?,
     soundEnabled: Boolean,
+    art: Art?,
+    // artAvailable — арт вообще собран в APK; artOn — игрок выбрал рисовать трубами.
+    // Разделяем: выключив арт, кнопкой вида его всё равно надо вернуть.
+    artAvailable: Boolean,
+    artOn: Boolean,
+    artTier: ArtTier?,
+    background: androidx.compose.ui.graphics.ImageBitmap?,
     onRotate: (Int, Int) -> Unit,
     onHint: () -> Unit,
     onReset: () -> Unit,
     onMenu: () -> Unit,
     onToggleSound: () -> Unit,
+    onToggleArt: () -> Unit,
 ) {
     val tier: Tier = tierOf(session.levelNumber)
     val quarter = lore?.quarter(session.levelNumber)
@@ -711,6 +763,9 @@ private fun GameScreen(
                 skin = skin,
                 hintIndex = if ((session.hintUntil) > System.currentTimeMillis()) session.hintIndex else null,
                 solving = session.solving,
+                art = art,
+                artTier = artTier,
+                background = background,
                 modifier = Modifier.fillMaxSize().padding(8.dp),
                 onRotate = onRotate,
             )
@@ -732,6 +787,16 @@ private fun GameScreen(
             OutlinedButton(onClick = onReset, modifier = Modifier.weight(1f)) { Text(t.reset) }
             OutlinedButton(onClick = onHint, modifier = Modifier.weight(1f)) { Text(t.hint) }
             OutlinedButton(onClick = onMenu, modifier = Modifier.weight(1f)) { Text(t.menu) }
+            OutlinedButton(
+                onClick = onToggleArt,
+                modifier = Modifier.width(56.dp),
+                // Кнопка вида: трубы из арта («▩») против чистой схемы («▢»).
+                // Без арта в APK переключать нечего — кнопка молчит.
+                enabled = artAvailable,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+            ) {
+                Text(if (artOn) "▩" else "▢")
+            }
             OutlinedButton(onClick = onToggleSound, modifier = Modifier.width(56.dp)) {
                 Text(if (soundEnabled) "♪" else "×")
             }
@@ -752,6 +817,7 @@ private fun WinOverlay(
     session: GameSession,
     lore: Lore?,
     t: UiStrings,
+    art: Art?,
     walletAddress: String?,
     onNext: () -> Unit,
     onMenu: () -> Unit,
@@ -785,6 +851,14 @@ private fun WinOverlay(
                 Spacer(Modifier.height(12.dp))
                 Text(t.districtAlive, style = MaterialTheme.typography.titleMedium, color = Color(0xFFEAFFF9))
                 Spacer(Modifier.height(10.dp))
+                art?.reward(session.stars)?.let { seal ->
+                    androidx.compose.foundation.Image(
+                        bitmap = seal,
+                        contentDescription = t.seal,
+                        modifier = Modifier.size(104.dp),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
                 Text(
                     text = "★".repeat(session.stars) + "☆".repeat(3 - session.stars),
                     style = MaterialTheme.typography.displaySmall,

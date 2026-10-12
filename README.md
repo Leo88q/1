@@ -137,7 +137,7 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # Gradle берёт JVM от�
 printf 'sdk.dir=%s\n' "$HOME/Library/Android/sdk" > ~/Desktop/Amperograd/app-android/local.properties
 
 cd ~/Desktop/Amperograd/app-android
-./gradlew :app:testDebugUnitTest   # 50 тестов: правила, векторы ядра, лор, витрина, звук
+./gradlew :app:testDebugUnitTest   # 58 тестов: правила, векторы ядра, арт поля, лор, витрина, звук
 ./gradlew :app:assembleDebug       # APK: app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:installDebug        # на подключённый телефон или запущенный эмулятор
 ```
@@ -187,7 +187,7 @@ adb reverse tcp:8787 tcp:8787
 
 ```bash
 cd app-android
-./gradlew :app:testDebugUnitTest   # 50 тестов: правила, векторы ядра, лор, витрина, звук
+./gradlew :app:testDebugUnitTest   # 58 тестов: правила, векторы ядра, арт поля, лор, витрина, звук
 ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:assembleRelease     # подписывается, если заданы переменные окружения
 ```
@@ -198,6 +198,14 @@ cd app-android
   +20 за челлендж дня — канон `packages/engine/src/content/economy.ts`), тратятся
   только на внешний вид в витрине; покупка за монеты доступна прямо в приложении,
   предмет сразу надевается.
+- Поле рисуется **тем же артом, что веб-версия**: задача Gradle `syncContent` кладёт
+  `packages/lab/public/art` (спрайты труб, фоны пяти ярусов, пломбы, контракт
+  `web.json`) в `assets/art`, поэтому приложение и лаборатория показывают одну и ту
+  же картинку. Детали стыкуются сами: спрайт нарисован в положении своей маски и
+  поворачивается на угол фрагмента. Кнопка **▩/▢** в игре переключает вид
+  «трубы из арта ↔ чистая схема» (в вебе — кнопка «Вид» / клавиша `A`), пломба за
+  1–3 звезды приходит из `rewards/`. Если каталог арта не собран, приложение
+  стартует схемой, а не падает.
 - Звук — **оригинальные синтезированные сэмплы**: щелчок реле на поворот,
   «вдох» при подключении узла, «выдох» при пломбе, служебный сигнал подсказки и
   бесшовный гул массива фоном (`app-android/tools/make_sounds.py`, ~370 КБ WAV).
@@ -219,8 +227,11 @@ cd app-android
   (`server/src/verify.ts`). Подпись кошелька подтверждает владение, ходы — честность.
 - Клиент и сервер говорят на одной версии правил (`ENGINE_VERSION` в BuildConfig).
   Тест-векторы берутся из `packages/engine/vectors/levels.json`; задача Gradle
-  `syncContent` сама копирует их и контент в ресурсы модуля, поэтому локально
-  достаточно `./gradlew :app:testDebugUnitTest`.
+  `syncContent` сама копирует их, контент и арт в ресурсы модуля, поэтому локально
+  достаточно `./gradlew :app:testDebugUnitTest`. Арт кладётся целиком в
+  `assets/art` (каталог в `.gitignore`: источник — `packages/lab/public/art`), а CI
+  отдельным шагом проверяет, что внутри собранного APK лежит `assets/art/web.json`
+  и не меньше 55 файлов арта — иначе игра молча уехала бы в режим схемы.
 
 Сборка APK идёт в GitHub Actions (`.github/workflows/android.yml`): сначала тесты
 TS-ядра, затем Kotlin-тесты и APK; результат — артефакты `ampergrad-apk`,

@@ -74,6 +74,11 @@ android {
 // собирается даже без Node: копируем то, что есть, и пропускаем отсутствующее.
 val contentDir = File(rootProject.projectDir.parentFile, "packages/engine/content")
 val vectorsFile = File(rootProject.projectDir.parentFile, "packages/engine/vectors/levels.json")
+// Арт игры: тот же каталог, что читает веб-лаборатория. Собирается из исходников
+// `art/` командой `npm run art:web` и коммитится, поэтому копируем как есть —
+// спрайты труб, фоны ярусов, пломбы и контракт web.json.
+val webArtDir = File(rootProject.projectDir.parentFile, "packages/lab/public/art")
+val assetsArtDir = File(project.projectDir, "src/main/assets/art")
 
 /** Файл в репозитории → куда его положить внутри модуля приложения. */
 val syncedFiles = mapOf(
@@ -86,6 +91,7 @@ val syncedFiles = mapOf(
         File(project.projectDir, "src/test/resources/cosmetics.json"),
     ),
     vectorsFile to listOf(File(project.projectDir, "src/test/resources/levels.json")),
+    File(webArtDir, "web.json") to listOf(File(project.projectDir, "src/test/resources/web.json")),
 )
 
 val syncContent = tasks.register("syncContent") {
@@ -93,6 +99,7 @@ val syncContent = tasks.register("syncContent") {
     description = "Копирует контент и тест-векторы ядра в assets и ресурсы unit-тестов"
     inputs.files(syncedFiles.keys.toList()).optional()
     outputs.files(syncedFiles.values.flatten())
+    outputs.dir(assetsArtDir)
     doLast {
         val missing = syncedFiles.keys.filterNot { it.exists() }
         if (missing.isNotEmpty()) {
@@ -107,11 +114,30 @@ val syncContent = tasks.register("syncContent") {
                 source.copyTo(target, overwrite = true)
             }
         }
+
+        // Арт кладём в assets целиком: игра читает его как assets/art/**. Если
+        // каталог не собрали (клон без Node и Python) — игра стартует в режиме
+        // схемы, поэтому это предупреждение, а не ошибка сборки.
+        if (webArtDir.exists()) {
+            webArtDir.walkTopDown().filter { it.isFile }.forEach { source ->
+                val relative = source.relativeTo(webArtDir)
+                val target = File(assetsArtDir, relative.path)
+                target.parentFile?.mkdirs()
+                source.copyTo(target, overwrite = true)
+            }
+        } else {
+            logger.lifecycle(
+                "шаг пропущен: нет $webArtDir — выполните npm run art:web в корне репозитория, " +
+                    "иначе игра соберётся без арта (поле будет схемой)",
+            )
+        }
     }
 }
 
 tasks.named("preBuild") { dependsOn(syncContent) }
-tasks.matching { it.name.contains("UnitTest") && it.name.startsWith("compile") }
+// Тестовые ресурсы копируются из src/test/resources в build/resources/test, поэтому
+// синхронизация обязана пройти раньше: иначе web.json/levels.json не догонят тесты.
+tasks.matching { it.name.contains("UnitTest") && (it.name.startsWith("compile") || it.name.startsWith("process")) }
     .configureEach { dependsOn(syncContent) }
 
 kotlin {
