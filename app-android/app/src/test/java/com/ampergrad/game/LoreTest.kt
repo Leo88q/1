@@ -83,4 +83,21 @@ class LoreTest {
             assertEquals(quarter.name, quarter.name(Lang.RU), "${quarter.code}: имя на русском")
         }
     }
+
+    @Test
+    fun `реестр переведён на английский`() {
+        val cyrillic = Regex("[А-Яа-яЁё]")
+        for (entry in lore.registry) {
+            assertTrue(entry.titleEn.length > 3, "${entry.id}: короткое EN-название")
+            assertTrue(entry.textEn.length > 30, "${entry.id}: короткий EN-текст")
+            assertFalse(cyrillic.containsMatchIn(entry.textEn), "${entry.id}: ${entry.textEn.take(40)}")
+            assertFalse(cyrillic.containsMatchIn(entry.titleEn), "${entry.id}: ${entry.titleEn}")
+            assertFalse(cyrillic.containsMatchIn(entry.sourceEn), "${entry.id}: ${entry.sourceEn}")
+            assertFalse(entry.titleEn == entry.title, "${entry.id}: название не переведено")
+        }
+        // Тот же словарь говорящих, что в TS-каноне.
+        assertEquals("Klemma", lore.registryEntry("reg-s1-01")?.speaker(Lang.EN))
+        assertEquals("the air", lore.registryEntry("reg-s2-05")?.speaker(Lang.EN))
+        assertEquals("Клемма", lore.registryEntry("reg-s1-01")?.speaker(Lang.RU))
+    }
 }

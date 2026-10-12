@@ -26,13 +26,35 @@ data class RegistryInfo(
     val id: String,
     val season: Int,
     val title: String,
+    val titleEn: String,
     val speaker: String,
     val text: String,
+    val textEn: String,
     val source: String,
+    val sourceEn: String,
 ) {
-    /** Подпись для карточки: «РЕЕСТР S1-01 · Клемма». */
-    val label: String
-        get() = "РЕЕСТР ${id.removePrefix("reg-").uppercase()} · $speaker"
+    /** Код в стиле диспетчерской: S1-01. */
+    val code: String get() = id.removePrefix("reg-").uppercase()
+
+    fun title(lang: Lang): String = if (lang == Lang.EN) titleEn else title
+    fun text(lang: Lang): String = if (lang == Lang.EN) textEn else text
+    fun source(lang: Lang): String = if (lang == Lang.EN) sourceEn else source
+
+    /** Имя говорящего: имена собственные латиницей, «эфир» — подпись. */
+    fun speaker(lang: Lang): String =
+        if (lang == Lang.EN) SPEAKERS_EN[speaker] ?: speaker else speaker
+
+    companion object {
+        /** Тот же словарь, что в TS-каноне (SPEAKERS_EN в content/lore.ts). */
+        val SPEAKERS_EN = mapOf(
+            "Клемма" to "Klemma",
+            "Марта Вольт" to "Marta Volt",
+            "Хриза" to "Khriza",
+            "Крючники" to "the Hookmen",
+            "эфир" to "the air",
+            "Плавильня" to "the Melter",
+        )
+    }
 }
 
 /**
@@ -97,9 +119,12 @@ class Lore(
                     id = o.getString("id"),
                     season = o.getInt("season"),
                     title = o.getString("title"),
+                    titleEn = o.optString("titleEn").ifBlank { o.getString("title") },
                     speaker = o.getString("speaker"),
                     text = o.getString("text"),
+                    textEn = o.optString("textEn").ifBlank { o.getString("text") },
                     source = o.getString("source"),
+                    sourceEn = o.optString("sourceEn").ifBlank { o.getString("source") },
                 )
             }
 

@@ -3,11 +3,13 @@ import {
   COSMETICS,
   QUARTERS,
   REGISTRY,
+  SPEAKERS_EN,
   TIERS,
   cosmeticById,
   quarterForLevel,
   registryById,
   registryForLevel,
+  speakerForLang,
   storeItems,
   tierForLevel,
 } from '../src';
@@ -69,6 +71,32 @@ describe('лор-реестр и магазин (M3)', () => {
     }
     expect(registryById('reg-s1-01')?.speaker).toBe('Клемма');
     expect(registryById('нет-такого')).toBeUndefined();
+  });
+
+  it('реестр переведён: у каждой записи английские поля без кириллицы', () => {
+    const cyrillic = /[А-Яа-яЁё]/;
+    for (const entry of REGISTRY) {
+      expect(entry.titleEn.length, entry.id).toBeGreaterThan(3);
+      expect(entry.textEn.length, entry.id).toBeGreaterThan(30);
+      expect(entry.sourceEn.length, entry.id).toBeGreaterThan(3);
+      expect(cyrillic.test(entry.titleEn), `${entry.id}: ${entry.titleEn}`).toBe(false);
+      expect(cyrillic.test(entry.textEn), `${entry.id}: ${entry.textEn}`).toBe(false);
+      expect(cyrillic.test(entry.sourceEn), `${entry.id}: ${entry.sourceEn}`).toBe(false);
+      expect(entry.titleEn === entry.title, `${entry.id}: название не переведено`).toBe(false);
+      expect(entry.textEn === entry.text, `${entry.id}: текст не переведён`).toBe(false);
+    }
+    // Английские тексты уникальны — это перевод, а не копия одной фразы.
+    expect(new Set(REGISTRY.map((r) => r.textEn)).size).toBe(REGISTRY.length);
+  });
+
+  it('голоса города переведены и словарь полный', () => {
+    const speakers = new Set(REGISTRY.map((r) => r.speaker));
+    for (const speaker of speakers) {
+      expect(SPEAKERS_EN[speaker], `нет перевода для «${speaker}»`).toBeTruthy();
+      expect(speakerForLang(speaker, 'en')).not.toBe(speaker);
+      expect(speakerForLang(speaker, 'ru')).toBe(speaker);
+    }
+    expect(Object.keys(SPEAKERS_EN).sort()).toEqual([...speakers].sort());
   });
 
   it('магазин: наградные предметы бесплатны, платные — только косметика', () => {

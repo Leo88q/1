@@ -750,19 +750,19 @@ private fun WinOverlay(
                                 .padding(12.dp),
                         ) {
                             Text(
-                                entry.label,
+                                t.registryLabel(entry.code, entry.speaker(t.lang)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Grad.Mint,
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                "«${entry.text}»",
+                                "«${entry.text(t.lang)}»",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Grad.Ink,
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                t.openEntry(entry.id, entry.title),
+                                t.openEntry(entry.id, entry.title(t.lang)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Grad.InkDim,
                             )
@@ -886,14 +886,18 @@ private fun RegistryOverlay(
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Column(Modifier.padding(14.dp)) {
-                        Text(entry.label, style = MaterialTheme.typography.labelSmall, color = Grad.Mint)
+                        Text(
+                            t.registryLabel(entry.code, entry.speaker(t.lang)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Grad.Mint,
+                        )
                         Spacer(Modifier.height(4.dp))
-                        Text(entry.title, style = MaterialTheme.typography.titleMedium, color = Grad.Ink)
+                        Text(entry.title(t.lang), style = MaterialTheme.typography.titleMedium, color = Grad.Ink)
                         Spacer(Modifier.height(6.dp))
-                        Text("«${entry.text}»", style = MaterialTheme.typography.bodySmall, color = Grad.Ink)
+                        Text("«${entry.text(t.lang)}»", style = MaterialTheme.typography.bodySmall, color = Grad.Ink)
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            t.registryOpenedBy(entry.source, entry.id),
+                            t.registryOpenedBy(entry.source(t.lang), entry.id),
                             style = MaterialTheme.typography.labelSmall,
                             color = Grad.InkDim,
                         )

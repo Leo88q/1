@@ -18,21 +18,12 @@ import {
   poweredCells,
   quarterForLevel,
   registryForLevel,
+  speakerForLang,
   solutionMask,
   tierForLevel,
   tileMask,
   type Level,
 } from '../src';
-
-/** Голоса города по-английски: имена собственные и «эфир» — не лор-текст, а подпись. */
-const SPEAKERS_EN: Record<string, string> = {
-  'Клемма': 'Klemma',
-  'Марта Вольт': 'Marta Volt',
-  'Хриза': 'Khriza',
-  'Крючники': 'the Hookmen',
-  'эфир': 'the air',
-  'Плавильня': 'the Melter',
-};
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, '..', '..', '..', 'store', 'data');
@@ -50,8 +41,8 @@ interface Scene {
   cells: Array<{ x: number; y: number; mask: number; role: 'bus' | 'receiver' | 'line'; powered: boolean }>;
   accent: string;
   registry: { label: string; title: string; text: string } | null;
-  /** Имя говорящего по-английски (для английского набора скриншотов). */
-  registrySpeakerEn: string | null;
+  /** Тот же фрагмент по-английски. */
+  registryEn: { label: string; title: string; text: string } | null;
   stars?: number;
 }
 
@@ -95,7 +86,13 @@ function buildScene(
       role: tile.role,
       powered: powered[index] ?? false,
     })),
-    registrySpeakerEn: entry ? SPEAKERS_EN[entry.speaker] ?? entry.speaker : null,
+    registryEn: entry
+      ? {
+          label: `REGISTRY ${entry.id.replace('reg-', '').toUpperCase()} · ${speakerForLang(entry.speaker, 'en')}`,
+          title: entry.titleEn,
+          text: entry.textEn,
+        }
+      : null,
     registry: entry
       ? {
           label: `РЕЕСТР ${entry.id.replace('reg-', '').toUpperCase()} · ${entry.speaker}`,

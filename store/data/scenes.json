@@ -1,6 +1,6 @@
 {
   "engineVersion": "0.1.0",
-  "generatedAt": "2026-10-12T00:50:18.050Z",
+  "generatedAt": "2026-10-12T00:57:12.096Z",
   "tiers": [
     {
       "id": "plateau",
@@ -363,7 +363,11 @@
           "powered": true
         }
       ],
-      "registrySpeakerEn": "the air",
+      "registryEn": {
+        "label": "REGISTRY S1-02 · the air",
+        "title": "Palm Roof",
+        "text": "Up top the light is licensed. The licence expired a cycle ago, but it was paid forward, so it is still bright."
+      },
       "registry": {
         "label": "РЕЕСТР S1-02 · эфир",
         "title": "Пальмовая крыша",
@@ -560,7 +564,11 @@
           "powered": true
         }
       ],
-      "registrySpeakerEn": "the air",
+      "registryEn": {
+        "label": "REGISTRY S1-17 · the air",
+        "title": "Board of Names",
+        "text": "The board carries the first volt-masters. The last three lines are painted over. The paint is fresh. There were more masters."
+      },
       "registry": {
         "label": "РЕЕСТР S1-17 · эфир",
         "title": "Доска имён",
@@ -1031,7 +1039,11 @@
           "powered": true
         }
       ],
-      "registrySpeakerEn": "Klemma",
+      "registryEn": {
+        "label": "REGISTRY S3-10 · Klemma",
+        "title": "The Core Listens",
+        "text": "Clause 1.0: light is issued by quota. The quota has been revised. Appendix: you. Signature: missing."
+      },
       "registry": {
         "label": "РЕЕСТР S3-10 · Клемма",
         "title": "Ядро слушает",

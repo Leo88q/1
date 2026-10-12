@@ -41,9 +41,7 @@ TEXTS = {
         "footer": "AMPERGRAD · no wallet, no token required",
         "stats": lambda moves, par, time: f"moves {moves} · par {par} · {time}",
         "registry": "REGISTRY",
-        # Лор-тексты пока только на русском, поэтому в английском наборе не
-        # показываем русский заголовок, а пишем честно, что страница открыта.
-        "registry_note": lambda scene: "Registry page unlocked in game",
+        "registry": "REGISTRY",
         "title": lambda scene: scene["titleEn"],
         "subtitle": lambda scene: scene["subtitleEn"],
         "feature": ("AMPERGRAD", "BRING THE CURRENT BACK", "1–3 minutes per district",
@@ -158,8 +156,8 @@ def screenshot(scene, path, txt):
         f_star = font(MONO, 92)
         stars = "★" * scene["stars"] + "☆" * (3 - scene["stars"])
         text(draw, (width / 2, 1290), stars, f_star, GOLD, anchor="mm")
-        entry = scene.get("registry")
-        if entry and LANG == "ru":
+        entry = scene.get("registry") if LANG == "ru" else scene.get("registryEn")
+        if entry:
             f_label = font(MONO, 24)
             f_txt = font(SANS, 30)
             f_title = font(MONO, 32)
@@ -171,16 +169,6 @@ def screenshot(scene, path, txt):
             for line in wrap(draw, f"«{entry['text']}»", f_txt, width - 220)[:3]:
                 text(draw, (110, y), line, f_txt, INK)
                 y += 40
-        elif entry:
-            # Английский набор: лор-текст пока только на русском, поэтому показываем
-            # честную подпись «страница открыта», а не перевод-заглушку.
-            f_label = font(MONO, 24)
-            f_txt = font(SANS, 30)
-            box = [80, 1420, width - 80, 1600]
-            draw.rounded_rectangle(box, radius=20, fill=PANEL, outline=LINE, width=2)
-            text(draw, (110, 1454), txt["registry"], f_label, MINT)
-            text(draw, (110, 1492), txt["registry_note"](scene), f_txt, INK)
-
     else:
         f_hint = font(SANS, 30)
         lines = wrap(draw, txt["hint"], f_hint, width - 160)

@@ -100,6 +100,8 @@ interface UiStrings {
     val registryNote: String
     val registryEmpty: String
     fun registryOpenedBy(source: String, id: String): String
+    /** Подпись страницы реестра: «РЕЕСТР S1-01 · Клемма» / «REGISTRY S1-01 · Klemma». */
+    fun registryLabel(code: String, speaker: String): String
     val close: String
 
     /* Витрина */
@@ -251,6 +253,7 @@ object Ru : UiStrings {
             "Каждая — с подписью того, кто говорил."
     override val registryEmpty = "Пока пусто. Соберите первый квартал — откроется первая страница."
     override fun registryOpenedBy(source: String, id: String) = "Открыта: $source · $id"
+    override fun registryLabel(code: String, speaker: String) = "РЕЕСТР $code · $speaker"
     override val close = "ЗАКРЫТЬ"
 
     override val shopTitle = "ВИТРИНА"
@@ -386,6 +389,7 @@ object En : UiStrings {
             "Every page is signed by whoever spoke it."
     override val registryEmpty = "Empty so far. Seal your first district to open the first page."
     override fun registryOpenedBy(source: String, id: String) = "Opened by: $source · $id"
+    override fun registryLabel(code: String, speaker: String) = "REGISTRY $code · $speaker"
     override val close = "CLOSE"
 
     override val shopTitle = "SHOP"
