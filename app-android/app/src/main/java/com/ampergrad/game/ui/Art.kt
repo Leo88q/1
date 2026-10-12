@@ -47,6 +47,8 @@ data class ArtPack(
     val tiers: List<ArtTier>,
     val screens: Map<String, String>,
     val rewards: Map<Int, String>,
+    /** Особые пломбы: не за звёзды, а за то, как запечатан квартал (см. chooseSeal). */
+    val seals: Map<String, String> = emptyMap(),
 )
 
 /** «#RRGGBB» → цвет Compose; неразобранная строка даёт прозрачный, а не падение. */
