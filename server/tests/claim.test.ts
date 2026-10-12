@@ -307,6 +307,23 @@ describe('контент: магазин, реестр, названия ква�
     expect((await app.request('/shop/нет-такого')).status).toBe(404);
   });
 
+  it('отдаёт английскую карточку предмета вместе с русской', async () => {
+    const { app } = buildApp();
+    const catalog = (await (await app.request('/shop')).json()) as {
+      items: Array<{ id: string; nameEn: string | null; howEn: string | null; loreEn: string | null }>;
+    };
+
+    const cyrillic = /[А-Яа-яЁё]/;
+    for (const item of catalog.items) {
+      expect(item.nameEn, `${item.id}: нет английского названия`).toBeTruthy();
+      expect(item.howEn, `${item.id}: нет английского способа получения`).toBeTruthy();
+      expect(item.loreEn, `${item.id}: нет английского лора`).toBeTruthy();
+      for (const value of [item.nameEn!, item.howEn!, item.loreEn!]) {
+        expect(cyrillic.test(value), `${item.id}: «${value}» не переведено`).toBe(false);
+      }
+    }
+  });
+
   it('отдаёт реестр и полный текст записи', async () => {
     const { app } = buildApp();
 

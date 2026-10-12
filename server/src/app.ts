@@ -11,6 +11,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import {
   COSMETICS,
+  COSMETICS_EN,
   ENGINE_VERSION,
   QUARTERS,
   REGISTRY,
@@ -26,6 +27,20 @@ import { REWARDS, evaluate, rewardById, type ClaimCounters } from './rewards';
 import { claimMessage, dailyMessage, randomNonce } from './messages';
 import type { Store } from './store';
 import { decodeAddress, verifyPlayProof, verifySignature, type PlayProof } from './verify';
+
+/**
+ * Карточка предмета с английскими строками: клиенты (в том числе не наши)
+ * получают оба языка сразу, без второго запроса.
+ */
+function withEnglishCard<T extends { id: string }>(item: T) {
+  const en = COSMETICS_EN[item.id];
+  return {
+    ...item,
+    nameEn: en?.name ?? null,
+    howEn: en?.how ?? null,
+    loreEn: en?.lore ?? null,
+  };
+}
 
 export interface AppDeps {
   env: ServerEnv;
@@ -121,17 +136,18 @@ export function createApp(deps: AppDeps): Hono {
   });
 
   // Каталог косметики: только внешний вид, цены витрины платформы.
+  // Карточка отдаётся на обоих языках: name/how/lore по-русски, nameEn/howEn/loreEn — по-английски.
   app.get('/shop', (c) =>
     c.json({
       engine: ENGINE_VERSION,
-      items: COSMETICS,
+      items: COSMETICS.map(withEnglishCard),
     }),
   );
 
   app.get('/shop/:itemId', (c) => {
     const item = cosmeticById(c.req.param('itemId'));
     if (!item) return c.json({ error: 'предмет не найден' }, 404);
-    return c.json(item);
+    return c.json(withEnglishCard(item));
   });
 
   // Лор: список записей и полный текст конкретной (она же — награда-страница).
