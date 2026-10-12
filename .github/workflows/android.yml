@@ -36,6 +36,27 @@ jobs:
       - name: Контент для клиента (лор, реестр)
         run: npm run content
 
+      # Механизм для GUTTERCAPS живёт в двух видах: пакет в integrations/guttercaps/pr
+      # и патч dist/*.patch, который владелец кладёт в их монорепо. Если пакет
+      # поправили, а патч не пересобрали — патч уедет устаревшим, поэтому сверяем.
+      - name: "Механизм для GUTTERCAPS: тесты пакета"
+        run: node --experimental-strip-types --test integrations/guttercaps/pr/packages/ampergrad/test/*.test.ts
+
+      - name: "Механизм для GUTTERCAPS: патч совпадает с пакетом"
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          git -C "$tmp" init -q
+          git -C "$tmp" config user.name ci
+          git -C "$tmp" config user.email ci@example.com
+          printf 'base\n' > "$tmp/README.md"
+          git -C "$tmp" add -A
+          git -C "$tmp" commit -qm base
+          git -C "$tmp" am "$PWD/integrations/guttercaps/dist/ampergrad-mechanism.patch"
+          diff -r "$tmp/docs" integrations/guttercaps/pr/docs
+          diff -r "$tmp/packages/ampergrad" integrations/guttercaps/pr/packages/ampergrad
+          echo "патч и пакет совпадают"
+
       - uses: actions/upload-artifact@v5
         with:
           name: level-vectors
