@@ -24,6 +24,16 @@ import {
   type Level,
 } from '../src';
 
+/** Голоса города по-английски: имена собственные и «эфир» — не лор-текст, а подпись. */
+const SPEAKERS_EN: Record<string, string> = {
+  'Клемма': 'Klemma',
+  'Марта Вольт': 'Marta Volt',
+  'Хриза': 'Khriza',
+  'Крючники': 'the Hookmen',
+  'эфир': 'the air',
+  'Плавильня': 'the Melter',
+};
+
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, '..', '..', '..', 'store', 'data');
 mkdirSync(outDir, { recursive: true });
@@ -32,12 +42,16 @@ mkdirSync(outDir, { recursive: true });
 interface Scene {
   id: string;
   title: string;
+  titleEn: string;
   subtitle: string;
+  subtitleEn: string;
   stats: { moves: number; par: number; time: string };
   size: number;
   cells: Array<{ x: number; y: number; mask: number; role: 'bus' | 'receiver' | 'line'; powered: boolean }>;
   accent: string;
   registry: { label: string; title: string; text: string } | null;
+  /** Имя говорящего по-английски (для английского набора скриншотов). */
+  registrySpeakerEn: string | null;
   stars?: number;
 }
 
@@ -68,7 +82,9 @@ function buildScene(
   return {
     id,
     title: `УРОВЕНЬ ${levelNumber} · ${quarter?.name ?? ''}`,
+    titleEn: `LEVEL ${levelNumber} · ${quarter?.nameEn ?? ''}`,
     subtitle: tier ? tier.name.toUpperCase() : '',
+    subtitleEn: tier ? tier.nameEn.toUpperCase() : '',
     stats: { moves, par: level.parMoves, time },
     size: level.size,
     accent: tier?.palette[0] ?? '#00E5C7',
@@ -79,6 +95,7 @@ function buildScene(
       role: tile.role,
       powered: powered[index] ?? false,
     })),
+    registrySpeakerEn: entry ? SPEAKERS_EN[entry.speaker] ?? entry.speaker : null,
     registry: entry
       ? {
           label: `РЕЕСТР ${entry.id.replace('reg-', '').toUpperCase()} · ${entry.speaker}`,

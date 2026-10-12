@@ -1,6 +1,6 @@
 {
   "engineVersion": "0.1.0",
-  "generatedAt": "2026-10-12T00:09:12.060Z",
+  "generatedAt": "2026-10-12T00:50:18.050Z",
   "tiers": [
     {
       "id": "plateau",
@@ -239,7 +239,9 @@
     {
       "id": "screenshot-1",
       "title": "УРОВЕНЬ 3 · Лицензионный свет",
+      "titleEn": "LEVEL 3 · Licensed Light",
       "subtitle": "ПЛАТО ПЕРВОГО КОНТАКТА",
+      "subtitleEn": "FIRST CONTACT PLATEAU",
       "stats": {
         "moves": 4,
         "par": 19,
@@ -361,6 +363,7 @@
           "powered": true
         }
       ],
+      "registrySpeakerEn": "the air",
       "registry": {
         "label": "РЕЕСТР S1-02 · эфир",
         "title": "Пальмовая крыша",
@@ -370,7 +373,9 @@
     {
       "id": "screenshot-2",
       "title": "УРОВЕНЬ 22 · Тупик на Виадуке",
+      "titleEn": "LEVEL 22 · Viaduct Dead End",
       "subtitle": "РТУТНЫЙ ЯРУС",
+      "subtitleEn": "MERCURY TIER",
       "stats": {
         "moves": 26,
         "par": 30,
@@ -555,6 +560,7 @@
           "powered": true
         }
       ],
+      "registrySpeakerEn": "the air",
       "registry": {
         "label": "РЕЕСТР S1-17 · эфир",
         "title": "Доска имён",
@@ -565,7 +571,9 @@
     {
       "id": "screenshot-3",
       "title": "УРОВЕНЬ 63 · Ритм под полом",
+      "titleEn": "LEVEL 63 · Rhythm Under the Floor",
       "subtitle": "ПЛАВИЛЬНЯ (ЯДРО)",
+      "subtitleEn": "THE MELTER (CORE)",
       "stats": {
         "moves": 58,
         "par": 73,
@@ -1023,6 +1031,7 @@
           "powered": true
         }
       ],
+      "registrySpeakerEn": "Klemma",
       "registry": {
         "label": "РЕЕСТР S3-10 · Клемма",
         "title": "Ядро слушает",

@@ -12,6 +12,8 @@ export interface Tier {
   /** Номер яруса сверху вниз, 1–5. */
   order: number;
   name: string;
+  /** Английское имя яруса (интерфейс приложения держит своё — см. UiStrings). */
+  nameEn: string;
   /** Диапазон уровней включительно. */
   levels: [number, number];
   /** Рост сетки внутри яруса — для текстов интерфейса. */
@@ -29,6 +31,7 @@ export const TIERS: Tier[] = [
     id: 'plateau',
     order: 1,
     name: 'Плато Первого Контакта',
+    nameEn: 'First Contact Plateau',
     levels: [1, 15],
     grid: '4×4 → 5×5',
     rule: 'туториал: колено, магистраль, поворот',
@@ -39,6 +42,7 @@ export const TIERS: Tier[] = [
     id: 'mercury',
     order: 2,
     name: 'Ртутный ярус',
+    nameEn: 'Mercury Tier',
     levels: [16, 30],
     grid: '5×5 → 6×6',
     rule: 'тройники, кресты, отвлекающие тупики',
@@ -49,6 +53,7 @@ export const TIERS: Tier[] = [
     id: 'terminal',
     order: 3,
     name: 'Терминальный ярус',
+    nameEn: 'Terminal Tier',
     levels: [31, 45],
     grid: '6×6 → 7×7',
     rule: 'два приёмника, лимит ходов на звезду',
@@ -59,6 +64,7 @@ export const TIERS: Tier[] = [
     id: 'old-diode',
     order: 4,
     name: 'Старый Диод',
+    nameEn: 'The Old Diode',
     levels: [46, 60],
     grid: '7×7',
     rule: '«мёртвые» ячейки (залитые стеклом), два источника',
@@ -69,6 +75,7 @@ export const TIERS: Tier[] = [
     id: 'melter',
     order: 5,
     name: 'Плавильня (Ядро)',
+    nameEn: 'The Melter (Core)',
     levels: [61, 75],
     grid: '7×7 → 8×8',
     rule: 'всё вместе + секретные «записи»',

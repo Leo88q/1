@@ -14,7 +14,44 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data", "scenes.json")
-OUT = os.path.join(ROOT, "assets")
+
+# Наборы для витрины: русский (основной рынок) и английский (листинг dApp Store).
+TEXTS = {
+    "ru": {
+        "out": os.path.join(ROOT, "assets"),
+        "moves": "ХОДЫ",
+        "time": "ВРЕМЯ",
+        "hint": "Подай ток на приёмники: все ячейки квартала должны быть подключены к шине",
+        "buttons": ("СБРОС", "ПОДСКАЗКА", "МЕНЮ"),
+        "footer": "АМПЕРГРАД · игра без кошелька и без токена",
+        "stats": lambda moves, par, time: f"ходов {moves} · план {par} · {time}",
+        "registry": "РЕЕСТР",
+        "registry_note": lambda scene: f"Открыта страница реестра: {scene['registry']['title']}",
+        "title": lambda scene: scene["title"],
+        "subtitle": lambda scene: scene["subtitle"],
+        "feature": ("АМПЕРГРАД", "ВЕРНИ ГОРОДУ ТОК", "1–3 минуты на квартал",
+                    "без кошелька и без токена", "награды — сжатые NFT (cNFT)"),
+    },
+    "en": {
+        "out": os.path.join(ROOT, "assets-en"),
+        "moves": "MOVES",
+        "time": "TIME",
+        "hint": "Power the receivers: every cell of the district must reach the bus",
+        "buttons": ("RESET", "HINT", "MENU"),
+        "footer": "AMPERGRAD · no wallet, no token required",
+        "stats": lambda moves, par, time: f"moves {moves} · par {par} · {time}",
+        "registry": "REGISTRY",
+        # Лор-тексты пока только на русском, поэтому в английском наборе не
+        # показываем русский заголовок, а пишем честно, что страница открыта.
+        "registry_note": lambda scene: "Registry page unlocked in game",
+        "title": lambda scene: scene["titleEn"],
+        "subtitle": lambda scene: scene["subtitleEn"],
+        "feature": ("AMPERGRAD", "BRING THE CURRENT BACK", "1–3 minutes per district",
+                    "no wallet, no token", "rewards are compressed NFTs (cNFTs)"),
+    },
+}
+
+LANG = "ru"
 
 BG = (6, 8, 14)
 PANEL = (10, 16, 24)
@@ -89,19 +126,18 @@ def draw_board(draw, scene, x0, y0, side):
         draw.ellipse([rx - rr, ry - rr, rx + rr, ry + rr], outline=DANGER, width=max(4, int(cell * 0.08)))
 
 
-def header(draw, scene, width, top=70):
+def header(draw, scene, width, txt, top=70):
     f_title = font(MONO, 46)
     f_sub = font(MONO_R, 26)
     f_stat = font(MONO, 28)
-    text(draw, (60, top), scene["subtitle"], f_sub, MINT)
-    text(draw, (60, top + 38), scene["title"], f_title, INK)
-    stats = f"ходов {scene['stats']['moves']} · план {scene['stats']['par']} · {scene['stats']['time']}"
+    text(draw, (60, top), txt["subtitle"](scene), f_sub, MINT)
+    text(draw, (60, top + 38), txt["title"](scene), f_title, INK)
+    stats = txt["stats"](scene['stats']['moves'], scene['stats']['par'], scene['stats']['time'])
     text(draw, (60, top + 104), stats, f_stat, DIM)
 
 
-def buttons(draw, width, y):
+def buttons(draw, width, y, labels):
     f = font(MONO, 28)
-    labels = ("СБРОС", "ПОДСКАЗКА", "МЕНЮ")
     gap, w = 30, (width - 120 - 60) / 3
     for i, label in enumerate(labels):
         x = 60 + i * (w + gap)
@@ -109,12 +145,12 @@ def buttons(draw, width, y):
         text(draw, (x + w / 2, y + 55), label, f, INK, anchor="mm")
 
 
-def screenshot(scene, path):
+def screenshot(scene, path, txt):
     width, height = 1080, 1920
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
 
-    header(draw, scene, width)
+    header(draw, scene, width, txt)
     side = 900
     draw_board(draw, scene, (width - side) / 2, 260, side)
 
@@ -123,7 +159,7 @@ def screenshot(scene, path):
         stars = "★" * scene["stars"] + "☆" * (3 - scene["stars"])
         text(draw, (width / 2, 1290), stars, f_star, GOLD, anchor="mm")
         entry = scene.get("registry")
-        if entry:
+        if entry and LANG == "ru":
             f_label = font(MONO, 24)
             f_txt = font(SANS, 30)
             f_title = font(MONO, 32)
@@ -135,18 +171,29 @@ def screenshot(scene, path):
             for line in wrap(draw, f"«{entry['text']}»", f_txt, width - 220)[:3]:
                 text(draw, (110, y), line, f_txt, INK)
                 y += 40
+        elif entry:
+            # Английский набор: лор-текст пока только на русском, поэтому показываем
+            # честную подпись «страница открыта», а не перевод-заглушку.
+            f_label = font(MONO, 24)
+            f_txt = font(SANS, 30)
+            box = [80, 1420, width - 80, 1600]
+            draw.rounded_rectangle(box, radius=20, fill=PANEL, outline=LINE, width=2)
+            text(draw, (110, 1454), txt["registry"], f_label, MINT)
+            text(draw, (110, 1492), txt["registry_note"](scene), f_txt, INK)
+
     else:
         f_hint = font(SANS, 30)
-        lines = wrap(draw, "Подай ток на приёмники: все ячейки квартала должны быть подключены к шине", f_hint, width - 160)
+        lines = wrap(draw, txt["hint"], f_hint, width - 160)
         y = 1250
         for line in lines:
             text(draw, (width / 2, y), line, f_hint, DIM, anchor="ma")
             y += 42
         f_progress = font(MONO, 32)
-        text(draw, (width / 2, y + 30), "долгое удержание — поворот против часовой", f_hint, (75, 90, 108), anchor="ma")
+        note = "долгое удержание — поворот против часовой" if LANG == "ru" else "press and hold to turn counter-clockwise"
+        text(draw, (width / 2, y + 30), note, f_hint, (75, 90, 108), anchor="ma")
 
-    buttons(draw, width, 1740)
-    text(draw, (width / 2, 1878), "АМПЕРГРАД · игра без кошелька и без токена", font(SANS, 26), DIM, anchor="mm")
+    buttons(draw, width, 1740, txt["buttons"])
+    text(draw, (width / 2, 1878), txt["footer"], font(SANS, 26), DIM, anchor="mm")
     img.save(path, "PNG")
     return path
 
@@ -202,7 +249,7 @@ def circuit_fragment(pieces, bus, receivers):
     return seen
 
 
-def feature_graphic(path):
+def feature_graphic(path, txt):
     width, height = 1024, 500
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
@@ -214,11 +261,12 @@ def feature_graphic(path):
     f_title = font(MONO, 72)
     f_tag = font(MONO_R, 30)
     f_small = font(SANS, 25)
-    text(draw, (56, 118), "АМПЕРГРАД", f_title, INK)
-    text(draw, (58, 216), "ВЕРНИ ГОРОДУ ТОК", f_tag, MINT)
-    text(draw, (58, 286), "1–3 минуты на квартал", f_small, DIM)
-    text(draw, (58, 322), "без кошелька и без токена", f_small, DIM)
-    text(draw, (58, 358), "награды — сжатые NFT (cNFT)", f_small, DIM)
+    title, tag, line1, line2, line3 = txt["feature"]
+    text(draw, (56, 118), title, f_title, INK)
+    text(draw, (58, 216), tag, f_tag, MINT)
+    text(draw, (58, 286), line1, f_small, DIM)
+    text(draw, (58, 322), line2, f_small, DIM)
+    text(draw, (58, 358), line3, f_small, DIM)
 
     # Квартал: настоящий контур (кольцо шина → приёмник) и обесточенные фрагменты рядом.
     x0, y0, cell = 636, 96, 76
@@ -251,16 +299,24 @@ def feature_graphic(path):
 
 
 def main():
-    os.makedirs(OUT, exist_ok=True)
+    global LANG
+    import sys
+
+    if "--lang" in sys.argv:
+        LANG = sys.argv[sys.argv.index("--lang") + 1]
+    txt = TEXTS[LANG]
+    out = txt["out"]
+    os.makedirs(out, exist_ok=True)
+
     with open(DATA, encoding="utf-8") as fh:
         data = json.load(fh)
 
     for scene in data["scenes"]:
-        path = os.path.join(OUT, f"{scene['id']}.png")
-        screenshot(scene, path)
+        path = os.path.join(out, f"{scene['id']}.png")
+        screenshot(scene, path, txt)
         print("записано:", path)
-    print("записано:", icon(os.path.join(OUT, "icon-512.png")))
-    print("записано:", feature_graphic(os.path.join(OUT, "feature-graphic-1024x500.png")))
+    print("записано:", icon(os.path.join(out, "icon-512.png")))
+    print("записано:", feature_graphic(os.path.join(out, "feature-graphic-1024x500.png"), txt))
 
 
 if __name__ == "__main__":
