@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "vectors": "tsx scripts/gen-vectors.ts",
-    "content": "tsx scripts/export-content.ts"
+    "content": "tsx scripts/export-content.ts",
+    "store:data": "tsx scripts/export-store-data.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

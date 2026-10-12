@@ -1,0 +1,1034 @@
+{
+  "engineVersion": "0.1.0",
+  "generatedAt": "2026-10-12T00:09:12.060Z",
+  "tiers": [
+    {
+      "id": "plateau",
+      "name": "Плато Первого Контакта",
+      "palette": [
+        "#00E5C7",
+        "#7DE9FF",
+        "#FFC24B"
+      ]
+    },
+    {
+      "id": "mercury",
+      "name": "Ртутный ярус",
+      "palette": [
+        "#00E5C7",
+        "#9AA7FF",
+        "#FF3D81"
+      ]
+    },
+    {
+      "id": "terminal",
+      "name": "Терминальный ярус",
+      "palette": [
+        "#00E5C7",
+        "#6CFFB0",
+        "#FFC24B"
+      ]
+    },
+    {
+      "id": "old-diode",
+      "name": "Старый Диод",
+      "palette": [
+        "#FF3D81",
+        "#9AA7FF",
+        "#00E5C7"
+      ]
+    },
+    {
+      "id": "melter",
+      "name": "Плавильня (Ядро)",
+      "palette": [
+        "#FFC24B",
+        "#FF3D81",
+        "#00E5C7"
+      ]
+    }
+  ],
+  "quarters": [
+    {
+      "level": 1,
+      "code": "П-01",
+      "name": "Пробный контур"
+    },
+    {
+      "level": 2,
+      "code": "П-02",
+      "name": "Пальмовая крыша"
+    },
+    {
+      "level": 3,
+      "code": "П-03",
+      "name": "Лицензионный свет"
+    },
+    {
+      "level": 4,
+      "code": "П-04",
+      "name": "Реклама 4-А"
+    },
+    {
+      "level": 5,
+      "code": "П-05",
+      "name": "Сухой контакт"
+    },
+    {
+      "level": 6,
+      "code": "П-06",
+      "name": "Щелчок реле"
+    }
+  ],
+  "shop": {
+    "rewards": [
+      {
+        "id": "plomba-first",
+        "name": "Первая пломба",
+        "type": "seal",
+        "rarity": "common",
+        "channel": "reward",
+        "priceUsd": null,
+        "priceCoins": null,
+        "how": "решить первый уровень",
+        "lore": "Печать гильдии за первый замкнутый контур. На обороте — дата, которую вы не выбирали.",
+        "colors": [
+          "#00E5C7",
+          "#7DE9FF"
+        ],
+        "standard": "cNFT"
+      },
+      {
+        "id": "plomba-ten",
+        "name": "Сухой ход ×10",
+        "type": "seal",
+        "rarity": "rare",
+        "channel": "reward",
+        "priceUsd": null,
+        "priceCoins": null,
+        "how": "10 решённых уровней",
+        "lore": "Десять кварталов без перегрузки. Клемма отмечает такие смены молча.",
+        "colors": [
+          "#00E5C7",
+          "#FFC24B"
+        ],
+        "standard": "cNFT"
+      },
+      {
+        "id": "film-mercury",
+        "name": "Плёнка Ртутного яруса",
+        "type": "wing",
+        "rarity": "rare",
+        "channel": "reward",
+        "priceUsd": null,
+        "priceCoins": null,
+        "how": "15 решённых уровней",
+        "lore": "Отслоившаяся плёнка живого металла. Держит форму, пока за ней наблюдают.",
+        "colors": [
+          "#9AA7FF",
+          "#00E5C7"
+        ],
+        "standard": "cNFT"
+      }
+    ],
+    "store": [
+      {
+        "id": "palette-melter",
+        "name": "Палитра «Плавильня»",
+        "type": "palette",
+        "rarity": "epic",
+        "channel": "store",
+        "priceUsd": 1.99,
+        "priceCoins": null,
+        "how": "витрина",
+        "lore": "Цвета дна массива: жар, стекло, отсветы. Ток по такой палитре идёт медленнее — это только впечатление.",
+        "colors": [
+          "#FFC24B",
+          "#FF3D81",
+          "#1A0E12"
+        ],
+        "standard": "cNFT"
+      },
+      {
+        "id": "theme-old-diode",
+        "name": "Тема «Старый Диод»",
+        "type": "theme",
+        "rarity": "epic",
+        "channel": "store",
+        "priceUsd": 2.99,
+        "priceCoins": null,
+        "how": "витрина",
+        "lore": "Исторический сектор: стекло, пыль, почти выключенный свет. В комплекте — тишина вместо трека.",
+        "colors": [
+          "#FF3D81",
+          "#9AA7FF",
+          "#0A0A12"
+        ],
+        "standard": "cNFT"
+      },
+      {
+        "id": "wing-marta",
+        "name": "Плёнка Марты",
+        "type": "wing",
+        "rarity": "epic",
+        "channel": "store",
+        "priceUsd": 3.99,
+        "priceCoins": null,
+        "how": "витрина",
+        "lore": "Оставлена в мастерской вместе с инструментом. Марта не забирает вещи из закрытых мастерских.",
+        "colors": [
+          "#00E5C7",
+          "#FF3D81"
+        ],
+        "standard": "cNFT"
+      }
+    ],
+    "seasonPass": [
+      {
+        "id": "pass-s1-free",
+        "name": "Сезон 1: трек «Регламент»",
+        "type": "registry",
+        "rarity": "common",
+        "channel": "battle-pass",
+        "priceUsd": null,
+        "priceCoins": null,
+        "how": "бесплатный трек сезона 1",
+        "lore": "Двенадцать страниц реестра, выданных по расписанию. Расписание — приложение к регламенту.",
+        "colors": [
+          "#00E5C7",
+          "#7DE9FF"
+        ],
+        "standard": "cNFT"
+      },
+      {
+        "id": "pass-s1-paid",
+        "name": "Сезон 1: трек «Три квартала»",
+        "type": "registry",
+        "rarity": "epic",
+        "channel": "battle-pass",
+        "priceUsd": 4.99,
+        "priceCoins": null,
+        "how": "платный трек сезона 1",
+        "lore": "Все двадцать записей сезона плюс страница, которой нет в архиве. Копия — официальная.",
+        "colors": [
+          "#FFC24B",
+          "#9AA7FF"
+        ],
+        "standard": "cNFT"
+      },
+      {
+        "id": "seal-guild-s1",
+        "name": "Печать гильдии, сезон 1",
+        "type": "seal",
+        "rarity": "legendary",
+        "channel": "battle-pass",
+        "priceUsd": null,
+        "priceCoins": null,
+        "how": "100-й уровень бесплатного трека или топ-100 лидерборда",
+        "lore": "Не продаётся. Выдаётся тем, кто закрыл сезон до отключения счётчика.",
+        "colors": [
+          "#FFF3C4",
+          "#FF3D81",
+          "#00E5C7"
+        ],
+        "standard": "cNFT"
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "screenshot-1",
+      "title": "УРОВЕНЬ 3 · Лицензионный свет",
+      "subtitle": "ПЛАТО ПЕРВОГО КОНТАКТА",
+      "stats": {
+        "moves": 4,
+        "par": 19,
+        "time": "00:38"
+      },
+      "size": 4,
+      "accent": "#00E5C7",
+      "cells": [
+        {
+          "x": 0,
+          "y": 0,
+          "mask": 6,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 0,
+          "mask": 5,
+          "role": "line",
+          "powered": false
+        },
+        {
+          "x": 2,
+          "y": 0,
+          "mask": 5,
+          "role": "line",
+          "powered": false
+        },
+        {
+          "x": 3,
+          "y": 0,
+          "mask": 8,
+          "role": "line",
+          "powered": false
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 1,
+          "mask": 6,
+          "role": "line",
+          "powered": false
+        },
+        {
+          "x": 2,
+          "y": 1,
+          "mask": 10,
+          "role": "line",
+          "powered": false
+        },
+        {
+          "x": 3,
+          "y": 1,
+          "mask": 12,
+          "role": "line",
+          "powered": false
+        },
+        {
+          "x": 0,
+          "y": 2,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 2,
+          "mask": 1,
+          "role": "line",
+          "powered": false
+        },
+        {
+          "x": 2,
+          "y": 2,
+          "mask": 4,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 2,
+          "mask": 5,
+          "role": "line",
+          "powered": false
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "mask": 3,
+          "role": "receiver",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 3,
+          "mask": 10,
+          "role": "bus",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 3,
+          "mask": 11,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "mask": 12,
+          "role": "receiver",
+          "powered": true
+        }
+      ],
+      "registry": {
+        "label": "РЕЕСТР S1-02 · эфир",
+        "title": "Пальмовая крыша",
+        "text": "Наверху свет по лицензии. Лицензия истекла в прошлом цикле, но платили вперёд, поэтому всё ещё светло."
+      }
+    },
+    {
+      "id": "screenshot-2",
+      "title": "УРОВЕНЬ 22 · Тупик на Виадуке",
+      "subtitle": "РТУТНЫЙ ЯРУС",
+      "stats": {
+        "moves": 26,
+        "par": 30,
+        "time": "03:40"
+      },
+      "size": 5,
+      "accent": "#00E5C7",
+      "cells": [
+        {
+          "x": 0,
+          "y": 0,
+          "mask": 2,
+          "role": "receiver",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 0,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 0,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 0,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 0,
+          "mask": 12,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "mask": 6,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 1,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 1,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 1,
+          "mask": 12,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 1,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 2,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 2,
+          "mask": 6,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 2,
+          "mask": 10,
+          "role": "bus",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 2,
+          "mask": 11,
+          "role": "receiver",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 2,
+          "mask": 9,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "mask": 7,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 3,
+          "mask": 9,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 3,
+          "mask": 2,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 3,
+          "mask": 12,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "mask": 3,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 4,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 4,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 4,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 4,
+          "mask": 9,
+          "role": "line",
+          "powered": true
+        }
+      ],
+      "registry": {
+        "label": "РЕЕСТР S1-17 · эфир",
+        "title": "Доска имён",
+        "text": "На доске выбиты первые вольт-мастера. Последние три строки закрашены. Краска свежая. Мастеров было больше."
+      },
+      "stars": 3
+    },
+    {
+      "id": "screenshot-3",
+      "title": "УРОВЕНЬ 63 · Ритм под полом",
+      "subtitle": "ПЛАВИЛЬНЯ (ЯДРО)",
+      "stats": {
+        "moves": 58,
+        "par": 73,
+        "time": "07:05"
+      },
+      "size": 8,
+      "accent": "#FFC24B",
+      "cells": [
+        {
+          "x": 0,
+          "y": 0,
+          "mask": 6,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 0,
+          "mask": 14,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 0,
+          "mask": 14,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 0,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 0,
+          "mask": 14,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 5,
+          "y": 0,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 6,
+          "y": 0,
+          "mask": 12,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 7,
+          "y": 0,
+          "mask": 4,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 1,
+          "mask": 1,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 1,
+          "mask": 3,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 1,
+          "mask": 12,
+          "role": "receiver",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 1,
+          "mask": 5,
+          "role": "receiver",
+          "powered": true
+        },
+        {
+          "x": 5,
+          "y": 1,
+          "mask": 6,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 6,
+          "y": 1,
+          "mask": 9,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 7,
+          "y": 1,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 2,
+          "mask": 7,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 2,
+          "mask": 14,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 2,
+          "mask": 12,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 2,
+          "mask": 5,
+          "role": "bus",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 2,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 5,
+          "y": 2,
+          "mask": 3,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 6,
+          "y": 2,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 7,
+          "y": 2,
+          "mask": 13,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "mask": 7,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 3,
+          "mask": 9,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 3,
+          "mask": 3,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "mask": 13,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 3,
+          "mask": 3,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 5,
+          "y": 3,
+          "mask": 12,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 6,
+          "y": 3,
+          "mask": 6,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 7,
+          "y": 3,
+          "mask": 13,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "mask": 7,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 4,
+          "mask": 14,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 4,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 4,
+          "mask": 11,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 4,
+          "mask": 12,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 5,
+          "y": 4,
+          "mask": 7,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 6,
+          "y": 4,
+          "mask": 9,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 7,
+          "y": 4,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 5,
+          "mask": 7,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 5,
+          "mask": 15,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 5,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 5,
+          "mask": 14,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 5,
+          "mask": 15,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 5,
+          "y": 5,
+          "mask": 11,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 6,
+          "y": 5,
+          "mask": 8,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 7,
+          "y": 5,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 6,
+          "mask": 7,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 6,
+          "mask": 15,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 6,
+          "mask": 12,
+          "role": "receiver",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 6,
+          "mask": 3,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 6,
+          "mask": 11,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 5,
+          "y": 6,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 6,
+          "y": 6,
+          "mask": 12,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 7,
+          "y": 6,
+          "mask": 5,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 0,
+          "y": 7,
+          "mask": 3,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 1,
+          "y": 7,
+          "mask": 11,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 2,
+          "y": 7,
+          "mask": 11,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 3,
+          "y": 7,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 4,
+          "y": 7,
+          "mask": 10,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 5,
+          "y": 7,
+          "mask": 8,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 6,
+          "y": 7,
+          "mask": 3,
+          "role": "line",
+          "powered": true
+        },
+        {
+          "x": 7,
+          "y": 7,
+          "mask": 9,
+          "role": "line",
+          "powered": true
+        }
+      ],
+      "registry": {
+        "label": "РЕЕСТР S3-10 · Клемма",
+        "title": "Ядро слушает",
+        "text": "Позиция 1.0: свет выдаётся по норме. Норма пересмотрена. Приложение: вы. Подпись: отсутствует."
+      },
+      "stars": 2
+    }
+  ]
+}

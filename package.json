@@ -16,7 +16,8 @@
     "vectors": "npm --workspace @ampergrad/engine run vectors",
     "server": "npm --workspace @ampergrad/server run start",
     "server:dev": "npm --workspace @ampergrad/server run dev",
-    "content": "npm run content -w @ampergrad/engine"
+    "content": "npm run content -w @ampergrad/engine",
+    "store:data": "npm run store:data -w @ampergrad/engine"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

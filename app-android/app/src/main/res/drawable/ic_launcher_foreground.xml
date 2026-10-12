@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Знак Амперграда: незамкнутый контур квартала + сдвиг-молния внутри. -->
+<!--
+  Знак Амперграда: перекрёсток квартала. Горизонталь (бирюза) — ток, вертикаль
+  (золото) — память города, белое кольцо в центре — пломба мастера.
+  Тот же знак нарисован в store/assets/icon-512.png (npm run store:assets).
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -7,13 +11,21 @@
     android:viewportHeight="108">
 
     <path
-        android:pathData="M40,32 L68,32 A8,8 0 0 1 76,40 L76,68 A8,8 0 0 1 68,76 L40,76 A8,8 0 0 1 32,68 L32,40 A8,8 0 0 1 40,32 Z"
-        android:fillColor="#00000000"
+        android:pathData="M28,54 L80,54"
         android:strokeColor="#00E5C7"
-        android:strokeWidth="5"
+        android:strokeWidth="11"
         android:strokeLineCap="round" />
 
     <path
-        android:pathData="M45,47 L63,47 L55,61 L63,61 L47,74 L52,58 L45,58 Z"
-        android:fillColor="#FFC24B" />
+        android:pathData="M54,28 L54,80"
+        android:strokeColor="#FFC24B"
+        android:strokeWidth="11"
+        android:strokeLineCap="round" />
+
+    <path
+        android:pathData="M54,45 A9,9 0 1 1 53.9,45"
+        android:strokeColor="#EAFFF9"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
 </vector>

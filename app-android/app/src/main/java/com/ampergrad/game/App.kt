@@ -917,35 +917,27 @@ private fun WalletOverlay(
 /** Знак гильдии: незамкнутый контур квартала с искрой. */
 @Composable
 private fun LogoMark() {
+    // Знак игры: перекрёсток квартала — ток (бирюза), память (золото), пломба.
     Canvas(Modifier.size(52.dp)) {
-        val stroke = 3f
+        val stroke = 4f
         drawRoundRect(
             color = Grad.Mint,
             topLeft = Offset(size.width * 0.1f, size.height * 0.1f),
             size = Size(size.width * 0.8f, size.height * 0.8f),
-            cornerRadius = CornerRadius(size.width * 0.18f),
+            cornerRadius = CornerRadius(size.width * 0.2f),
             style = Stroke(width = stroke),
         )
-        drawLine(
-            color = Grad.Mint,
-            start = Offset(size.width * 0.5f, size.height * 0.2f),
-            end = Offset(size.width * 0.5f, size.height * 0.42f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-        drawLine(
-            color = Grad.Gold,
-            start = Offset(size.width * 0.42f, size.height * 0.46f),
-            end = Offset(size.width * 0.62f, size.height * 0.46f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-        drawLine(
-            color = Grad.Gold,
-            start = Offset(size.width * 0.52f, size.height * 0.46f),
-            end = Offset(size.width * 0.44f, size.height * 0.72f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val span = size.width * 0.27f
+        drawLine(Grad.Mint, Offset(cx - span, cy), Offset(cx + span, cy), stroke * 2.6f, StrokeCap.Round)
+        drawLine(Grad.Gold, Offset(cx, cy - span), Offset(cx, cy + span), stroke * 2.6f, StrokeCap.Round)
+        drawCircle(color = Color(0xFF06080E), radius = size.width * 0.095f, center = Offset(cx, cy))
+        drawCircle(
+            color = Grad.Ink,
+            radius = size.width * 0.095f,
+            center = Offset(cx, cy),
+            style = Stroke(width = stroke * 0.9f),
         )
     }
 }
