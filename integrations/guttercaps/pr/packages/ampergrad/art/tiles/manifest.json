@@ -1,0 +1,72 @@
+{
+  "base-straight": {
+    "mask": 5,
+    "file": "art/tiles/base-straight.png",
+    "preRotation": 1,
+    "set": "base",
+    "edge": {
+      "1": 0.07,
+      "2": 0.0,
+      "4": 0.06,
+      "8": 0.0
+    }
+  },
+  "base-straight2": {
+    "mask": 5,
+    "file": "art/tiles/base-straight2.png",
+    "preRotation": 1,
+    "set": "base",
+    "edge": {}
+  },
+  "base-elbow": {
+    "mask": 3,
+    "file": "art/tiles/base-elbow.png",
+    "preRotation": 3,
+    "set": "base",
+    "edge": {
+      "1": 0.16,
+      "2": 0.17,
+      "4": 0.07,
+      "8": 0.08
+    }
+  },
+  "base-tee": {
+    "mask": 7,
+    "file": "art/tiles/base-tee.png",
+    "preRotation": 1,
+    "set": "base",
+    "edge": {
+      "1": 0.45,
+      "2": 0.27,
+      "4": 0.42,
+      "8": 0.07
+    }
+  },
+  "base-cross": {
+    "mask": 15,
+    "file": "art/tiles/base-cross.png",
+    "preRotation": 0,
+    "set": "base",
+    "edge": {
+      "1": 0.32,
+      "2": 0.18,
+      "4": 0.22,
+      "8": 0.15
+    }
+  },
+  "mouth": {
+    "mask": null,
+    "file": "art/tiles/mouth.png",
+    "preRotation": 0,
+    "set": "base",
+    "edge": {}
+  },
+  "cap": {
+    "mask": null,
+    "file": "art/tiles/cap.png",
+    "preRotation": 0,
+    "set": "base",
+    "edge": {}
+  },
+  "_note": "Образцы уменьшены до 256×256 для ревью. Прод-спрайты — 512×512 и лежат в репозитории арта Amperograd (шесть материалов поля × четыре детали плюс служебные). Поворот спрайта равен повороту маски: preRotation — доворот спрайта до его mask в каноне движка."
+}
