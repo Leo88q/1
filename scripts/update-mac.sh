@@ -6,15 +6,24 @@
 #   2. проверяет, что рабочее дерево не грязное — если есть свои правки, останавливается
 #      и ничего не трогает;
 #   3. открывает в Finder папку с превью арта и лист-обзор;
-#   4. по флагу --rebuild пересобирает арт-производные (нужен python3 + pillow).
+#   4. по флагу --rebuild пересобирает арт-производные (нужен python3 + pillow);
+#   5. по флагу --play ставит зависимости, поднимает игру и открывает браузер.
 #
 # Запуск:  bash scripts/update-mac.sh            # обновить и открыть превью
 #          bash scripts/update-mac.sh --rebuild  # ещё и пересобрать макеты из спрайтов
+#          bash scripts/update-mac.sh --play     # обновить и сразу запустить игру
 set -euo pipefail
 
 BRANCH="arena/77b06826-1"
+PORT="${PORT:-5173}"
 REBUILD=0
-[ "${1:-}" = "--rebuild" ] && REBUILD=1
+PLAY=0
+for arg in "$@"; do
+  case "$arg" in
+    --rebuild) REBUILD=1 ;;
+    --play) PLAY=1 ;;
+  esac
+done
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
@@ -75,7 +84,34 @@ if [ "$REBUILD" = "1" ]; then
   fi
 fi
 
-# 4. Открыть превью (только на macOS).
+# 4. Запуск игры (по желанию): зависимости, dev-сервер, браузер.
+if [ "$PLAY" = "1" ]; then
+  if [ ! -d "$ROOT/node_modules" ]; then
+    echo "→ ставлю зависимости (один раз)"
+    npm install
+  fi
+  echo "→ поднимаю игру на http://localhost:$PORT"
+  npm run dev -- --port "$PORT" &
+  DEV_PID=$!
+  trap 'echo; echo "→ останавливаю игру"; kill "$DEV_PID" 2>/dev/null || true' EXIT INT TERM
+
+  # Ждём, пока сервер начнёт отвечать: иначе браузер откроет «не удалось открыть».
+  for _ in $(seq 1 40); do
+    if curl -sf -o /dev/null "http://localhost:$PORT/"; then break; fi
+    sleep 0.5
+  done
+  URL="http://localhost:$PORT/"
+  if [ "$(uname)" = "Darwin" ]; then open "$URL" 2>/dev/null || true; fi
+  echo
+  echo "игра открыта: $URL"
+  echo "  вид поля (трубы из арта ↔ схема) — кнопка «Вид» внизу или клавиша A"
+  echo "  остановить — Ctrl+C в этом окне"
+  echo
+  wait "$DEV_PID"
+  exit 0
+fi
+
+# 5. Открыть превью (только на macOS).
 PREVIEW="$ROOT/art/preview"
 if [ "$(uname)" = "Darwin" ]; then
   open "$PREVIEW" 2>/dev/null || true
@@ -93,3 +129,5 @@ echo "  art/preview/tileset.jpg  — 8 наборов деталей с маск
 echo "  art/preview/rewards.jpg  — шесть пломб квартала"
 echo "  art/promo/listing/       — готовые кадры витрины (1200×630, 1024×500, 1080×1080)"
 echo "  art/README.md            — что где лежит и как пересобрать"
+echo
+echo "играть: bash scripts/update-mac.sh --play    (откроет http://localhost:5173)"
