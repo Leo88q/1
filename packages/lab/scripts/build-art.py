@@ -92,6 +92,21 @@ def make_stub(straight):
     return art
 
 
+def tile_source(name):
+    """Откуда брать спрайт детали: из перекованного или из нарисованного исходника.
+
+    Перекованные лежат рядом — art/tiles/forged/, их делает art/tools/forge_tiles.py.
+    Форма там задана кодом (толщина одна, ось по центру, труба доходит до края),
+    а материал взят из нарисованной трубы, поэтому детали в игре стыкуются без
+    зазора. Нарисованные исходники остаются fallback: без forged игра соберётся
+    прежним видом, просто с щелями на стыках.
+    """
+    forged = os.path.join(ART, "tiles", "forged", f"{name}.png")
+    if os.path.exists(forged):
+        return forged, True
+    return os.path.join(ART, "tiles", f"{name}.png"), False
+
+
 def main():
     with open(os.path.join(ART, "tiles", "manifest.json"), encoding="utf-8") as fh:
         manifest = json.load(fh)
@@ -107,8 +122,12 @@ def main():
             if meta.get("set") != set_name or not meta.get("mask"):
                 continue
             piece = name[len(set_name) + 1:]
-            img = Image.open(os.path.join(ART, "tiles", f"{name}.png")).convert("RGBA")
-            img = img.resize((TILE, TILE), Image.LANCZOS)
+            source, is_forged = tile_source(name)
+            img = Image.open(source).convert("RGBA")
+            # Перекованные уже нужного размера: лишний ресеймп размыл бы ровно тот
+            # край, которым детали стыкуются.
+            if (not is_forged) or img.size != (TILE, TILE):
+                img = img.resize((TILE, TILE), Image.LANCZOS)
             rel = save_webp(img, os.path.join(OUT, "tiles", f"{name}.webp"), 85)
             total += os.path.getsize(os.path.join(OUT, rel))
             pieces[piece] = {"file": rel, "mask": meta["mask"]}
@@ -120,9 +139,12 @@ def main():
         pack["sets"][set_name] = pieces
     print(f"наборов: {len(pack['sets'])} —", ", ".join(sorted(pack["sets"])))
 
-    # 2. Круглые детали: приёмник (открытый конец) и колпак шины.
+    # 2. Круглые детали: приёмник (открытый конец) и колпак шины. Приёмник
+    #    стыкуется с трубой своей горловиной, поэтому его тоже куют; колпак
+    #    шины просто накрывает деталь — его берём нарисованным.
     for name in ("mouth", "cap"):
-        img = Image.open(os.path.join(ART, "tiles", f"{name}.png")).convert("RGBA")
+        source, _ = tile_source(name)
+        img = Image.open(source).convert("RGBA")
         img = img.resize((TILE, TILE), Image.LANCZOS)
         rel = save_webp(img, os.path.join(OUT, "tiles", f"{name}.webp"), 85)
         total += os.path.getsize(os.path.join(OUT, rel))

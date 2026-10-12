@@ -23,7 +23,10 @@
     "content": "npm run content -w @ampergrad/engine",
     "store:data": "npm run store:data -w @ampergrad/engine",
     "store:assets": "python3 store/render_assets.py",
-    "doctor": "node scripts/doctor.mjs"
+    "doctor": "node scripts/doctor.mjs",
+    "art:forge": "python3 art/tools/forge_tiles.py",
+    "art:seams": "python3 packages/lab/scripts/check-seams.py",
+    "art:all": "npm run art:forge && npm run art:web && npm run art:check && npm run art:seams"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

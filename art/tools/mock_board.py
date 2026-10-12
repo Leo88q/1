@@ -105,6 +105,12 @@ def load_tiles():
         path = os.path.join(REPO, info["file"])
         if not os.path.exists(path):  # manifest пишет путь от корня репозитория
             path = os.path.join(REPO, "art", info["file"])
+        # Перекованный спрайт (art/tiles/forged/) предпочтительнее: у него точная
+        # геометрия стыка, поэтому макет показывает то же, что увидит игрок.
+        # Без него превью врало бы: трубы на нём расходились бы, а в игре — нет.
+        forged = os.path.join(REPO, "art", "tiles", "forged", f"{name}.png")
+        if os.path.exists(forged):
+            path = forged
         sprites[name] = {
             "image": Image.open(path).convert("RGBA"),
             "mask": info["mask"],
