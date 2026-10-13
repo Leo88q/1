@@ -41,6 +41,11 @@ export interface ArtPack {
   rewards: Record<string, string>;
   /** Особые пломбы: не за звёзды, а за то, как запечатан квартал (см. chooseSeal). */
   seals: Record<string, string>;
+  /**
+   * Служебные детали поля: метки особенных клеток (см. decorForCell).
+   * Ключи — wheel, flange, blind, coupling, arrow-up/down/left/right.
+   */
+  props: Record<string, string>;
 }
 
 export class Art {
@@ -64,6 +69,7 @@ export class Art {
       for (const round of Object.values(this.pack.round)) files.add(round.file);
       for (const file of Object.values(this.pack.rewards)) files.add(file);
       for (const file of Object.values(this.pack.seals ?? {})) files.add(file);
+      for (const file of Object.values(this.pack.props ?? {})) files.add(file);
       // Ошибки отдельных картинок не роняют загрузку: наборов много, и отсутствие
       // одного металла ещё не значит «не играть». Но если не встал канонный набор,
       // поле оказалось бы пустым при включённом арт-режиме — это провал целиком.
@@ -134,6 +140,11 @@ export class Art {
     const pieces = pack.sets[set];
     if (!pieces) return null;
     return pieces[piece] ?? null;
+  }
+
+  /** Служебная деталь поля по ключу (метка клетки). */
+  prop(key: string): string | undefined {
+    return this.pack?.props?.[key];
   }
 
   tier(index: number): TierArt | null {

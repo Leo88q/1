@@ -273,5 +273,15 @@
     "resin": "rewards/reward-resin.webp",
     "crack": "rewards/reward-crack.webp",
     "magma": "rewards/reward-magma.webp"
+  },
+  "props": {
+    "wheel": "props/prop-spare-wheel.webp",
+    "flange": "props/prop-spare-flange.webp",
+    "blind": "props/prop-spare-blind.webp",
+    "coupling": "props/prop-spare-coupling.webp",
+    "arrow-up": "props/prop-arrow-up.webp",
+    "arrow-right": "props/prop-arrow-right.webp",
+    "arrow-down": "props/prop-arrow-down.webp",
+    "arrow-left": "props/prop-arrow-left.webp"
   }
 }

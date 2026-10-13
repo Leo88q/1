@@ -79,6 +79,25 @@ REWARDS = {"1": "reward-disc.png", "2": "reward-rings.png", "3": "reward-star.pn
 #   magma — плавленая пломба Плавильни: три звезды на пятом ярусе.
 SEALS = {"resin": "reward-resin.png", "crack": "reward-crack.png", "magma": "reward-magma.png"}
 
+# Служебные детали поля: чем помечаем особенные клетки. Правила те же, что
+# выбирают их в игре (см. decorForCell в main.ts и Board.kt) — иначе поле в
+# вебе и в приложении выглядело бы по-разному.
+#   wheel    — маховик на шине: источник под давлением;
+#   flange   — фланец на кресте (и любой неповоротной клетке): зафиксировано;
+#   blind    — глухая плита на тупике: труба упирается в заглушку;
+#   coupling — муфта посередине прямой: собранный стык;
+#   arrow-*  — плита-указатель: куда течёт среда (под трубой, направление от шины).
+PROPS = {
+    "wheel": "prop-spare-wheel.png",
+    "flange": "prop-spare-flange.png",
+    "blind": "prop-spare-blind.png",
+    "coupling": "prop-spare-coupling.png",
+    "arrow-up": "prop-arrow-up.png",
+    "arrow-right": "prop-arrow-right.png",
+    "arrow-down": "prop-arrow-down.png",
+    "arrow-left": "prop-arrow-left.png",
+}
+
 
 def save_webp(img, path, quality):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -117,7 +136,7 @@ def main():
     with open(os.path.join(ART, "tiles", "manifest.json"), encoding="utf-8") as fh:
         manifest = json.load(fh)
 
-    pack = {"tile": TILE, "sets": {}, "round": {}, "tiers": [], "screens": {}, "rewards": {}, "seals": {}}
+    pack = {"tile": TILE, "sets": {}, "round": {}, "tiers": [], "screens": {}, "rewards": {}, "seals": {}, "props": {}}
     total = 0
 
     # 1. Спрайты деталей по наборам. `file` — путь внутри public/art.
@@ -201,6 +220,15 @@ def main():
         total += os.path.getsize(os.path.join(OUT, rel))
         pack["seals"][key] = rel
     print("особые пломбы:", ", ".join(sorted(pack["seals"])))
+
+    # 6. Служебные детали: метки особенных клеток поля (см. decorForCell).
+    for key, name in PROPS.items():
+        img = Image.open(os.path.join(ART, "tiles", name)).convert("RGBA")
+        img = img.resize((TILE, TILE), Image.LANCZOS)
+        rel = save_webp(img, os.path.join(OUT, "props", name.replace(".png", ".webp")), 82)
+        total += os.path.getsize(os.path.join(OUT, rel))
+        pack["props"][key] = rel
+    print("пропы:", ", ".join(sorted(pack["props"])))
 
     with open(os.path.join(OUT, "web.json"), "w", encoding="utf-8") as fh:
         json.dump(pack, fh, ensure_ascii=False, indent=2)

@@ -49,6 +49,8 @@ data class ArtPack(
     val rewards: Map<Int, String>,
     /** Особые пломбы: не за звёзды, а за то, как запечатан квартал (см. chooseSeal). */
     val seals: Map<String, String> = emptyMap(),
+    /** Служебные детали поля: метки особенных клеток (см. decorForCell). */
+    val props: Map<String, String> = emptyMap(),
 )
 
 /** «#RRGGBB» → цвет Compose; неразобранная строка даёт прозрачный, а не падение. */
@@ -147,6 +149,7 @@ class Art(private val context: Context, private val base: String = "art/") {
             for (file in parsed.round.values) decode(file)?.let { images[file] = it }
             for (file in parsed.rewards.values) decode(file)?.let { images[file] = it }
             for (file in parsed.seals.values) decode(file)?.let { images[file] = it }
+            for (file in parsed.props.values) decode(file)?.let { images[file] = it }
             // Фоны экранов (меню, победа, витрина): их заметно сразу, поэтому
             // греем вместе с остальным, а не по первому показу.
             for (file in parsed.screens.values) decode(file)?.let { images[file] = it }
@@ -173,6 +176,9 @@ class Art(private val context: Context, private val base: String = "art/") {
         val file = loaded.seals[key] ?: loaded.rewards[key.toIntOrNull() ?: return null] ?: return null
         return images[file]
     }
+
+    /** Служебная деталь поля: метка особенности клетки (см. decorForCell). */
+    fun prop(key: String): ImageBitmap? = images[pack?.props?.get(key) ?: return null]
 
     /** Фон экрана: меню, победа или витрина. */
     fun screen(name: String): ImageBitmap? = images[pack?.screens?.get(name) ?: return null]
@@ -255,6 +261,12 @@ class Art(private val context: Context, private val base: String = "art/") {
                 for (name in sealsJson.keys()) seals[name] = sealsJson.getString(name)
             }
 
+            val props = HashMap<String, String>()
+            val propsJson = root.optJSONObject("props")
+            if (propsJson != null) {
+                for (name in propsJson.keys()) props[name] = propsJson.getString(name)
+            }
+
             return ArtPack(
                 tile = root.optInt("tile", 256),
                 sets = sets,
@@ -263,6 +275,7 @@ class Art(private val context: Context, private val base: String = "art/") {
                 screens = screens,
                 rewards = rewards,
                 seals = seals,
+                props = props,
             )
         }
     }

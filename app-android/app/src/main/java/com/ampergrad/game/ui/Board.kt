@@ -39,6 +39,8 @@ import com.ampergrad.game.engine.N
 import com.ampergrad.game.engine.Role
 import com.ampergrad.game.engine.S
 import com.ampergrad.game.engine.W
+import com.ampergrad.game.engine.Tile
+import com.ampergrad.game.engine.TileKind
 import com.ampergrad.game.engine.tileMask
 import com.ampergrad.game.content.BoardSkin
 import kotlin.math.abs
@@ -139,6 +141,7 @@ fun Board(
         val ox = (size.width - cell * gridSize) / 2f
         val oy = (size.height - cell * gridSize) / 2f
         val burst = if (solving) min(1f, burstFrames / 60f) else 0f
+        val flowDirs = if (artTiles != null) flowDirections(level, powered) else emptyMap()
 
         if (artTiles != null) {
             drawArtBackground(background, cell * gridSize, ox, oy, cell, size, skin.field)
@@ -164,6 +167,13 @@ fun Board(
                 if (artTiles != null) {
                     val (artPack, tier) = artTiles
                     val flow = artFlow ?: tier.flow
+                    // Плита-указатель кладётся под трубу: видно, куда течёт среда.
+                    val arrow = flowDirs[index]?.let(::arrowFor)
+                    if (arrow != null) {
+                        artPack.prop(arrow)?.let { plate ->
+                            drawAt(plate, cx, cy, cell, alpha = ARROW_ALPHA)
+                        }
+                    }
                     val setName = setForCell(tier.sets, x, y, index)
                     drawArtTile(artPack, level, index, setName, cx, cy, cell, angles[index])
                     if (powered[index]) {
@@ -175,6 +185,14 @@ fun Board(
                     // Шина красится «источником» из гардероба (канон — золото),
                     // поэтому покупка источника видна и поверх арта.
                     if (tile.role == Role.BUS) drawArtBus(artPack, cx, cy, cell, skin, pulse)
+                    // Служебная деталь: помечаем то, что игрок иначе не прочитает, —
+                    // неповоротную клетку, тупик, шину, собранный стык.
+                    val decor = decorForCell(tile)
+                    if (decor != null) {
+                        artPack.prop(decor)?.let { part ->
+                            drawAt(part, cx, cy, cell * decorScale(decor))
+                        }
+                    }
                 } else {
                     drawTile(level, index, cx, cy, cell, angles[index], powered[index], burst, skin)
                     if (tile.role == Role.BUS) drawBus(cx, cy, cell, accent, skin, pulse)
@@ -272,6 +290,92 @@ private fun DrawScope.drawReceiver(cx: Float, cy: Float, cell: Float, on: Boolea
             style = Stroke(width = 2.4f),
         )
     }
+}
+
+/**
+ * Какая служебная деталь лежит на клетке поверх трубы.
+ *
+ * Особенные клетки должны читаться сразу: неповоротную игрок иначе долбит
+ * впустую, тупик без заглушки выглядит недоделкой, а шина без маховика — просто
+ * трубой. Правила те же, что в веб-лаборатории (decorForCell в main.ts),
+ * иначе поле в приложении и в вебе выглядело бы по-разному.
+ *
+ * Порядок важен: шина важнее всего, приёмник заглушкой не закрываем — он
+ * открытый конец, из которого среда уходит в квартал.
+ */
+internal fun decorForCell(tile: Tile): String? = when {
+    tile.role == Role.BUS -> "wheel"
+    tile.fixed -> "flange"
+    tile.kind == TileKind.CAP && tile.role != Role.RECEIVER -> "blind"
+    tile.kind == TileKind.STRAIGHT -> "coupling"
+    else -> null
+}
+
+/** Размер служебной детали относительно клетки. */
+internal fun decorScale(key: String): Float = when (key) {
+    "wheel" -> 0.52f
+    "flange" -> 0.66f
+    "blind" -> 0.60f
+    "coupling" -> 0.42f
+    else -> 0.5f
+}
+
+/** Плита-указатель под трубой: бит направления → спрайт. */
+internal fun arrowFor(bit: Int): String? = when (bit) {
+    N -> "arrow-up"
+    E -> "arrow-right"
+    S -> "arrow-down"
+    W -> "arrow-left"
+    else -> null
+}
+
+/** Указатель гасим: он подсказка под трубой, а не знак поверх неё. */
+private const val ARROW_ALPHA = 0.24f
+
+/**
+ * Куда течёт среда: от шины по подключённым клеткам (обход в ширину).
+ *
+ * Возвращает направление **движения** — из клетки-родителя в клетку, поэтому
+ * стрелка смотрит от шины к приёмникам. Сеть маленькая (до 8×8), поэтому
+ * считаем каждый кадр: дешевле, чем следить за изменениями.
+ */
+private fun flowDirections(level: Level, powered: BooleanArray): Map<Int, Int> {
+    val size = level.size
+    val dirs = HashMap<Int, Int>()
+    val seen = BooleanArray(level.tiles.size)
+    val queue = ArrayDeque<Int>()
+    seen[level.bus] = true
+    queue += level.bus
+    val steps = arrayOf(N to -size, E to 1, S to size, W to -1)
+    while (queue.isNotEmpty()) {
+        val at = queue.removeFirst()
+        val x = at % size
+        val mask = tileMask(level, at)
+        for ((bit, step) in steps) {
+            if (mask and bit == 0) continue
+            if (bit == E && x + 1 >= size) continue
+            if (bit == W && x == 0) continue
+            val to = at + step
+            if (to < 0 || to >= level.tiles.size) continue
+            if (seen[to] || !powered[to]) continue
+            val back = when (bit) { N -> S; S -> N; E -> W; else -> E }
+            if (tileMask(level, to) and back == 0) continue
+            seen[to] = true
+            dirs[to] = bit
+            queue += to
+        }
+    }
+    return dirs
+}
+
+/** Кладёт картинку в клетку: центр и сторона в пикселях поля. */
+private fun DrawScope.drawAt(image: ImageBitmap, cx: Float, cy: Float, side: Float, alpha: Float = 1f) {
+    drawImage(
+        image = image,
+        dstOffset = IntOffset((cx - side / 2f).toInt(), (cy - side / 2f).toInt()),
+        dstSize = IntSize(side.toInt(), side.toInt()),
+        alpha = alpha,
+    )
 }
 
 /**

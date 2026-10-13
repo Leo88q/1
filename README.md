@@ -173,7 +173,7 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # Gradle берёт JVM от�
 printf 'sdk.dir=%s\n' "$HOME/Library/Android/sdk" > ~/Desktop/Amperograd/app-android/local.properties
 
 cd ~/Desktop/Amperograd/app-android
-./gradlew :app:testDebugUnitTest   # 66 теста: правила, векторы ядра, арт поля, лор, витрина, звук
+./gradlew :app:testDebugUnitTest   # 68 теста: правила, векторы ядра, арт поля, лор, витрина, звук
 ./gradlew :app:assembleDebug       # APK: app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:installDebug        # на подключённый телефон или запущенный эмулятор
 ```
@@ -223,7 +223,7 @@ adb reverse tcp:8787 tcp:8787
 
 ```bash
 cd app-android
-./gradlew :app:testDebugUnitTest   # 66 теста: правила, векторы ядра, арт поля, лор, витрина, звук
+./gradlew :app:testDebugUnitTest   # 68 теста: правила, векторы ядра, арт поля, лор, витрина, звук
 ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:assembleRelease     # подписывается, если заданы переменные окружения
 ```
@@ -240,7 +240,10 @@ cd app-android
   же картинку. Детали стыкуются сами: спрайт нарисован в положении своей маски и
   поворачивается на угол фрагмента. Фурнитура поля (горловина приёмника, колпак
   шины) — нейтральная сталь: бронзы в палитре Guttercaps нет, а цвет на поле
-  несут среда, ток и отметка цели (`art/tools/recolor_hardware.py`). Кнопка **ТРУБЫ/СХЕМА** в игре переключает вид
+  несут среда, ток и отметка цели (`art/tools/recolor_hardware.py`). Особенные
+  клетки помечены служебными деталями (`decorForCell`): маховик на шине, фланец
+  на неповоротной клетке, глухая плита на тупике, муфта на прямой. Под трубой
+  лежит плита-указатель — видно, куда течёт среда (обход от шины). Кнопка **ТРУБЫ/СХЕМА** в игре переключает вид
   (в вебе — кнопка «Вид» / клавиша `A`), пломба приходит из `rewards/`: обычная —
   за 1–3 звезды, особая (`resin`, `crack`, `magma`) — за то, как квартал запечатан
   (подсказка, перерасход ходов, три звезды в Плавильне) и подписана на экране

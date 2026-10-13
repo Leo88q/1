@@ -13,6 +13,7 @@
 
 Запуск: python3 art/tools/mock_board.py        (нужен pillow)
 """
+import glob
 import json
 import math
 import os
@@ -66,6 +67,54 @@ TIERS = {
               "flow": (182, 255, 60)},
 }
 
+def _popcount(mask: int) -> int:
+    return bin(mask).count("1")
+
+
+def decor_for(base: int, index: int, bus: int, receivers: set) -> str | None:
+    """Служебная деталь клетки: те же правила, что decorForCell в игре."""
+    if index == bus:
+        return "wheel"
+    if base == 15:  # крест не вращается
+        return "flange"
+    if _popcount(base) == 1 and index not in receivers:
+        return "blind"
+    if base in (5, 10):  # прямая
+        return "coupling"
+    return None
+
+
+DECOR_SCALE = {"wheel": 0.52, "flange": 0.66, "blind": 0.60, "coupling": 0.42}
+ARROW_ALPHA = 0.24
+# Направление: N=1, E=2, S=4, W=8 — как в движке.
+ARROWS = {1: "prop-arrow-up.png", 2: "prop-arrow-right.png", 4: "prop-arrow-down.png", 8: "prop-arrow-left.png"}
+STEPS = ((1, 0, -1), (4, 0, 1), (2, 1, 0), (8, -1, 0))  # бит, dx, dy
+OPPOSITE = {1: 4, 4: 1, 2: 8, 8: 2}
+
+
+def flow_directions(grid: int, targets: list, bus: int) -> dict:
+    """Куда течёт среда: обход в ширину от шины по собранному полю."""
+    dirs: dict = {}
+    seen = {bus}
+    queue = [bus]
+    while queue:
+        at = queue.pop(0)
+        x, y = at % grid, at // grid
+        for bit, dx, dy in STEPS:
+            if not (targets[at] & bit):
+                continue
+            nx, ny = x + dx, y + dy
+            if not (0 <= nx < grid and 0 <= ny < grid):
+                continue
+            to = ny * grid + nx
+            if to in seen or not (targets[to] & OPPOSITE[bit]):
+                continue
+            seen.add(to)
+            dirs[to] = bit
+            queue.append(to)
+    return dirs
+
+
 SHOTS = [
     {"level": 3, "tier": "plateau", "variant": 0, "title": "ЛИЦЕНЗИОННЫЙ СВЕТ", "titleEn": "Licensed Light"},
     {"level": 9, "tier": "plateau", "variant": 1, "title": "СМОТРОВАЯ ПЛОЩАДКА", "titleEn": "The Viewing Deck"},
@@ -114,6 +163,13 @@ def load_tiles():
         sprites[name] = {
             "image": Image.open(path).convert("RGBA"),
             "mask": info["mask"],
+        }
+    # Служебные детали (пропы) в манифест не входят: они лежат рядом, отдельным
+    # контрактом props.json. В игре их кладёт build-art.py в тот же каталог арта.
+    for path in sorted(glob.glob(os.path.join(TILES, "prop-*.png"))):
+        sprites[os.path.basename(path)] = {
+            "image": Image.open(path).convert("RGBA"),
+            "mask": None,
         }
     # Заглушки (маска 1) в каталоге нет — собираем её из прямой трубы.
     for name in list(sprites):
@@ -379,6 +435,19 @@ def render_level(shot, sprites, size=(1080, 1920)):
     bus = level["bus"]
     receivers = set(level["receivers"])
 
+    # Плиты-указатели кладутся под трубы: видно, куда течёт среда.
+    targets = [rotate_cw_steps(level["base"][i], level["solutionRot"][i]) for i in range(grid * grid)]
+    waypoints = Image.new("RGBA", size, (0, 0, 0, 0))
+    for index, bit in flow_directions(grid, targets, bus).items():
+        plate = sprites.get(ARROWS[bit])
+        if plate is None:
+            continue
+        gx, gy = index % grid, index // grid
+        art = plate["image"].resize((int(cell), int(cell)), Image.LANCZOS)
+        art.putalpha(art.split()[3].point(lambda v: int(v * ARROW_ALPHA)))
+        waypoints.alpha_composite(art, (round(bx + gx * cell), round(by + gy * cell)))
+    img.alpha_composite(waypoints)
+
     # Слой труб: сначала все ячейки с трубами, поверх — свечение среды.
     pipes = Image.new("RGBA", size, (0, 0, 0, 0))
     for index in range(grid * grid):
@@ -417,6 +486,23 @@ def render_level(shot, sprites, size=(1080, 1920)):
     bus_mask = rotate_cw_steps(level["base"][bus], level["solutionRot"][bus])
     pipe_sprite = sprite_for(level["base"][bus], sprites, material)
     draw_source(img, bus_box, cell, sprites["cap"]["image"], bus_mask, pipe_sprite)
+
+    # Служебные детали: метки особенных клеток (правила — decor_for).
+    decor_layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    for index in range(grid * grid):
+        key = decor_for(level["base"][index], index, bus, receivers)
+        if key is None:
+            continue
+        part = sprites.get(f"prop-spare-{key}.png")
+        if part is None:
+            continue
+        side = int(cell * DECOR_SCALE[key])
+        gx, gy = index % grid, index // grid
+        cx = bx + gx * cell + cell / 2
+        cy = by + gy * cell + cell / 2
+        art = part["image"].resize((side, side), Image.LANCZOS)
+        decor_layer.alpha_composite(art, (round(cx - side / 2), round(cy - side / 2)))
+    img.alpha_composite(decor_layer)
 
     # Плёночное зерно и виньетка — чтобы кадр не выглядел «наклейкой».
     grain = Image.effect_noise((width, height), 14).convert("L").point(lambda v: 255 if v > 200 else 0)

@@ -143,6 +143,13 @@ for (const key of ['resin', 'crack', 'magma']) {
   if (!rel) note(`нет особой пломбы «${key}»`);
   else assetOk(rel);
 }
+// Служебные детали поля (см. decorForCell): без них клетки помечаются нечем,
+// а арт лежал бы в сборке мёртвым грузом.
+for (const key of ['wheel', 'flange', 'blind', 'coupling', 'arrow-up', 'arrow-right', 'arrow-down', 'arrow-left']) {
+  const rel = (web.props ?? {})[key];
+  if (!rel) note(`нет детали поля «${key}»`);
+  else assetOk(rel);
+}
 
 report();
 
@@ -156,8 +163,8 @@ function report() {
   console.log(
     `веб-арт ок: ${Object.keys(web.sets).length} наборов, ${sprites} спрайтов, ` +
       `${web.tiers.length} ярусов, ${Object.keys(web.screens).length} экрана, ` +
-      `${Object.keys(web.rewards).length}+${Object.keys(web.seals ?? {}).length} пломб ` +
-      `(web.json ${size} Б)`,
+      `${Object.keys(web.rewards).length}+${Object.keys(web.seals ?? {}).length} пломб, ` +
+      `${Object.keys(web.props ?? {}).length} пропов (web.json ${size} Б)`,
   );
   process.exit(0);
 }

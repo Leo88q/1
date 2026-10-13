@@ -22,6 +22,7 @@ import {
   S,
   W,
   type Level,
+  type Tile,
 } from '@ampergrad/engine';
 import { Art, type TierArt } from './art';
 
@@ -152,6 +153,74 @@ function artReady(): boolean {
 function pieceForMask(mask: number): string {
   const kind = kindOf(mask);
   return kind === 'cap' ? 'stub' : kind;
+}
+
+/**
+ * Какая служебная деталь лежит на клетке поверх трубы.
+ *
+ * Особенные клетки должны быть видны сразу: неповоротную игрок иначе долбит
+ * впустую, тупик без заглушки выглядит недоделкой, а шина без маховика — просто
+ * трубой. Правила те же, что в Android (decorForCell в ui/Board.kt), иначе поле
+ * в вебе и в приложении выглядело бы по-разному.
+ *
+ * Порядок важен: шина важнее всего, приёмник заглушкой не закрываем — он
+ * открытый конец, из которого среда уходит в квартал.
+ */
+function decorForCell(tile: Tile, rotatedMask: number): string | null {
+  if (tile.role === 'bus') return 'wheel';
+  if (tile.fixed) return 'flange';
+  const piece = pieceForMask(tile.base);
+  if (piece === 'stub' && tile.role !== 'receiver') return 'blind';
+  if (piece === 'straight') return 'coupling';
+  return null;
+}
+
+/** Размер служебной детали относительно клетки. */
+const DECOR_SCALE: Record<string, number> = {
+  wheel: 0.52,
+  flange: 0.66,
+  blind: 0.6,
+  coupling: 0.42,
+};
+
+/** Плита-указатель под трубой: бит направления → спрайт. */
+const ARROWS: Record<number, string> = { 1: 'arrow-up', 2: 'arrow-right', 4: 'arrow-down', 8: 'arrow-left' };
+/** Указатель гасим: он подсказка под трубой, а не знак поверх неё. */
+const ARROW_ALPHA = 0.24;
+
+/**
+ * Куда течёт среда: от шины по подключённым клеткам (обход в ширину).
+ *
+ * Возвращает направление **движения** — из клетки-родителя в клетку, поэтому
+ * стрелка смотрит от шины к приёмникам. Сеть маленькая (до 8×8), поэтому
+ * считаем каждый кадр: дешевле, чем следить за изменениями.
+ */
+function flowDirections(level: Level, powered: boolean[]): Map<number, number> {
+  const dirs = new Map<number, number>();
+  const size = level.size;
+  const seen = new Uint8Array(level.tiles.length);
+  const queue: number[] = [level.bus];
+  seen[level.bus] = 1;
+  const opposite: Record<number, number> = { [N]: S, [S]: N, [E]: W, [W]: E };
+  const steps: Array<[number, number]> = [[N, -size], [E, 1], [S, size], [W, -1]];
+  while (queue.length > 0) {
+    const at = queue.shift() as number;
+    const x = at % size;
+    const mask = tileMask(level, at);
+    for (const [bit, step] of steps) {
+      if (!(mask & bit)) continue;
+      if (bit === E && x + 1 >= size) continue;
+      if (bit === W && x === 0) continue;
+      const to = at + step;
+      if (to < 0 || to >= level.tiles.length) continue;
+      if (seen[to] || !powered[to]) continue;
+      if (!(tileMask(level, to) & opposite[bit])) continue;
+      seen[to] = 1;
+      dirs.set(to, bit);
+      queue.push(to);
+    }
+  }
+  return dirs;
 }
 
 /** Набор материалов ячейки: в ярусе с двумя наборами они чередуются по полю. */
@@ -618,6 +687,7 @@ function draw(now: number) {
   const { ox, oy, cell, size } = geometry();
   const level = session.level;
   const powered = session.finishedAt ? level.tiles.map(() => true) : poweredCells(level);
+  const flowDirs = artMode ? flowDirections(level, powered) : new Map<number, number>();
   const solvedT = session.solvedAt ? Math.min(1, (now - session.solvedAt) / 800) : 0;
 
   // Плита квартала: однотонный лист под трубы. Сверху только сетка и детали.
@@ -673,6 +743,18 @@ function draw(now: number) {
       const rot = (session.angle[i] * Math.PI) / 2;
 
       if (artMode) {
+        // Плита-указатель кладётся под трубу: видно, куда течёт среда.
+        const dir = flowDirs.get(i);
+        if (dir) {
+          const plate = art.get(art.prop(ARROWS[dir]));
+          if (plate) {
+            ctx.save();
+            ctx.globalAlpha = ARROW_ALPHA;
+            ctx.drawImage(plate, cx - cell / 2, cy - cell / 2, cell, cell);
+            ctx.restore();
+          }
+        }
+
         // Деталь трубы из арта: спрайт нарисован в положении своей маски, поэтому
         // его поворот равен повороту маски фрагмента — детали соседей стыкуются.
         const setName = setForCell(tier.sets, x, y, i);
@@ -709,6 +791,17 @@ function draw(now: number) {
             ctx.translate(cx, cy);
             ctx.drawImage(cap, -cell * 0.43, -cell * 0.43, cell * 0.86, cell * 0.86);
             ctx.restore();
+          }
+        }
+
+        // Служебная деталь: помечаем то, что игрок иначе не прочитает, —
+        // неповоротную клетку, тупик, шину, собранный стык.
+        const decorKey = decorForCell(tile, tileMask(level, i));
+        if (decorKey) {
+          const decor = art.get(art.prop(decorKey));
+          if (decor) {
+            const side = cell * (DECOR_SCALE[decorKey] ?? 0.5);
+            ctx.drawImage(decor, cx - side / 2, cy - side / 2, side, side);
           }
         }
       } else {

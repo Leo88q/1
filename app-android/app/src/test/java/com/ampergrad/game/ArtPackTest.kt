@@ -1,6 +1,9 @@
 package com.ampergrad.game
 
 import androidx.compose.ui.graphics.Color
+import com.ampergrad.game.engine.Role
+import com.ampergrad.game.engine.Tile
+import com.ampergrad.game.engine.TileKind
 import com.ampergrad.game.ui.Art
 import com.ampergrad.game.ui.ArtPack
 import com.ampergrad.game.ui.artTierIndex
@@ -10,11 +13,14 @@ import com.ampergrad.game.ui.piecesForMask
 import com.ampergrad.game.ui.rewardForStars
 import com.ampergrad.game.ui.chooseSeal
 import com.ampergrad.game.ui.Grad
+import com.ampergrad.game.ui.decorForCell
+import com.ampergrad.game.ui.decorScale
 import com.ampergrad.game.ui.setForCell
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertFalse
 import kotlin.test.fail
 import kotlin.test.assertTrue
@@ -52,6 +58,7 @@ class ArtPackTest {
         files += pack.round.values
         files += pack.rewards.values
         files += pack.seals.values
+        files += pack.props.values
         files += pack.screens.values
         return files
     }
@@ -195,6 +202,44 @@ class ArtPackTest {
         }
     }
 
+    /**
+     * Служебные детали поля: чем помечаем особенные клетки. Правило одно для
+     * веба и приложения (decorForCell в main.ts), иначе одно и то же поле
+     * выглядело бы по-разному.
+     */
+    @Test
+    fun `клетки помечаются служебными деталями`() {
+        val line = { kind: TileKind, base: Int -> Tile(kind, base, 0, false, Role.LINE) }
+        // Шина — маховик: источник под давлением.
+        assertEquals("wheel", decorForCell(Tile(TileKind.CROSS, 15, 0, false, Role.BUS)))
+        // Неповоротная клетка — фланец: игрок сразу видит, что её не стронуть.
+        assertEquals("flange", decorForCell(Tile(TileKind.CROSS, 15, 0, true, Role.LINE)))
+        // Тупик — глухая плита: труба упирается в заглушку.
+        assertEquals("blind", decorForCell(line(TileKind.CAP, 1)))
+        // Прямая — муфта: собранный стык посередине прогона.
+        assertEquals("coupling", decorForCell(line(TileKind.STRAIGHT, 5)))
+        // Приёмник — открытый конец: заглушкой его не закрываем.
+        assertNull(decorForCell(Tile(TileKind.CAP, 1, 0, false, Role.RECEIVER)))
+        // Обычные отвод и тройник ничем не помечаются — это просто трубы.
+        assertNull(decorForCell(line(TileKind.ELBOW, 3)))
+        assertNull(decorForCell(line(TileKind.TEE, 7)))
+        // Размеры деталей заданы для всех четырёх.
+        for (key in listOf("wheel", "flange", "blind", "coupling")) {
+            assertTrue(decorScale(key) in 0.3f..0.8f, "деталь $key размером ${decorScale(key)}")
+        }
+    }
+
+    /** У всех восьми служебных деталей в контракте есть свой файл. */
+    @Test
+    fun `пропы лежат в арте`() {
+        val known = setOf("wheel", "flange", "blind", "coupling", "arrow-up", "arrow-right", "arrow-down", "arrow-left")
+        assertTrue(pack.props.keys.containsAll(known), "нет деталей: ${known - pack.props.keys}")
+        for ((key, file) in pack.props) {
+            assertTrue(file.isNotBlank(), "деталь $key без файла")
+            assertTrue(file.startsWith("props/"), "деталь $key лежит не в props/: $file")
+        }
+    }
+
     /** Приёмник без тока обводится оранжевым из палитры, а не бронзой. */
     @Test
     fun `приёмник без тока отмечен цветом из палитры`() {
@@ -259,6 +304,7 @@ class ArtPackTest {
         for (file in pack.round.values) if (!File(assets, file).isFile) missing += file
         for (file in pack.rewards.values) if (!File(assets, file).isFile) missing += file
         for (file in pack.seals.values) if (!File(assets, file).isFile) missing += file
+        for (file in pack.props.values) if (!File(assets, file).isFile) missing += file
         for (tier in pack.tiers) {
             for (bg in tier.bg) if (!File(assets, bg).isFile) missing += bg
         }

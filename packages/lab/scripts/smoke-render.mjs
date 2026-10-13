@@ -37,6 +37,8 @@ for (const ref of Object.values(web.round)) assetFiles.add(ref.file);
 for (const tier of web.tiers) for (const bg of tier.bg) assetFiles.add(bg);
 for (const rel of Object.values(web.screens)) assetFiles.add(rel);
 for (const rel of Object.values(web.rewards)) assetFiles.add(rel);
+for (const rel of Object.values(web.seals ?? {})) assetFiles.add(rel);
+for (const rel of Object.values(web.props ?? {})) assetFiles.add(rel);
 
 /* ───────────────────────────── Подставной DOM ───────────────────────────── */
 
