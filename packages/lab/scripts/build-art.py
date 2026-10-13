@@ -32,7 +32,7 @@ BACK_W = 720
 # идентификаторы берём из канона лора — иначе HUD веб-игры и канон расходятся
 # (так однажды и вышло: арт называл пятый ярус «ЖИЛЫ МАССИВА», канон — «ПЛАВИЛЬНЯ»).
 TIERS = [
-    {"id": "plateau", "sets": ["zinc", "zinc2"], "flow": "#B6FF3C",
+    {"id": "plateau", "sets": ["glass"], "flow": "#B6FF3C",
      "bg": ["tier-1-plateau.jpg", "tier-1-plateau-b.jpg"]},
     {"id": "mercury", "sets": ["chrome"], "flow": "#16E5D9",
      "bg": ["tier-2-mercury.jpg", "tier-2-mercury-b.jpg"]},

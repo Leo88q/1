@@ -22,3 +22,6 @@ app-android/app/src/test/resources/web.json
 
 # Арт игры кладёт в assets gradle-задача syncContent (источник — packages/lab/public/art)
 app-android/app/src/main/assets/art/
+
+# Кэш байткода Python из арт-инструментов
+__pycache__/

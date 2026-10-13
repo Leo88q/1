@@ -47,54 +47,6 @@
       "8": 0.15
     }
   },
-  "zinc-straight": {
-    "mask": 5,
-    "file": "art/tiles/zinc-straight.png",
-    "preRotation": 1,
-    "set": "zinc",
-    "edge": {
-      "1": 0.08,
-      "2": 0.0,
-      "4": 0.08,
-      "8": 0.0
-    }
-  },
-  "zinc-elbow": {
-    "mask": 3,
-    "file": "art/tiles/zinc-elbow.png",
-    "preRotation": 3,
-    "set": "zinc",
-    "edge": {
-      "1": 0.23,
-      "2": 0.29,
-      "4": 0.07,
-      "8": 0.08
-    }
-  },
-  "zinc-tee": {
-    "mask": 7,
-    "file": "art/tiles/zinc-tee.png",
-    "preRotation": 1,
-    "set": "zinc",
-    "edge": {
-      "1": 0.46,
-      "2": 0.35,
-      "4": 0.47,
-      "8": 0.12
-    }
-  },
-  "zinc-cross": {
-    "mask": 15,
-    "file": "art/tiles/zinc-cross.png",
-    "preRotation": 0,
-    "set": "zinc",
-    "edge": {
-      "1": 0.35,
-      "2": 0.18,
-      "4": 0.22,
-      "8": 0.25
-    }
-  },
   "chrome-straight": {
     "mask": 5,
     "file": "art/tiles/chrome-straight.png",
@@ -285,54 +237,6 @@
       "2": 0.23,
       "4": 0.3,
       "8": 0.23
-    }
-  },
-  "zinc2-straight": {
-    "mask": 5,
-    "file": "art/tiles/zinc2-straight.png",
-    "preRotation": 1,
-    "set": "zinc2",
-    "edge": {
-      "1": 0.05,
-      "2": 0.0,
-      "4": 0.05,
-      "8": 0.0
-    }
-  },
-  "zinc2-elbow": {
-    "mask": 3,
-    "file": "art/tiles/zinc2-elbow.png",
-    "preRotation": 3,
-    "set": "zinc2",
-    "edge": {
-      "1": 0.18,
-      "2": 0.19,
-      "4": 0.12,
-      "8": 0.12
-    }
-  },
-  "zinc2-tee": {
-    "mask": 7,
-    "file": "art/tiles/zinc2-tee.png",
-    "preRotation": 1,
-    "set": "zinc2",
-    "edge": {
-      "1": 0.17,
-      "2": 0.1,
-      "4": 0.19,
-      "8": 0.14
-    }
-  },
-  "zinc2-cross": {
-    "mask": 15,
-    "file": "art/tiles/zinc2-cross.png",
-    "preRotation": 0,
-    "set": "zinc2",
-    "edge": {
-      "1": 0.1,
-      "2": 0.14,
-      "4": 0.15,
-      "8": 0.19
     }
   },
   "rust2-straight": {

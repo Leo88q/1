@@ -55,8 +55,8 @@ FONT_CANDIDATES = {
 TIERS = {
     # `metal` — основной материал яруса, `metal2` — второй (есть не у всех):
     # вариант кадра (a/b) берёт либо один, либо пару «основной + второй».
-    "plateau": {"bg": ["tier-1-plateau.jpg", "tier-1-plateau-b.jpg"], "metal": "zinc",
-                "metal2": "zinc2", "flow": (182, 255, 60)},
+    "plateau": {"bg": ["tier-1-plateau.jpg", "tier-1-plateau-b.jpg"], "metal": "glass",
+                "flow": ACID},
     "mercury": {"bg": ["tier-2-mercury.jpg", "tier-2-mercury-b.jpg"], "metal": "chrome",
                 "flow": (22, 229, 217)},
     "terminal": {"bg": ["tier-3-terminal.jpg", "tier-3-terminal-b.jpg"], "metal": "rust",
@@ -530,13 +530,11 @@ def render_tileset(sprites, path, size=None):
     """
     materials = [
         ("base", "чугун + цинк · канон"),
-        ("zinc", "цинк · Плато"),
-        ("zinc2", "цинк с патиной · Плато, кадр b"),
         ("chrome", "хром · Ртутный"),
         ("rust", "ржавый металл · Терминальный"),
         ("rust2", "глубокая ржавчина · Терминальный, кадр b"),
         ("cast", "чугун · Старый Диод"),
-        ("glass", "стекло · Жилы"),
+        ("glass", "стекло · Плато и Плавильня"),
     ]
     pieces = ["straight", "elbow", "tee", "cross"]
     cell, gap, label_x, sprite_x0, top = 200, 28, 70, 460, 100

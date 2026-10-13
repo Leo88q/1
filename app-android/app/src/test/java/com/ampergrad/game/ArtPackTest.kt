@@ -146,9 +146,9 @@ class ArtPackTest {
 
     @Test
     fun `материал ячейки берётся из наборов яруса`() {
-        val sets = listOf("zinc", "zinc2")
+        val sets = listOf("rust", "rust2")
         val seen = (0 until 16).map { setForCell(sets, it % 4, it / 4, it) }.toSet()
-        assertEquals(setOf("zinc", "zinc2"), seen, "оба металла яруса должны встречаться на поле")
+        assertEquals(setOf("rust", "rust2"), seen, "оба металла яруса должны встречаться на поле")
         assertEquals("chrome", setForCell(listOf("chrome"), 3, 3, 11), "единственный набор — всегда он")
         assertEquals("base", setForCell(emptyList(), 0, 0, 0), "без наборов остаётся канон")
     }

@@ -136,50 +136,6 @@
         "file": "tiles/rust2-cross.webp",
         "mask": 15
       }
-    },
-    "zinc": {
-      "straight": {
-        "file": "tiles/zinc-straight.webp",
-        "mask": 5
-      },
-      "stub": {
-        "file": "tiles/zinc-stub.webp",
-        "mask": 1
-      },
-      "elbow": {
-        "file": "tiles/zinc-elbow.webp",
-        "mask": 3
-      },
-      "tee": {
-        "file": "tiles/zinc-tee.webp",
-        "mask": 7
-      },
-      "cross": {
-        "file": "tiles/zinc-cross.webp",
-        "mask": 15
-      }
-    },
-    "zinc2": {
-      "straight": {
-        "file": "tiles/zinc2-straight.webp",
-        "mask": 5
-      },
-      "stub": {
-        "file": "tiles/zinc2-stub.webp",
-        "mask": 1
-      },
-      "elbow": {
-        "file": "tiles/zinc2-elbow.webp",
-        "mask": 3
-      },
-      "tee": {
-        "file": "tiles/zinc2-tee.webp",
-        "mask": 7
-      },
-      "cross": {
-        "file": "tiles/zinc2-cross.webp",
-        "mask": 15
-      }
     }
   },
   "round": {
@@ -195,8 +151,7 @@
       "id": "plateau",
       "name": "ПЛАТО ПЕРВОГО КОНТАКТА",
       "sets": [
-        "zinc",
-        "zinc2"
+        "glass"
       ],
       "bg": [
         "back/tier-1-plateau.webp",
