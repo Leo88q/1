@@ -48,6 +48,7 @@ import com.ampergrad.game.engine.tileMask
 import com.ampergrad.game.content.BoardSkin
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
@@ -498,18 +499,15 @@ private fun DrawScope.drawArtFlow(
     val half = cell * 0.5f
     // Сечение трубы тонкое, но не в нитку: иначе объём и рябь не читаются.
     val body = Brush.linearGradient(
-        colors = listOf(
-            flow.copy(alpha = 0.16f),
-            flow.copy(alpha = 0.55f),
-            flow.copy(alpha = 0.95f),
-            Color.White.copy(alpha = 0.35f),
-            flow.copy(alpha = 0.60f),
-            flow.copy(alpha = 0.28f),
-            flow.copy(alpha = 0.12f),
-        ),
+        0.00f to flow.copy(alpha = 0.16f),
+        0.16f to flow.copy(alpha = 0.55f),
+        0.33f to flow.copy(alpha = 0.95f),
+        0.44f to Color.White.copy(alpha = 0.35f),
+        0.62f to flow.copy(alpha = 0.60f),
+        0.86f to flow.copy(alpha = 0.28f),
+        1.00f to flow.copy(alpha = 0.12f),
         start = Offset(0f, -bore / 2f),
         end = Offset(0f, bore / 2f),
-        stops = listOf(0f, 0.16f, 0.33f, 0.44f, 0.62f, 0.86f, 1f),
     )
     val entry = inBit?.let(::oppositeOf)
     // Втекает: от кромки клетки к центру.
@@ -526,10 +524,11 @@ private fun DrawScope.drawArtFlow(
     // Ядро: вода сходится в середине — мягкое пятно, а не лампочка.
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.3f), flow.copy(alpha = 0.45f), flow.copy(alpha = 0f)),
+            0.00f to Color.White.copy(alpha = 0.3f),
+            0.45f to flow.copy(alpha = 0.45f),
+            1.00f to flow.copy(alpha = 0f),
             center = Offset(cx, cy),
             radius = bore * 0.9f,
-            stops = listOf(0f, 0.45f, 1f),
         ),
         radius = bore * 0.9f,
         center = Offset(cx, cy),
