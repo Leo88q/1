@@ -38,7 +38,7 @@ TIERS = [
      "bg": ["tier-2-mercury.jpg", "tier-2-mercury-b.jpg"]},
     {"id": "terminal", "sets": ["rust", "rust2"], "flow": "#FF7A1A",
      "bg": ["tier-3-terminal.jpg", "tier-3-terminal-b.jpg"]},
-    {"id": "old-diode", "sets": ["cast"], "flow": "#FFB040",
+    {"id": "old-diode", "sets": ["cast"], "flow": "#FF7A1A",
      "bg": ["tier-4-old-diode.jpg", "tier-4-old-diode-b.jpg"]},
     {"id": "melter", "sets": ["glass"], "flow": "#B6FF3C",
      "bg": ["tier-5-veins.jpg", "tier-5-veins-b.jpg"]},

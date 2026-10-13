@@ -173,7 +173,7 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # Gradle берёт JVM от�
 printf 'sdk.dir=%s\n' "$HOME/Library/Android/sdk" > ~/Desktop/Amperograd/app-android/local.properties
 
 cd ~/Desktop/Amperograd/app-android
-./gradlew :app:testDebugUnitTest   # 65 теста: правила, векторы ядра, арт поля, лор, витрина, звук
+./gradlew :app:testDebugUnitTest   # 66 теста: правила, векторы ядра, арт поля, лор, витрина, звук
 ./gradlew :app:assembleDebug       # APK: app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:installDebug        # на подключённый телефон или запущенный эмулятор
 ```
@@ -223,7 +223,7 @@ adb reverse tcp:8787 tcp:8787
 
 ```bash
 cd app-android
-./gradlew :app:testDebugUnitTest   # 65 теста: правила, векторы ядра, арт поля, лор, витрина, звук
+./gradlew :app:testDebugUnitTest   # 66 теста: правила, векторы ядра, арт поля, лор, витрина, звук
 ./gradlew :app:assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:assembleRelease     # подписывается, если заданы переменные окружения
 ```

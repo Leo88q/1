@@ -36,7 +36,7 @@ const TIERS: TierArt[] = [
   { id: 'plateau', name: 'ПЛАТО ПЕРВОГО КОНТАКТА', sets: ['zinc', 'zinc2'], bg: [], flow: '#B6FF3C', accent: '#B6FF3C' },
   { id: 'mercury', name: 'РТУТНЫЙ ЯРУС', sets: ['chrome'], bg: [], flow: '#16E5D9', accent: '#16E5D9' },
   { id: 'terminal', name: 'ТЕРМИНАЛЬНЫЙ ЯРУС', sets: ['rust', 'rust2'], bg: [], flow: '#FF7A1A', accent: '#FF7A1A' },
-  { id: 'old-diode', name: 'СТАРЫЙ ДИОД', sets: ['cast'], bg: [], flow: '#FFB040', accent: '#FFB040' },
+  { id: 'old-diode', name: 'СТАРЫЙ ДИОД', sets: ['cast'], bg: [], flow: '#FF7A1A', accent: '#FF7A1A' },
   { id: 'melter', name: 'ПЛАВИЛЬНЯ (ЯДРО)', sets: ['glass'], bg: [], flow: '#B6FF3C', accent: '#B6FF3C' },
 ];
 
@@ -218,6 +218,11 @@ const FIELD_PLATE = '#0B1018';
 /** Кромка плиты: обозначает границу квартала, не спорит с трубами. */
 const FIELD_EDGE = 'rgba(126,156,196,0.14)';
 const FIELD_BASE = '#06080E';
+/**
+ * Приёмник без тока: оранжевый из палитры Guttercaps. Раньше цель обводили
+ * бронзой (#FFB040) — её нет в палитре, и она спорила с трубами.
+ */
+const RECEIVER_IDLE = '#FF7A1A';
 
 function drawCover(img: HTMLImageElement, rect: DOMRect) {
   const cover = Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
@@ -789,13 +794,14 @@ function draw(now: number) {
         ctx.restore();
       }
 
-      // Приёмник: отметка цели (в арт-режиме — рамка поверх горловины).
+      // Приёмник: отметка цели. Под током — цвет среды, без тока — оранжевый
+      // палитры «внимание»; в арт-режиме рамка лежит поверх горловины.
       if (tile.role === 'receiver') {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(Math.PI / 4);
         const d = cell * (artMode ? 0.36 : 0.3);
-        ctx.strokeStyle = on ? accent : artMode ? 'rgba(255,176,64,0.55)' : '#3a4a63';
+        ctx.strokeStyle = on ? accent : RECEIVER_IDLE;
         ctx.lineWidth = 2;
         ctx.shadowColor = on ? accent : 'transparent';
         ctx.shadowBlur = on ? 16 : 0;

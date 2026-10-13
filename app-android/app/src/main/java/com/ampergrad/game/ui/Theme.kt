@@ -28,6 +28,14 @@ object Grad {
     val Gold = Color(0xFFFFC24B)
     val Danger = Color(0xFFFF3D81)
     val Metal = Color(0xFF26334A)
+    /**
+     * Оранжевый палитры Guttercaps: «приёмник ещё не под током».
+     *
+     * Раньше цель обводили бронзой (#FFB040) — её нет в палитре, и она спорила
+     * с трубами. Оранжевый есть в каноне и читается как «внимание», а не как
+     * материал детали.
+     */
+    val Warn = Color(0xFFFF7A1A)
     val Hub = Color(0xFF16202F)
 }
 

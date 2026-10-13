@@ -9,6 +9,7 @@ import com.ampergrad.game.ui.colorOfHex
 import com.ampergrad.game.ui.piecesForMask
 import com.ampergrad.game.ui.rewardForStars
 import com.ampergrad.game.ui.chooseSeal
+import com.ampergrad.game.ui.Grad
 import com.ampergrad.game.ui.setForCell
 import java.io.File
 import kotlin.test.Test
@@ -177,12 +178,28 @@ class ArtPackTest {
         // Пятый ярус — тот же acid: два яруса одного цвета допустимы, цвет среды
         // подсказывает материал, а не номер.
         assertEquals("#B6FF3C", flows["melter"], "acid")
+        // Бронза (#FFB040) в палитры нет: ею красили и среду четвёртого яруса,
+        // и отметку приёмника. Она спорила с металлом труб — убрана из канона.
+        val palette = setOf("#B6FF3C", "#16E5D9", "#FF7A1A", "#FF2E8A")
+        for (tier in pack.tiers) {
+            assertTrue(
+                tier.flowHex in palette,
+                "ярус ${tier.id}: цвет среды ${tier.flowHex} не из палитры Guttercaps",
+            )
+        }
         for (tier in pack.tiers) {
             assertTrue(
                 colorOfHex(tier.flowHex) != Color.Transparent,
                 "ярус ${tier.id}: цвет ${tier.flowHex} не разобрался",
             )
         }
+    }
+
+    /** Приёмник без тока обводится оранжевым из палитры, а не бронзой. */
+    @Test
+    fun `приёмник без тока отмечен цветом из палитры`() {
+        assertEquals(Color(0xFFFF7A1A), Grad.Warn, "оранжевый Guttercaps")
+        assertFalse(colorOfHex("#FFB040") == Grad.Warn, "бронза в палитру не входит")
     }
 
     /**

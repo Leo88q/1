@@ -61,7 +61,7 @@ TIERS = {
     "terminal": {"bg": ["tier-3-terminal.jpg", "tier-3-terminal-b.jpg"], "metal": "rust",
                  "metal2": "rust2", "flow": (255, 122, 26)},
     "old-diode": {"bg": ["tier-4-old-diode.jpg", "tier-4-old-diode-b.jpg"], "metal": "cast",
-                  "flow": (255, 176, 64)},
+                  "flow": ORANGE},
     "veins": {"bg": ["tier-5-veins.jpg", "tier-5-veins-b.jpg"], "metal": "glass",
               "flow": (182, 255, 60)},
 }

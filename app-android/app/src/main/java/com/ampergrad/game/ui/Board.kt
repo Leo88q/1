@@ -178,7 +178,7 @@ fun Board(
                 } else {
                     drawTile(level, index, cx, cy, cell, angles[index], powered[index], burst, skin)
                     if (tile.role == Role.BUS) drawBus(cx, cy, cell, accent, skin, pulse)
-                    if (tile.role == Role.RECEIVER) drawReceiver(cx, cy, cell, powered[index])
+                    if (tile.role == Role.RECEIVER) drawReceiver(cx, cy, cell, powered[index], accent)
                 }
 
                 if (hintIndex == index) {
@@ -261,11 +261,12 @@ private fun DrawScope.drawBus(cx: Float, cy: Float, cell: Float, accent: Color, 
     )
 }
 
-private fun DrawScope.drawReceiver(cx: Float, cy: Float, cell: Float, on: Boolean) {
+private fun DrawScope.drawReceiver(cx: Float, cy: Float, cell: Float, on: Boolean, accent: Color) {
     val d = cell * 0.3f
     rotate(degrees = 45f, pivot = Offset(cx, cy)) {
         drawRect(
-            color = if (on) Grad.Gold else Grad.Metal,
+            // Под током — цвет среды квартала, без тока — оранжевый «внимание».
+            color = if (on) accent else Grad.Warn,
             topLeft = Offset(cx - d, cy - d),
             size = Size(d * 2, d * 2),
             style = Stroke(width = 2.4f),
@@ -437,6 +438,20 @@ private fun DrawScope.drawArtReceiver(
                 strokeWidth = cell * 0.09f,
                 cap = StrokeCap.Round,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(cell * 0.08f, cell * 0.26f), -phase * cell * 1.4f),
+            )
+        }
+    }
+    // Отметка цели: пока приёмник не под током, обводим его оранжевым палитры —
+    // так же, как в веб-лаборатории. Раньше здесь была бронза (#FFB040), которой
+    // нет в палитре Guttercaps, и в арт-режиме цель не была видна вовсе.
+    if (!on) {
+        val d = cell * 0.36f
+        rotate(degrees = 45f, pivot = Offset(cx, cy)) {
+            drawRect(
+                color = Grad.Warn,
+                topLeft = Offset(cx - d, cy - d),
+                size = Size(d * 2f, d * 2f),
+                style = Stroke(width = 2f),
             )
         }
     }
