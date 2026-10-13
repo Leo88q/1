@@ -36,6 +36,13 @@ TEXTS = {
         "subtitle": lambda scene: scene["subtitle"],
         "feature": ("АМПЕРГРАД", "ВЕРНИ ГОРОДУ ТОК", "1–3 минуты на квартал",
                     "без кошелька и без токена", "награды — сжатые NFT (cNFT)"),
+        "card_kicker": "ПОДЕЛИТЬСЯ КВАРТАЛОМ",
+        "card_brand": "АМПЕРГРАД",
+        "par": "ПЛАН",
+        "card_seal": "ПЛОМБА",
+        "card_player": "МАСТЕР СМЕНЫ",
+        "card_note": "Поле квартала, пломба и результат — одним PNG. Картинка делается "
+                     "на устройстве и уходит наружу только тогда, когда игрок сам её отправит.",
     },
     "en": {
         "out": os.path.join(ROOT, "assets-en"),
@@ -46,7 +53,6 @@ TEXTS = {
         "footer": "AMPERGRAD · no wallet, no token required",
         "stats": lambda moves, par, time: f"moves {moves} · par {par} · {time}",
         "registry": "REGISTRY",
-        "registry": "REGISTRY",
         "wardrobe": "WARDROBE",
         "coins_word": "coins",
         "wardrobe_note": "Coins are earned by playing: 20 per cleared district plus 10 per star. "
@@ -55,6 +61,13 @@ TEXTS = {
         "subtitle": lambda scene: scene["subtitleEn"],
         "feature": ("AMPERGRAD", "BRING THE CURRENT BACK", "1–3 minutes per district",
                     "no wallet, no token", "rewards are compressed NFTs (cNFTs)"),
+        "card_kicker": "SHARE THE DISTRICT",
+        "card_brand": "АМПЕРГРАД",
+        "par": "PAR",
+        "card_seal": "SEAL",
+        "card_player": "SHIFT MASTER",
+        "card_note": "The district, its seal and the result — one PNG. The picture is made "
+                     "on the device and leaves it only when the player sends it.",
     },
 }
 
@@ -251,6 +264,81 @@ def screenshot(scene, path, txt):
     return path
 
 
+def share_card_shot(scene, path, txt, skin=None):
+    """Кадр витрины с карточкой квартала: тем, чем игрок делится после смены.
+
+    Раскладка внутри карточки повторяет приложение (доли те же, что в
+    ShareCardModel.kt): поле не выше 60% карточки, клетка целая, подвал снизу.
+    """
+    width, height = 1080, 1920
+    img = Image.new("RGB", (width, height), BG)
+    draw = ImageDraw.Draw(img)
+
+    header(draw, scene, width, txt)
+
+    f_kicker = font(MONO, 30)
+    f_brand = font(MONO, 52)
+    f_sub = font(MONO_R, 24)
+    f_star = font(MONO, 84)
+    f_stat = font(MONO, 30)
+    f_foot = font(MONO_R, 22)
+
+    text(draw, (60, 232), txt["card_kicker"], f_kicker, MINT)
+
+    # Карточка 3:4 — такой формат мессенджеры не обрезают в предпросмотре.
+    cw, ch = 900, 1200
+    cx0, cy0 = (width - cw) / 2, 300
+    draw.rounded_rectangle([cx0, cy0, cx0 + cw, cy0 + ch], radius=34, fill=(13, 20, 33),
+                           outline=MINT, width=3)
+
+    margin = cw * 0.0667
+    text(draw, (cx0 + cw / 2, cy0 + ch * 0.072), txt["card_brand"], f_brand, MINT, anchor="mm")
+    text(draw, (cx0 + margin, cy0 + ch * 0.126), txt["subtitle"](scene).upper(), f_sub, DIM, anchor="lm")
+    text(draw, (cx0 + cw - margin, cy0 + ch * 0.126), txt["title"](scene).upper(), f_sub, DIM,
+         anchor="rm")
+
+    # Пломба: тот же мотив, что в приложении — медальон в правом верхнем углу.
+    seal = cw * 0.155
+    sx, sy = cx0 + cw - margin - seal + seal / 2, cy0 + ch * 0.022 + seal / 2
+    draw.ellipse([sx - seal / 2, sy - seal / 2, sx + seal / 2, sy + seal / 2],
+                 outline=GOLD, width=6)
+    draw.ellipse([sx - seal * 0.34, sy - seal * 0.34, sx + seal * 0.34, sy + seal * 0.34],
+                 fill=GOLD)
+
+    cell = int(min(cw - margin * 2, ch * 0.6) / scene["size"])
+    side = cell * scene["size"]
+    board_x = cx0 + (cw - side) / 2
+    board_y = cy0 + ch * 0.16
+    draw_board(draw, scene, board_x, board_y, side, skin)
+    board_bottom = board_y + side
+
+    stars = scene.get("stars", 0)
+    text(draw, (cx0 + cw / 2, board_bottom + ch * 0.062),
+         "★" * stars + "☆" * (3 - stars), f_star, GOLD if stars else (38, 51, 74), anchor="mm")
+    stats = " · ".join((
+        f"{txt['moves']} {scene['stats']['moves']}",
+        f"{txt['par']} {scene['stats']['par']}",
+        f"{txt['time']} {scene['stats']['time']}",
+    ))
+    text(draw, (cx0 + cw / 2, board_bottom + ch * 0.104), stats, f_stat, INK, anchor="mm")
+
+    div_y = board_bottom + ch * 0.146
+    draw.line([cx0 + margin, div_y, cx0 + cw - margin, div_y], fill=LINE, width=2)
+    foot_y = board_bottom + ch * 0.201
+    text(draw, (cx0 + margin, foot_y), txt["card_seal"], f_foot, MINT, anchor="lm")
+    text(draw, (cx0 + cw - margin, foot_y), txt["card_player"], f_foot, DIM, anchor="rm")
+
+    f_note = font(SANS, 30)
+    y = cy0 + ch + 46
+    for line in wrap(draw, txt["card_note"], f_note, width - 160):
+        text(draw, (width / 2, y), line, f_note, DIM, anchor="ma")
+        y += 42
+
+    text(draw, (width / 2, 1878), txt["footer"], font(SANS, 26), DIM, anchor="mm")
+    img.save(path, "PNG")
+    return path
+
+
 def icon(path, size=512):
     """Знак игры: перекрёсток квартала (ток + память + пломба).
     Тот же знак лежит в Android как vector drawable (adaptive icon)."""
@@ -424,6 +512,11 @@ def main():
         scene = next((s for s in data["scenes"] if not s.get("stars")), data["scenes"][0])
         path = os.path.join(out, "screenshot-4.png")
         print("записано:", wardrobe_shot(scene, path, txt, skin, worn, LANG))
+    # Кадр с карточкой квартала: берём квартал со звёздами — на карточке они есть.
+    scene = next((s for s in data["scenes"] if s.get("stars")), data["scenes"][0])
+    path = os.path.join(out, "screenshot-5.png")
+    print("записано:", share_card_shot(scene, path, txt))
+
     print("записано:", icon(os.path.join(out, "icon-512.png")))
     print("записано:", feature_graphic(os.path.join(out, "feature-graphic-1024x500.png"), txt))
 
