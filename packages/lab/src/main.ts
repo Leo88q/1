@@ -223,6 +223,156 @@ function flowDirections(level: Level, powered: boolean[]): Map<number, number> {
   return dirs;
 }
 
+/** «#RRGGBB» + прозрачность → rgba(): вода набирает цвет среды яруса. */
+function hexA(hex: string, alpha: number): string {
+  const v = hex.replace('#', '');
+  const n = parseInt(v, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+/** Куда смотрит порт: N — вверх (по экрану вниз), E — вправо и так далее. */
+const PORTHOLE: Record<number, readonly [number, number]> = {
+  [N]: [0, -1],
+  [E]: [1, 0],
+  [S]: [0, 1],
+  [W]: [-1, 0],
+};
+
+/** Направление на противоположное: вода вошла в клетку с этой стороны. */
+const OPPOSITE: Record<number, number> = { [N]: S, [S]: N, [E]: W, [W]: E };
+
+/**
+ * Градиент сечения потока: цилиндр воды в трубе.
+ *
+ * Свет падает сверху, поэтому блик лежит чуть выше середины, а к краям вода
+ * темнеет — так полоса перестаёт выглядеть наклейкой и получает объём. Один на
+ * весь кадр: в локальных координатах сегмента он одинаковый, поворот делает сам
+ * холст (градиент рисуется в текущем преобразовании).
+ */
+function waterBodyGradient(bore: number, flow: string): CanvasGradient {
+  const g = ctx.createLinearGradient(0, -bore / 2, 0, bore / 2);
+  g.addColorStop(0, hexA(flow, 0.14)); // нижняя кромка в тени
+  g.addColorStop(0.16, hexA(flow, 0.5));
+  g.addColorStop(0.33, hexA(flow, 0.9));
+  g.addColorStop(0.44, hexA('#ffffff', 0.42)); // блик на поверхности
+  g.addColorStop(0.62, hexA(flow, 0.66));
+  g.addColorStop(0.86, hexA(flow, 0.28));
+  g.addColorStop(1, hexA(flow, 0.1));
+  return g;
+}
+
+/**
+ * Прогон воды: от `start` в сторону (dx, dy) на длину len.
+ *
+ * Реалистичность держится на четырёх слоях, и все они бегут по потоку:
+ * тело с объёмом, рябь (три волны разной скорости), блики, пузыри. Направление
+ * задаёт обход от шины (`flowDirections`), поэтому вода течёт от источника
+ * к приёмникам, а не «от центра во все стороны».
+ */
+function drawWater(
+  startX: number,
+  startY: number,
+  dx: number,
+  dy: number,
+  len: number,
+  bore: number,
+  flow: string,
+  body: CanvasGradient,
+  phase: number,
+  seed: number,
+) {
+  ctx.save();
+  ctx.translate(startX, startY);
+  ctx.rotate(Math.atan2(dy, dx));
+
+  // 1. Тело воды и тёмные кромки: мениск у стенки трубы.
+  ctx.fillStyle = body;
+  ctx.fillRect(0, -bore / 2, len, bore);
+  ctx.fillStyle = 'rgba(3,7,13,0.20)';
+  ctx.fillRect(0, -bore / 2, len, bore * 0.08);
+  ctx.fillRect(0, bore * 0.42, len, bore * 0.08);
+
+  // 2. Рябь: три волны разной скорости — глаза читают это как движение воды.
+  ctx.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 3; k++) {
+    const amp = bore * (0.11 - k * 0.025);
+    const step = Math.max(3, len / 8);
+    ctx.beginPath();
+    for (let x = -step; x <= len + step; x += step) {
+      const y = Math.sin(x / (bore * 2.4) - phase * Math.PI * 2 * (1 + k) + seed + k) * amp;
+      if (x < 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = `rgba(255,255,255,${0.13 - k * 0.03})`;
+    ctx.lineWidth = Math.max(1, bore * 0.055);
+    ctx.stroke();
+  }
+
+  // 3. Блики: короткие светлые пятна, бегущие по потоку, гаснут у краёв.
+  for (let k = 0; k < 3; k++) {
+    const t = (phase * (1 + k) + k / 3 + seed * 0.37) % 1;
+    const x = len * (0.12 + t * 0.78);
+    const y = -bore * 0.1 + Math.sin(phase * 5 + k * 2 + seed) * bore * 0.06;
+    ctx.fillStyle = `rgba(255,255,255,${0.26 * Math.sin(Math.PI * t)})`;
+    ctx.beginPath();
+    ctx.ellipse(x, y, len * 0.085, bore * 0.13, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 4. Пузыри: редкие, разного размера, чуть покачиваются.
+  for (let k = 0; k < 2; k++) {
+    const t = (phase * (1 + k) + 0.31 * k + seed * 0.71) % 1;
+    const y = Math.sin(phase * 4 + k * 2 + seed) * bore * 0.2;
+    const r = Math.max(0.7, bore * (0.06 + 0.02 * k));
+    ctx.fillStyle = `rgba(255,255,255,${0.3 * Math.sin(Math.PI * t)})`;
+    ctx.beginPath();
+    ctx.arc(len * (0.1 + t * 0.85), y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Вода в клетке: втекает через один порт и растекается по остальным. */
+function drawCellWater(
+  cx: number,
+  cy: number,
+  cell: number,
+  mask: number,
+  inBit: number | undefined,
+  flow: string,
+  body: CanvasGradient,
+  phase: number,
+  seed: number,
+) {
+  const bore = Math.max(3, cell * 0.15);
+  const half = cell * 0.5;
+  const entry = inBit ? OPPOSITE[inBit] : 0;
+  // Втекает: от кромки клетки к центру.
+  if (entry) {
+    const [dx, dy] = PORTHOLE[entry];
+    drawWater(cx + dx * half, cy + dy * half, -dx, -dy, half, bore, flow, body, phase, seed + 1);
+  }
+  // Растекается: от центра к остальным портам.
+  for (const bit of [N, E, S, W]) {
+    if (!(mask & bit) || bit === entry) continue;
+    const [dx, dy] = PORTHOLE[bit];
+    drawWater(cx, cy, dx, dy, half, bore, flow, body, phase, seed + bit * 0.17);
+  }
+  // Ядро: вода сходится в середине — мягкое пятно, а не лампочка.
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const core = ctx.createRadialGradient(0, 0, 0, 0, 0, bore * 0.9);
+  core.addColorStop(0, hexA('#ffffff', 0.3));
+  core.addColorStop(0.45, hexA(flow, 0.45));
+  core.addColorStop(1, hexA(flow, 0));
+  ctx.translate(cx, cy);
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(0, 0, bore * 0.9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 /** Набор материалов ячейки: в ярусе с двумя наборами они чередуются по полю. */
 function setForCell(sets: string[], x: number, y: number, index: number): string {
   if (sets.length === 0) return 'base';
@@ -726,13 +876,13 @@ function draw(now: number) {
   }
 
   const flowPhase = (now % 2200) / 2200;
-  const PORTHOLE: Record<number, readonly [number, number]> = {
-    1: [0, -1],
-    2: [1, 0],
-    4: [0, 1],
-    8: [-1, 0],
-  };
-
+  // Вода живёт в секундах: скорость потока задаётся в циклах в секунду, а не
+  // в долях от двух секунд, — иначе при смене кадра ритм скакал бы.
+  // Вода считается в целых циклах в секунду, поэтому фаза 0…1 замыкается
+  // без рывка — Android, где та же вода крутится анимацией ровно в секунду,
+  // выглядит так же, как браузер.
+  const waterPhase = now / 1000;
+  const waterBody = waterBodyGradient(Math.max(3, cell * 0.15), flow);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = y * size + x;
@@ -843,9 +993,13 @@ function draw(now: number) {
         ctx.restore();
       }
 
-      // Среда внутри трубы: узкая светящаяся полоса от центра к портам плюс
-      // ядро соединения. Так же нарисован макет поля, поэтому вид совпадает.
-      if (on) {
+      // Среда внутри трубы — вода: тело с объёмом, рябь, блики и пузыри,
+      // бегущие от шины к приёмникам. Направление задаёт обход от шины.
+      if (on && artMode) {
+        const mask = tileMask(level, i);
+        drawCellWater(cx, cy, cell, mask, flowDirs.get(i), flow, waterBody, waterPhase, i * 0.61);
+      } else if (on) {
+        // Схема без арта: тонкая светящаяся линия — здесь объём был бы лишним.
         ctx.save();
         ctx.lineCap = 'round';
         ctx.strokeStyle = flow;

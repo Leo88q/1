@@ -23,7 +23,10 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -44,7 +47,7 @@ import com.ampergrad.game.engine.TileKind
 import com.ampergrad.game.engine.tileMask
 import com.ampergrad.game.content.BoardSkin
 import kotlin.math.abs
-import kotlin.math.cos
+import kotlin.math.atan2
 import kotlin.math.min
 import kotlin.math.sin
 
@@ -84,6 +87,15 @@ fun Board(
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(1600, easing = LinearEasing), RepeatMode.Restart),
         label = "pulse-value",
+    )
+
+    // Вода считается в целых циклах в секунду: фаза 0…1 замыкается без рывка,
+    // поэтому поток течёт ровно и не дёргается на стыке анимации.
+    val waterPhase by rememberInfiniteTransition(label = "water").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Restart),
+        label = "water-phase",
     )
 
     // Анимация доводки: запускается при каждом повороте и завершается сама.
@@ -177,7 +189,7 @@ fun Board(
                     val setName = setForCell(tier.sets, x, y, index)
                     drawArtTile(artPack, level, index, setName, cx, cy, cell, angles[index])
                     if (powered[index]) {
-                        drawArtFlow(level, index, cx, cy, cell, angles[index], flow, pulse)
+                        drawArtFlow(level, index, cx, cy, cell, flow, waterPhase, flowDirs[index])
                     }
                     if (tile.role == Role.RECEIVER) {
                         drawArtReceiver(artPack, level, index, cx, cy, cell, powered[index], flow, pulse)
@@ -465,36 +477,151 @@ private fun DrawScope.drawArtTile(
     }
 }
 
-/** Ток: цвет среды яруса по портам фрагмента — мягкая полоса и бегущий пунктир. */
+/**
+ * Вода в трубе: объём, рябь, блики и пузыри, бегущие по потоку, — а не
+ * светящаяся полоса. Направление не угадывается по картинке: его даёт обход
+ * flowDirs (от шины к приёмникам), поэтому вода втекает через один порт и
+ * растекается в остальные — по полю видно, куда она идёт.
+ */
 private fun DrawScope.drawArtFlow(
     level: Level,
     index: Int,
     cx: Float,
     cy: Float,
     cell: Float,
-    angle: Float,
     flow: Color,
     phase: Float,
+    inBit: Int?,
 ) {
-    val tile = level.tiles[index]
-    rotate(degrees = angle * 90f, pivot = Offset(cx, cy)) {
-        val ports = listOf(N to -90f, E to 0f, S to 90f, W to 180f)
-        for ((bit, degrees) in ports) {
-            if (tile.base and bit == 0) continue
-            val rad = degrees * (Math.PI / 180f).toFloat()
-            val start = Offset(cx, cy)
-            val end = Offset(cx + cos(rad) * cell * 0.5f, cy + sin(rad) * cell * 0.5f)
-            drawLine(flow.copy(alpha = 0.22f), start, end, strokeWidth = cell * 0.13f, cap = StrokeCap.Round)
-            drawLine(
-                color = flow.copy(alpha = 0.85f),
-                start = start,
-                end = end,
-                strokeWidth = cell * 0.05f,
-                cap = StrokeCap.Round,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(cell * 0.12f, cell * 0.34f), -phase * cell * 0.9f),
+    val mask = tileMask(level, index)
+    val bore = maxOf(3f, cell * 0.15f)
+    val half = cell * 0.5f
+    // Сечение трубы тонкое, но не в нитку: иначе объём и рябь не читаются.
+    val body = Brush.linearGradient(
+        colors = listOf(
+            flow.copy(alpha = 0.16f),
+            flow.copy(alpha = 0.55f),
+            flow.copy(alpha = 0.95f),
+            Color.White.copy(alpha = 0.35f),
+            flow.copy(alpha = 0.60f),
+            flow.copy(alpha = 0.28f),
+            flow.copy(alpha = 0.12f),
+        ),
+        start = Offset(0f, -bore / 2f),
+        end = Offset(0f, bore / 2f),
+        stops = listOf(0f, 0.16f, 0.33f, 0.44f, 0.62f, 0.86f, 1f),
+    )
+    val entry = inBit?.let(::oppositeOf)
+    // Втекает: от кромки клетки к центру.
+    if (entry != null) {
+        val d = portDir(entry)
+        drawWater(cx + d.x * half, cy + d.y * half, -d.x, -d.y, half, bore, body, phase, index + 1f)
+    }
+    // Растекается: от центра к остальным портам.
+    for (bit in intArrayOf(N, E, S, W)) {
+        if (mask and bit == 0 || bit == entry) continue
+        val d = portDir(bit)
+        drawWater(cx, cy, d.x, d.y, half, bore, body, phase, index + bit * 0.17f)
+    }
+    // Ядро: вода сходится в середине — мягкое пятно, а не лампочка.
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(Color.White.copy(alpha = 0.3f), flow.copy(alpha = 0.45f), flow.copy(alpha = 0f)),
+            center = Offset(cx, cy),
+            radius = bore * 0.9f,
+            stops = listOf(0f, 0.45f, 1f),
+        ),
+        radius = bore * 0.9f,
+        center = Offset(cx, cy),
+        blendMode = BlendMode.Plus,
+    )
+}
+
+/** Порт на той же оси, но с другой стороны клетки: оттуда вода пришла. */
+private fun oppositeOf(bit: Int): Int = when (bit) {
+    N -> S
+    S -> N
+    E -> W
+    else -> E
+}
+
+/** Куда смотрит порт: N — вверх по экрану, E — вправо. */
+private fun portDir(bit: Int): Offset = when (bit) {
+    N -> Offset(0f, -1f)
+    E -> Offset(1f, 0f)
+    S -> Offset(0f, 1f)
+    else -> Offset(-1f, 0f)
+}
+
+/**
+ * Вода на одном участке: от кромки до кромки вдоль своего направления.
+ * Фаза всюду одна и та же, поэтому соседние участки текут согласованно,
+ * а разный seed разводит рябь по клеткам — иначе поле выглядело бы гребёнкой.
+ */
+private fun DrawScope.drawWater(
+    startX: Float,
+    startY: Float,
+    dx: Float,
+    dy: Float,
+    len: Float,
+    bore: Float,
+    body: Brush,
+    phase: Float,
+    seed: Float,
+) {
+    val degrees = Math.toDegrees(atan2(dy, dx).toDouble()).toFloat()
+    withTransform({
+        translate(startX, startY)
+        rotate(degrees, Offset.Zero)
+    }) {
+        // 1. Тело воды и тёмные кромки: мениск у стенки трубы.
+        drawRect(brush = body, topLeft = Offset(0f, -bore / 2f), size = Size(len, bore))
+        drawRect(color = Color(0x3303070D), topLeft = Offset(0f, -bore / 2f), size = Size(len, bore * 0.08f))
+        drawRect(color = Color(0x3303070D), topLeft = Offset(0f, bore * 0.42f), size = Size(len, bore * 0.08f))
+
+        // 2. Рябь: три волны разной скорости — глаза читают это как движение воды.
+        for (k in 0..2) {
+            val amp = bore * (0.11f - k * 0.025f)
+            val step = maxOf(3f, len / 8f)
+            val path = Path()
+            var x = -step
+            while (x <= len + step) {
+                val y = sin(x / (bore * 2.4f) - phase * Math.PI.toFloat() * 2f * (1f + k) + seed + k) * amp
+                if (x < 0f) path.moveTo(x, y) else path.lineTo(x, y)
+                x += step
+            }
+            drawPath(
+                path,
+                Color.White.copy(alpha = 0.13f - k * 0.03f),
+                style = Stroke(width = maxOf(1f, bore * 0.055f)),
+                blendMode = BlendMode.Plus,
             )
         }
-        drawCircle(Color.White.copy(alpha = 0.55f), radius = cell * 0.055f, center = Offset(cx, cy))
+
+        // 3. Блики: короткие светлые пятна, бегущие по потоку, гаснут у краёв.
+        for (k in 0..2) {
+            val t = (phase * (1f + k) + k / 3f + seed * 0.37f) % 1f
+            val x = len * (0.12f + t * 0.78f)
+            val y = -bore * 0.1f + sin(phase * 5f + k * 2f + seed) * bore * 0.06f
+            drawOval(
+                color = Color.White.copy(alpha = 0.26f * sin(Math.PI.toFloat() * t)),
+                topLeft = Offset(x - len * 0.085f, y - bore * 0.13f),
+                size = Size(len * 0.17f, bore * 0.26f),
+                blendMode = BlendMode.Plus,
+            )
+        }
+
+        // 4. Пузыри: редкие, разного размера, чуть покачиваются.
+        for (k in 0..1) {
+            val t = (phase * (1f + k) + 0.31f * k + seed * 0.71f) % 1f
+            val y = sin(phase * 4f + k * 2f + seed) * bore * 0.2f
+            drawCircle(
+                color = Color.White.copy(alpha = 0.3f * sin(Math.PI.toFloat() * t)),
+                radius = maxOf(0.7f, bore * (0.06f + 0.02f * k)),
+                center = Offset(len * (0.1f + t * 0.85f), y),
+                blendMode = BlendMode.Plus,
+            )
+        }
     }
 }
 
