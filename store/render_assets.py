@@ -2,7 +2,8 @@
 """Рисует ассеты витрины из настоящих данных движка (store/data/scenes.json).
 
 Запуск:  npm run store:assets        (из корня репозитория)
-Требует: pillow, шрифты DejaVu (есть в ubuntu-latest и в большинстве систем).
+Требует: pillow. Шрифты лежат в store/data/fonts (subset DejaVu: латиница,
+кириллица и знаки вроде ★), поэтому кадры одинаковы на любой машине.
 
 Скриншоты рисуются по кадрам игры (маски фрагментов, ток, ярусы), поэтому
 показывают именно то, что видит игрок, а не художественную постановку.
@@ -93,10 +94,22 @@ DEFAULT_SKIN = {
     "field": (7, 11, 19),
 }
 
-FONT_DIR = "/usr/share/fonts/truetype/dejavu"
-MONO = os.path.join(FONT_DIR, "DejaVuSansMono-Bold.ttf")
-MONO_R = os.path.join(FONT_DIR, "DejaVuSansMono.ttf")
-SANS = os.path.join(FONT_DIR, "DejaVuSans.ttf")
+# Шрифты лежат в репозитории (store/data/fonts) и берутся оттуда: системных
+# DejaVu на машине может не быть (на свежих образах CI их как раз нет), а без
+# них кадры молча рисуются запасным шрифтом и листинг перестаёт походить на
+# игру. Системный каталог оставлен запасным путём.
+FONT_DIR = os.path.join(ROOT, "data", "fonts")
+SYSTEM_FONT_DIR = "/usr/share/fonts/truetype/dejavu"
+
+
+def font_path(name):
+    own = os.path.join(FONT_DIR, name)
+    return own if os.path.exists(own) else os.path.join(SYSTEM_FONT_DIR, name)
+
+
+MONO = font_path("DejaVuSansMono-Bold.ttf")
+MONO_R = font_path("DejaVuSansMono.ttf")
+SANS = font_path("DejaVuSans.ttf")
 
 
 def font(path, size):

@@ -63,10 +63,6 @@ jobs:
       # перерисовали, листинг уедет с устаревшим видом игры.
       - name: "Витрина: ассеты совпадают с рендерером"
         run: |
-          if ! ls /usr/share/fonts/truetype/dejavu/*.ttf >/dev/null 2>&1; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq fonts-dejavu-core
-          fi
           python3 store/render_assets.py
           python3 store/render_assets.py --lang en
           python3 store/check_assets.py
