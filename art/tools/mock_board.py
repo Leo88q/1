@@ -183,7 +183,12 @@ def level_of(number):
 
 
 def make_background(path, size):
-    """Фон яруса: кадр заполняет холст, притемняется, чтобы трубы читались."""
+    """Фон яруса: атмосфера на заднем плане.
+
+    Кадр почти погашен — как в игре: граффити задаёт настроение квартала, но не
+    служит подложкой под трубы (на нём контур трубы не читается). Поверх макет
+    кладёт однотонную плиту поля, поэтому здесь фон можно гасить смело.
+    """
     width, height = size
     bg = Image.open(path).convert("RGB")
     scale = max(width / bg.width, height / bg.height)
@@ -192,7 +197,7 @@ def make_background(path, size):
     top = (bg.height - height) // 2
     bg = bg.crop((left, top, left + width, top + height))
     dark = Image.new("RGB", (width, height), (0, 0, 0))
-    bg = Image.blend(bg, dark, 0.42)
+    bg = Image.blend(bg, dark, 0.78)
     # Общая цветокоррекция в сторону асфальта: чуть приглушаем и добавляем холода.
     tint = Image.new("RGB", (width, height), ASPHALT)
     bg = Image.blend(bg, tint, 0.18)
@@ -354,8 +359,9 @@ def render_level(shot, sprites, size=(1080, 1920)):
     pd.rounded_rectangle(
         [bx - 16, by - 16, bx + board_side + 16, by + board_side + 16],
         radius=28,
-        fill=(14, 14, 17, 170),
-        outline=(120, 120, 132, 90),
+        # Плита почти непрозрачная: поле однотонное, как в игре.
+        fill=(11, 16, 24, 244),
+        outline=(126, 156, 196, 60),
         width=2,
     )
     img.alpha_composite(plate)

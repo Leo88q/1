@@ -200,12 +200,26 @@ function sealFile(key: string): string | undefined {
  * портретом 720×1290, и на широком окне честный cover растягивал бы его вдвое —
  * поле превращалось в размытый фрагмент граффити. Поэтому увеличивать можно не
  * больше MAX_BG_ZOOM, дальше фон просто обрамляем цветом (letterbox).
+ *
+ * Сам не заливает холст: подложку кладёт вызывающий, чтобы цвет поля и
+ * прозрачность атмосферы задавались в одном месте.
  */
 const MAX_BG_ZOOM = 1.25;
 
+/**
+ * Кадр яруса (граффити на бетоне) уходит на задний план: это атмосфера, а не
+ * поверхность, по которой ведут трубы. На нём метки и подписи читаются лучше,
+ * чем контур трубы, — играть было тяжело. Поэтому фон гасим почти полностью,
+ * а под поле кладём однотонную плиту.
+ */
+const BG_AMBIENCE = 0.22;
+/** Плита поля: ровный тёмный лист. Трубы и ток читаются на любом ярусе. */
+const FIELD_PLATE = '#0B1018';
+/** Кромка плиты: обозначает границу квартала, не спорит с трубами. */
+const FIELD_EDGE = 'rgba(126,156,196,0.14)';
+const FIELD_BASE = '#06080E';
+
 function drawCover(img: HTMLImageElement, rect: DOMRect) {
-  ctx.fillStyle = '#04060b';
-  ctx.fillRect(0, 0, rect.width, rect.height);
   const cover = Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
   const scale = Math.min(cover, MAX_BG_ZOOM);
   const w = img.naturalWidth * scale;
@@ -575,14 +589,19 @@ function draw(now: number) {
   const artMode = artReady();
   const flow = artMode ? tier.flow : '#00e5c7';
 
-  // Фон: кадр яруса из арта, иначе — прежний градиент.
+  // Фон: кадр яруса — на заднем плане, почти погашенный. Его дело — атмосфера
+  // квартала, а не подложка под трубами: на граффити контур трубы не читался.
   const bgFile = tier.bg.length ? tier.bg[(levelIndex - 1) % tier.bg.length] : undefined;
   const bgImg = artMode ? art.get(bgFile) : null;
+  ctx.fillStyle = FIELD_BASE;
+  ctx.fillRect(0, 0, rect.width, rect.height);
   if (bgImg) {
+    ctx.save();
+    ctx.globalAlpha = BG_AMBIENCE;
     drawCover(bgImg, rect);
-    ctx.fillStyle = 'rgba(4,6,11,0.52)'; // притеняем: трубы и ток должны читаться
-    ctx.fillRect(0, 0, rect.width, rect.height);
+    ctx.restore();
   } else {
+    // Арт выключен — держим прежний градиент, чтобы схема не выглядела пустой.
     const bg = ctx.createLinearGradient(0, 0, 0, rect.height);
     bg.addColorStop(0, '#070b13');
     bg.addColorStop(1, '#04060b');
@@ -596,9 +615,20 @@ function draw(now: number) {
   const powered = session.finishedAt ? level.tiles.map(() => true) : poweredCells(level);
   const solvedT = session.solvedAt ? Math.min(1, (now - session.solvedAt) / 800) : 0;
 
+  // Плита квартала: однотонный лист под трубы. Сверху только сетка и детали.
+  const plate = cell * 0.16;
+  ctx.save();
+  ctx.fillStyle = FIELD_PLATE;
+  roundRect(ctx, ox - plate / 2, oy - plate / 2, size * cell + plate, size * cell + plate, plate);
+  ctx.fill();
+  ctx.strokeStyle = FIELD_EDGE;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
   // Сетка-подложка: в арт-режиме деликатнее — трубы сами читаются как поле.
   ctx.save();
-  ctx.strokeStyle = artMode ? 'rgba(190,210,235,0.055)' : 'rgba(90,120,160,0.10)';
+  ctx.strokeStyle = artMode ? 'rgba(190,210,235,0.10)' : 'rgba(90,120,160,0.12)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= size; i++) {
     ctx.beginPath();

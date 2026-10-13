@@ -274,9 +274,18 @@ private fun DrawScope.drawReceiver(cx: Float, cy: Float, cell: Float, on: Boolea
 }
 
 /**
- * Фон яруса под полем: растягиваем по ширине, центрируем и гасим затемнением —
- * иначе трубы теряются на светлых участках кадра.
+ * Кадр яруса почти погашен: это атмосфера квартала, а не поверхность, по которой
+ * ведут трубы. На граффити метки читаются лучше, чем контур трубы, — играть было
+ * тяжело. Дальше поле накрыто однотонной плитой, и фон остаётся за её краем.
  */
+private const val BG_AMBIENCE = 0.28f
+
+/** Плита поля: ровный тёмный лист — трубы и ток читаются на любом ярусе. */
+private const val PLATE_ALPHA = 0.95f
+
+/** Кромка плиты: обозначает границу квартала, не споря с трубами. */
+private val PLATE_EDGE = Color(0x247E9CC4)
+
 private fun DrawScope.drawArtBackground(
     image: ImageBitmap?,
     board: Float,
@@ -298,16 +307,24 @@ private fun DrawScope.drawArtBackground(
             srcSize = IntSize(image.width, image.height),
             dstOffset = IntOffset(((area.width - w) / 2f).toInt(), (top + (height - h) / 2f).toInt()),
             dstSize = IntSize(w.toInt(), h.toInt()),
+            alpha = BG_AMBIENCE,
         )
     }
-    // Плита гасит фон под трубами, а заодно несёт купленную тему квартала:
-    // иначе «тема поля» была бы видна только в схеме.
+    // Плита: почти непрозрачная, поэтому поле однотонное. Одновременно несёт
+    // купленную тему квартала — иначе «тема поля» была бы видна только в схеме.
     val plate = cell * 0.16f
     drawRoundRect(
-        color = tint.copy(alpha = 0.10f),
+        color = tint.copy(alpha = PLATE_ALPHA),
         topLeft = Offset(ox - plate / 2f, top),
         size = Size(board + plate, height),
         cornerRadius = CornerRadius(plate),
+    )
+    drawRoundRect(
+        color = PLATE_EDGE,
+        topLeft = Offset(ox - plate / 2f, top),
+        size = Size(board + plate, height),
+        cornerRadius = CornerRadius(plate),
+        style = Stroke(width = 1f),
     )
 }
 
