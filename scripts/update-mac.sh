@@ -33,12 +33,26 @@ echo "→ репозиторий: $ROOT"
 
 # 1. Чистота дерева: свои правки не затираем никогда.
 DIRTY="$(git status --porcelain)"
+
+# Исключение: npm переписывает package-lock.json — версия npm на машине
+# отличается от той, что в репозитории. Это не правки игрока, а шум, и без
+# этого исключения скрипт останавливался бы после каждого запуска.
+if [ -n "$DIRTY" ]; then
+  OTHERS="$(printf '%s\n' "$DIRTY" | grep -v '^ M package-lock.json$' || true)"
+  if [ -z "$OTHERS" ]; then
+    echo "→ npm переписал package-lock.json (другая версия npm) — откатываю: правок в нём нет"
+    git checkout -- package-lock.json
+    DIRTY=""
+  fi
+fi
+
 if [ -n "$DIRTY" ]; then
   echo "⚠ в дереве есть незакоммиченные изменения — обновление остановлено, чтобы ничего не потерять:"
   echo "$DIRTY" | head -20
   echo
   echo "  отложить их:  git stash push -u -m 'локальные правки'"
   echo "  посмотреть:   git status"
+  echo "  если это тоже package-lock.json от npm:  git checkout -- package-lock.json"
   exit 1
 fi
 
