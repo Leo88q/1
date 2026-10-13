@@ -249,8 +249,12 @@ const OPPOSITE: Record<number, number> = { [N]: S, [S]: N, [E]: W, [W]: E };
  * весь кадр: в локальных координатах сегмента он одинаковый, поворот делает сам
  * холст (градиент рисуется в текущем преобразовании).
  */
-function waterBodyGradient(bore: number, flow: string): CanvasGradient {
-  const g = ctx.createLinearGradient(0, -bore / 2, 0, bore / 2);
+function waterBodyGradient(
+  c: CanvasRenderingContext2D,
+  bore: number,
+  flow: string,
+): CanvasGradient {
+  const g = c.createLinearGradient(0, -bore / 2, 0, bore / 2);
   g.addColorStop(0, hexA(flow, 0.14)); // нижняя кромка в тени
   g.addColorStop(0.16, hexA(flow, 0.5));
   g.addColorStop(0.33, hexA(flow, 0.9));
@@ -270,6 +274,7 @@ function waterBodyGradient(bore: number, flow: string): CanvasGradient {
  * к приёмникам, а не «от центра во все стороны».
  */
 function drawWater(
+  c: CanvasRenderingContext2D,
   startX: number,
   startY: number,
   dx: number,
@@ -281,31 +286,31 @@ function drawWater(
   phase: number,
   seed: number,
 ) {
-  ctx.save();
-  ctx.translate(startX, startY);
-  ctx.rotate(Math.atan2(dy, dx));
+  c.save();
+  c.translate(startX, startY);
+  c.rotate(Math.atan2(dy, dx));
 
   // 1. Тело воды и тёмные кромки: мениск у стенки трубы.
-  ctx.fillStyle = body;
-  ctx.fillRect(0, -bore / 2, len, bore);
-  ctx.fillStyle = 'rgba(3,7,13,0.20)';
-  ctx.fillRect(0, -bore / 2, len, bore * 0.08);
-  ctx.fillRect(0, bore * 0.42, len, bore * 0.08);
+  c.fillStyle = body;
+  c.fillRect(0, -bore / 2, len, bore);
+  c.fillStyle = 'rgba(3,7,13,0.20)';
+  c.fillRect(0, -bore / 2, len, bore * 0.08);
+  c.fillRect(0, bore * 0.42, len, bore * 0.08);
 
   // 2. Рябь: три волны разной скорости — глаза читают это как движение воды.
-  ctx.globalCompositeOperation = 'lighter';
+  c.globalCompositeOperation = 'lighter';
   for (let k = 0; k < 3; k++) {
     const amp = bore * (0.11 - k * 0.025);
     const step = Math.max(3, len / 8);
-    ctx.beginPath();
+    c.beginPath();
     for (let x = -step; x <= len + step; x += step) {
       const y = Math.sin(x / (bore * 2.4) - phase * Math.PI * 2 * (1 + k) + seed + k) * amp;
-      if (x < 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      if (x < 0) c.moveTo(x, y);
+      else c.lineTo(x, y);
     }
-    ctx.strokeStyle = `rgba(255,255,255,${0.13 - k * 0.03})`;
-    ctx.lineWidth = Math.max(1, bore * 0.055);
-    ctx.stroke();
+    c.strokeStyle = `rgba(255,255,255,${0.13 - k * 0.03})`;
+    c.lineWidth = Math.max(1, bore * 0.055);
+    c.stroke();
   }
 
   // 3. Блики: короткие светлые пятна, бегущие по потоку, гаснут у краёв.
@@ -313,10 +318,10 @@ function drawWater(
     const t = (phase * (1 + k) + k / 3 + seed * 0.37) % 1;
     const x = len * (0.12 + t * 0.78);
     const y = -bore * 0.1 + Math.sin(phase * 5 + k * 2 + seed) * bore * 0.06;
-    ctx.fillStyle = `rgba(255,255,255,${0.26 * Math.sin(Math.PI * t)})`;
-    ctx.beginPath();
-    ctx.ellipse(x, y, len * 0.085, bore * 0.13, 0, 0, Math.PI * 2);
-    ctx.fill();
+    c.fillStyle = `rgba(255,255,255,${0.26 * Math.sin(Math.PI * t)})`;
+    c.beginPath();
+    c.ellipse(x, y, len * 0.085, bore * 0.13, 0, 0, Math.PI * 2);
+    c.fill();
   }
 
   // 4. Пузыри: редкие, разного размера, чуть покачиваются.
@@ -324,16 +329,17 @@ function drawWater(
     const t = (phase * (1 + k) + 0.31 * k + seed * 0.71) % 1;
     const y = Math.sin(phase * 4 + k * 2 + seed) * bore * 0.2;
     const r = Math.max(0.7, bore * (0.06 + 0.02 * k));
-    ctx.fillStyle = `rgba(255,255,255,${0.3 * Math.sin(Math.PI * t)})`;
-    ctx.beginPath();
-    ctx.arc(len * (0.1 + t * 0.85), y, r, 0, Math.PI * 2);
-    ctx.fill();
+    c.fillStyle = `rgba(255,255,255,${0.3 * Math.sin(Math.PI * t)})`;
+    c.beginPath();
+    c.arc(len * (0.1 + t * 0.85), y, r, 0, Math.PI * 2);
+    c.fill();
   }
-  ctx.restore();
+  c.restore();
 }
 
 /** Вода в клетке: втекает через один порт и растекается по остальным. */
 function drawCellWater(
+  c: CanvasRenderingContext2D,
   cx: number,
   cy: number,
   cell: number,
@@ -350,27 +356,340 @@ function drawCellWater(
   // Втекает: от кромки клетки к центру.
   if (entry) {
     const [dx, dy] = PORTHOLE[entry];
-    drawWater(cx + dx * half, cy + dy * half, -dx, -dy, half, bore, flow, body, phase, seed + 1);
+    drawWater(c, cx + dx * half, cy + dy * half, -dx, -dy, half, bore, flow, body, phase, seed + 1);
   }
   // Растекается: от центра к остальным портам.
   for (const bit of [N, E, S, W]) {
     if (!(mask & bit) || bit === entry) continue;
     const [dx, dy] = PORTHOLE[bit];
-    drawWater(cx, cy, dx, dy, half, bore, flow, body, phase, seed + bit * 0.17);
+    drawWater(c, cx, cy, dx, dy, half, bore, flow, body, phase, seed + bit * 0.17);
   }
   // Ядро: вода сходится в середине — мягкое пятно, а не лампочка.
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  const core = ctx.createRadialGradient(0, 0, 0, 0, 0, bore * 0.9);
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  const core = c.createRadialGradient(0, 0, 0, 0, 0, bore * 0.9);
   core.addColorStop(0, hexA('#ffffff', 0.3));
   core.addColorStop(0.45, hexA(flow, 0.45));
   core.addColorStop(1, hexA(flow, 0));
-  ctx.translate(cx, cy);
-  ctx.fillStyle = core;
-  ctx.beginPath();
-  ctx.arc(0, 0, bore * 0.9, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+  c.translate(cx, cy);
+  c.fillStyle = core;
+  c.beginPath();
+  c.arc(0, 0, bore * 0.9, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
+/* ──────────────────────────── Карточка квартала ──────────────────────────── */
+
+/**
+ * Раскладка карточки: те же правила, что в Android-клиенте (`ShareCardModel.kt`).
+ * Сторона клетки целая — иначе между деталями трубы остаются щели и поле на
+ * карточке перестаёт стыковаться, хотя в игре стыкуется.
+ */
+interface CardLayout {
+  width: number;
+  height: number;
+  board: number;
+  boardLeft: number;
+  boardTop: number;
+  cell: number;
+  sealSize: number;
+  sealLeft: number;
+  sealTop: number;
+  titleBaseline: number;
+  subtitleBaseline: number;
+  starsBaseline: number;
+  statsBaseline: number;
+  dividerY: number;
+  footerBaseline: number;
+}
+
+function cardLayout(size: number, width = 1080, height = 1440): CardLayout {
+  const margin = width * 0.0667;
+  const cells = Math.max(3, Math.min(12, size));
+  // Поле не выше 60% карточки: иначе звёзды и подвал не помещаются.
+  const room = Math.min(width - margin * 2, height * 0.6);
+  const cell = Math.floor(room / cells);
+  const board = cell * cells;
+  const boardTop = height * 0.16;
+  const boardBottom = boardTop + board;
+  const sealSize = width * 0.155;
+  return {
+    width,
+    height,
+    board,
+    boardLeft: (width - board) / 2,
+    boardTop,
+    cell,
+    sealSize,
+    sealLeft: width - margin - sealSize,
+    sealTop: height * 0.022,
+    titleBaseline: height * 0.072,
+    subtitleBaseline: height * 0.126,
+    starsBaseline: boardBottom + height * 0.062,
+    statsBaseline: boardBottom + height * 0.104,
+    dividerY: boardBottom + height * 0.146,
+    footerBaseline: boardBottom + height * 0.201,
+  };
+}
+
+/** Что показываем на карточке. */
+interface CardData {
+  levelNumber: number;
+  tier: string;
+  daily: boolean;
+  stars: number;
+  moves: number;
+  par: number;
+  time: string;
+  hints: number;
+  sealKey: string;
+  sealTitle: string;
+}
+
+/** Текст с разрядкой: в канве нет надёжного letterSpacing, поэтому сами. */
+function spacedText(
+  c: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  spacing: number,
+  align: 'left' | 'center' | 'right' = 'center',
+) {
+  const chars = [...text];
+  const width = chars.reduce((w, ch) => w + c.measureText(ch).width + spacing, 0) - spacing;
+  let cx = align === 'center' ? x - width / 2 : align === 'right' ? x - width : x;
+  const prev = c.textAlign;
+  c.textAlign = 'left';
+  for (const ch of chars) {
+    c.fillText(ch, cx, y);
+    cx += c.measureText(ch).width + spacing;
+  }
+  c.textAlign = prev;
+}
+
+/**
+ * Карточка квартала: PNG 1080×1440, который можно отправить в мессенджер.
+ *
+ * Поле рисуется тем же артом и той же водой, что и в игре, — поэтому карточка
+ * не врёт о квартале и не требует отдельной картинки.
+ */
+function renderShareCard(level: Level, powered: boolean[], data: CardData, tier: TierArt): HTMLCanvasElement {
+  const l = cardLayout(level.size);
+  const card = document.createElement('canvas');
+  card.width = l.width;
+  card.height = l.height;
+  const c = card.getContext('2d')!;
+  const mono = 'ui-monospace, SFMono-Regular, Menlo, monospace';
+
+  c.fillStyle = '#06080e';
+  c.fillRect(0, 0, l.width, l.height);
+  // Кадр победы — атмосфера, а не поверхность: он почти погашен, как в игре.
+  const victory = art.get(art.pack?.screens.victory);
+  if (victory) {
+    const scale = Math.max(l.width / victory.naturalWidth, l.height / victory.naturalHeight);
+    const w = victory.naturalWidth * scale;
+    const h = victory.naturalHeight * scale;
+    c.save();
+    c.globalAlpha = 0.3;
+    c.drawImage(victory, (l.width - w) / 2, (l.height - h) / 2, w, h);
+    c.restore();
+  }
+
+  // Рамка: карточка выглядит собранной, а не как скриншот.
+  c.save();
+  c.strokeStyle = hexA('#00e5c7', 0.27);
+  c.lineWidth = 3;
+  const inset = l.width * 0.024;
+  roundRect(c, inset, inset, l.width - inset * 2, l.height - inset * 2, l.width * 0.03);
+  c.stroke();
+  c.restore();
+
+  // Шапка: название, ярус и квартал.
+  c.fillStyle = '#00e5c7';
+  c.font = `bold ${Math.round(l.height * 0.052)}px ${mono}`;
+  spacedText(c, 'АМПЕРГРАД', l.width / 2, l.titleBaseline, l.width * 0.011);
+
+  c.fillStyle = '#6f8199';
+  c.font = `${Math.round(l.height * 0.024)}px ${mono}`;
+  spacedText(c, data.tier.toUpperCase(), l.width * 0.0667, l.subtitleBaseline, l.width * 0.003, 'left');
+  spacedText(
+    c,
+    data.daily ? 'ЧЕЛЛЕНДЖ ДНЯ' : `КВАРТАЛ ${data.levelNumber}`,
+    l.width * 0.9333,
+    l.subtitleBaseline,
+    l.width * 0.003,
+    'right',
+  );
+
+  const seal = art.get(sealFile(data.sealKey));
+  if (seal) c.drawImage(seal, l.sealLeft, l.sealTop, l.sealSize, l.sealSize);
+
+  drawCardField(c, l, level, powered, tier);
+
+  // Звёзды и строка результата.
+  c.fillStyle = data.stars > 0 ? '#ffc24b' : '#26334a';
+  c.font = `${Math.round(l.height * 0.042)}px ${mono}`;
+  c.textAlign = 'center';
+  c.fillText('★'.repeat(data.stars) + '☆'.repeat(Math.max(0, 3 - data.stars)), l.width / 2, l.starsBaseline);
+
+  c.fillStyle = '#d7e3f4';
+  c.font = `${Math.round(l.height * 0.026)}px ${mono}`;
+  const stats =
+    `ХОДЫ ${data.moves} · ПЛАН ${data.par} · ВРЕМЯ ${data.time}` +
+    (data.hints > 0 ? ` · ПОДСКАЗКИ ${data.hints}` : '');
+  spacedText(c, stats, l.width / 2, l.statsBaseline, l.width * 0.002);
+
+  // Подвал: чем квартал запечатан.
+  c.strokeStyle = '#1b2637';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(l.width * 0.0667, l.dividerY);
+  c.lineTo(l.width * 0.9333, l.dividerY);
+  c.stroke();
+
+  c.fillStyle = '#00e5c7';
+  c.font = `${Math.round(l.height * 0.022)}px ${mono}`;
+  spacedText(c, data.sealTitle, l.width * 0.0667, l.footerBaseline, l.width * 0.002, 'left');
+  c.fillStyle = '#6f8199';
+  spacedText(c, 'ВЕРНИ ГОРОДУ ТОК', l.width * 0.9333, l.footerBaseline, l.width * 0.002, 'right');
+  return card;
+}
+
+/**
+ * Поле на карточке: плита, трубы, вода и служебные метки — тем же кодом, что и
+ * в игре, поэтому карточка не может разойтись с тем, что видит игрок.
+ */
+function drawCardField(
+  c: CanvasRenderingContext2D,
+  l: CardLayout,
+  level: Level,
+  powered: boolean[],
+  tier: TierArt,
+) {
+  c.save();
+  c.translate(l.boardLeft, l.boardTop);
+  c.fillStyle = '#0d1421';
+  roundRect(c, 0, 0, l.board, l.board, l.cell * 0.16);
+  c.fill();
+  c.strokeStyle = '#1b2637';
+  c.lineWidth = 2;
+  c.stroke();
+
+  const flow = tier.flow;
+  const dirs = flowDirections(level, powered);
+  // Вода на карточке стоит, но рябь, блики и пузыри видны.
+  const phase = 0.35;
+  const body = waterBodyGradient(c, Math.max(3, l.cell * 0.15), flow);
+
+  for (let i = 0; i < level.tiles.length; i++) {
+    const tile = level.tiles[i];
+    const x = i % level.size;
+    const y = Math.floor(i / level.size);
+    const cx = x * l.cell + l.cell / 2;
+    const cy = y * l.cell + l.cell / 2;
+    const rot = (tile.rot * Math.PI) / 2;
+
+    // Плита-указатель под трубой: на неподвижной карточке она и говорит, куда течёт.
+    const dir = dirs.get(i);
+    if (dir) {
+      const plate = art.get(art.prop(ARROWS[dir]));
+      if (plate) {
+        c.save();
+        c.globalAlpha = ARROW_ALPHA;
+        c.drawImage(plate, cx - l.cell / 2, cy - l.cell / 2, l.cell, l.cell);
+        c.restore();
+      }
+    }
+
+    const sprite = art.sprite(setForCell(tier.sets, x, y, i), pieceForMask(tile.base));
+    const img = art.get(sprite?.file);
+    if (img) {
+      c.save();
+      c.translate(cx, cy);
+      c.rotate(rot);
+      c.drawImage(img, -l.cell / 2 - 0.5, -l.cell / 2 - 0.5, l.cell + 1, l.cell + 1);
+      c.restore();
+    }
+
+    // Приёмник — открытый конец трубы: горловина смотрит по своему порту.
+    if (tile.role === 'receiver') {
+      const mouth = art.get(art.pack?.round.mouth?.file);
+      const mask = tileMask(level, i);
+      const spin = mask & N ? Math.PI : mask & E ? -Math.PI / 2 : mask & W ? Math.PI / 2 : 0;
+      if (mouth) {
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(spin);
+        c.drawImage(mouth, -l.cell * 0.47, -l.cell * 0.47, l.cell * 0.94, l.cell * 0.94);
+        c.restore();
+      }
+    }
+
+    // Шина — колпак поверх детали: отсюда среда уходит в квартал.
+    if (tile.role === 'bus') {
+      const cap = art.get(art.pack?.round.cap?.file);
+      if (cap) {
+        c.save();
+        c.translate(cx, cy);
+        c.drawImage(cap, -l.cell * 0.43, -l.cell * 0.43, l.cell * 0.86, l.cell * 0.86);
+        c.restore();
+      }
+    }
+
+    if (powered[i]) {
+      drawCellWater(c, cx, cy, l.cell, tileMask(level, i), dirs.get(i), flow, body, phase, i * 0.61);
+    }
+
+    const decorKey = decorForCell(tile, tileMask(level, i));
+    if (decorKey) {
+      const decor = art.get(art.prop(decorKey));
+      if (decor) {
+        const side = l.cell * (DECOR_SCALE[decorKey] ?? 0.5);
+        c.drawImage(decor, cx - side / 2, cy - side / 2, side, side);
+      }
+    }
+  }
+  c.restore();
+}
+
+/**
+ * Отдаёт карточку файлом: в браузере это честный вариант «поделиться» —
+ * картинку можно отправить куда угодно, не спрашивая разрешений.
+ */
+function downloadShareCard() {
+  if (!session || session.finishedAt === null) return;
+  const secs = (session.finishedAt - session.startedAt) / 1000;
+  const mm = Math.floor(secs / 60);
+  const ss = Math.floor(secs % 60);
+  const stars = winStars ?? 0;
+  const sealKey = winSealKey ?? String(Math.max(1, Math.min(3, stars)));
+  const card = renderShareCard(
+    session.level,
+    session.level.tiles.map(() => true),
+    {
+      levelNumber: session.levelNumber,
+      tier: session.mode === 'daily' ? 'ЧЕЛЛЕНДЖ ДНЯ' : tierOf(session.levelNumber).name,
+      daily: session.mode === 'daily',
+      stars,
+      moves: session.moves,
+      par: session.level.parMoves,
+      time: `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
+      hints: session.hintsUsed,
+      sealKey,
+      sealTitle: sealTitle(sealKey),
+    },
+    tierOf(session.mode === 'daily' ? 33 : session.levelNumber),
+  );
+  card.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ampergrad-${session!.mode === 'daily' ? 'daily' : 'q' + session!.levelNumber}.png`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
 }
 
 /** Набор материалов ячейки: в ярусе с двумя наборами они чередуются по полю. */
@@ -529,6 +848,8 @@ app.innerHTML = `
       <div class="menu-actions">
         <button class="btn btn--primary" id="btnNext">Следующий квартал</button>
         <button class="btn btn--ghost" id="btnWinMenu">В меню</button>
+        <!-- Карточка квартала: PNG тем же артом, что и поле. -->
+        <button class="btn btn--ghost" id="btnCard">Скачать карточку</button>
       </div>
     </div>
   </div>
@@ -560,6 +881,13 @@ interface Session {
 }
 
 let session: Session | null = null;
+
+/**
+ * Итог последней смены. Карточку собирают уже после победы, когда сессия
+ * закрыта и пересчитывать звёзды поздно — поэтому запоминаем их здесь.
+ */
+let winStars = 0;
+let winSealKey: string | null = null;
 let view: 'menu' | 'game' | 'win' = 'menu';
 
 function startLevel(levelNumber: number, mode: 'level' | 'daily' = 'level') {
@@ -690,6 +1018,7 @@ function finish() {
   const par = session.level.parMoves;
   let stars = session.moves <= par ? 3 : session.moves <= Math.ceil(par * 1.5) ? 2 : 1;
   if (session.hintsUsed > 0) stars = Math.min(stars, 2);
+  winStars = stars;
   sfx.solved();
 
   // Пломба на экране победы: медальон арта — по числу звёзд или особый.
@@ -700,6 +1029,7 @@ function finish() {
     par,
     tierOf(session.mode === 'daily' ? 33 : session.levelNumber).id,
   );
+  winSealKey = sealKey;
   const sealPath = sealFile(sealKey);
   const seal = art.get(sealPath);
   $<HTMLElement>('winSealLabel').textContent = sealTitle(sealKey);
@@ -882,7 +1212,7 @@ function draw(now: number) {
   // без рывка — Android, где та же вода крутится анимацией ровно в секунду,
   // выглядит так же, как браузер.
   const waterPhase = now / 1000;
-  const waterBody = waterBodyGradient(Math.max(3, cell * 0.15), flow);
+  const waterBody = waterBodyGradient(ctx, Math.max(3, cell * 0.15), flow);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = y * size + x;
@@ -997,7 +1327,7 @@ function draw(now: number) {
       // бегущие от шины к приёмникам. Направление задаёт обход от шины.
       if (on && artMode) {
         const mask = tileMask(level, i);
-        drawCellWater(cx, cy, cell, mask, flowDirs.get(i), flow, waterBody, waterPhase, i * 0.61);
+        drawCellWater(ctx, cx, cy, cell, mask, flowDirs.get(i), flow, waterBody, waterPhase, i * 0.61);
       } else if (on) {
         // Схема без арта: тонкая светящаяся линия — здесь объём был бы лишним.
         ctx.save();
@@ -1147,6 +1477,7 @@ $('btnHint').addEventListener('click', () => {
 });
 $('btnMenu').addEventListener('click', openMenu);
 $('btnWinMenu').addEventListener('click', openMenu);
+$('btnCard').addEventListener('click', downloadShareCard);
 $('btnNext').addEventListener('click', () => {
   if (!session) return;
   if (session.mode === 'daily') startLevel(33, 'daily');
