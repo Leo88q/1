@@ -343,7 +343,7 @@ internal fun arrowFor(bit: Int): String? = when (bit) {
 }
 
 /** Указатель гасим: он подсказка под трубой, а не знак поверх неё. */
-private const val ARROW_ALPHA = 0.24f
+internal const val ARROW_ALPHA = 0.24f
 
 /**
  * Куда течёт среда: от шины по подключённым клеткам (обход в ширину).
@@ -352,7 +352,7 @@ private const val ARROW_ALPHA = 0.24f
  * стрелка смотрит от шины к приёмникам. Сеть маленькая (до 8×8), поэтому
  * считаем каждый кадр: дешевле, чем следить за изменениями.
  */
-private fun flowDirections(level: Level, powered: BooleanArray): Map<Int, Int> {
+internal fun flowDirections(level: Level, powered: BooleanArray): Map<Int, Int> {
     val size = level.size
     val dirs = HashMap<Int, Int>()
     val seen = BooleanArray(level.tiles.size)
@@ -382,7 +382,7 @@ private fun flowDirections(level: Level, powered: BooleanArray): Map<Int, Int> {
 }
 
 /** Кладёт картинку в клетку: центр и сторона в пикселях поля. */
-private fun DrawScope.drawAt(image: ImageBitmap, cx: Float, cy: Float, side: Float, alpha: Float = 1f) {
+internal fun DrawScope.drawAt(image: ImageBitmap, cx: Float, cy: Float, side: Float, alpha: Float = 1f) {
     drawImage(
         image = image,
         dstOffset = IntOffset((cx - side / 2f).toInt(), (cy - side / 2f).toInt()),
@@ -448,7 +448,7 @@ private fun DrawScope.drawArtBackground(
 
 /** Деталь трубы из арта: спрайт нарисован в положении своей маски, поэтому его
  *  поворот равен повороту маски фрагмента — детали соседей стыкуются. */
-private fun DrawScope.drawArtTile(
+internal fun DrawScope.drawArtTile(
     art: Art,
     level: Level,
     index: Int,
@@ -484,7 +484,7 @@ private fun DrawScope.drawArtTile(
  * flowDirs (от шины к приёмникам), поэтому вода втекает через один порт и
  * растекается в остальные — по полю видно, куда она идёт.
  */
-private fun DrawScope.drawArtFlow(
+internal fun DrawScope.drawArtFlow(
     level: Level,
     index: Int,
     cx: Float,
@@ -625,7 +625,7 @@ private fun DrawScope.drawWater(
 }
 
 /** Приёмник: горловина открытого конца, а когда ток дошёл — струя по её порту. */
-private fun DrawScope.drawArtReceiver(
+internal fun DrawScope.drawArtReceiver(
     art: Art,
     level: Level,
     index: Int,

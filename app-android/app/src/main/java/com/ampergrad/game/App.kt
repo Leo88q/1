@@ -76,12 +76,17 @@ import com.ampergrad.game.ui.screenBackdrop
 import com.ampergrad.game.ui.ArtTier
 import com.ampergrad.game.ui.artTierIndex
 import com.ampergrad.game.ui.chooseSeal
+import com.ampergrad.game.ui.renderShareCard
+import com.ampergrad.game.ui.shareQuarterCard
+import com.ampergrad.game.ui.ShareCardData
 import com.ampergrad.game.content.Shop
 import com.ampergrad.game.content.Wardrobe
 import com.ampergrad.game.content.of
 import com.ampergrad.game.ui.tierOf
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class Mode { LEVEL, DAILY }
 
@@ -567,6 +572,23 @@ fun AmpergradApp(activity: ComponentActivity, wallet: MwaWallet, sound: SoundKit
                 onMenu = { menuOpen = true },
                 onClaim = { claimReward(finished) },
                 onWallet = { walletOpen = true },
+                onShare = {
+                    scope.launch {
+                        val data = shareCardData(finished, lore, t, walletAddress)
+                        val card = withContext(Dispatchers.Default) {
+                            renderShareCard(
+                                art = if (artReady && artOn) art else null,
+                                tier = currentTier,
+                                level = finished.level,
+                                powered = poweredCells(finished.level),
+                                data = data,
+                                strings = t,
+                            )
+                        }
+                        val caption = t.shareCaption(if (data.daily) t.daily else data.quarter)
+                        if (!shareQuarterCard(context, card, caption)) showBanner(t.shareFailed)
+                    }
+                },
             )
         }
     }
@@ -844,6 +866,44 @@ private fun Stat(key: String, value: String) {
     }
 }
 
+/**
+ * Данные для карточки квартала. Правила те же, что на экране победы: ярус для
+ * челленджа дня считается за тридцать третий квартал, пломба — по chooseSeal,
+ * иначе карточка и экран разошлись бы в мелочах.
+ */
+private fun shareCardData(
+    session: GameSession,
+    lore: Lore?,
+    t: UiStrings,
+    walletAddress: String?,
+): ShareCardData {
+    val daily = session.mode == Mode.DAILY
+    val number = session.levelNumber
+    val tierNumber = if (daily) 33 else number
+    val quarter = lore?.quarter(number)?.name(t.lang) ?: ""
+    val sealKey = chooseSeal(
+        stars = session.stars,
+        hints = session.hintsUsed,
+        moves = session.moves,
+        par = session.level.parMoves,
+        tier = tierOf(tierNumber).id,
+    )
+    return ShareCardData(
+        levelNumber = number,
+        quarter = quarter,
+        tier = t.tierName(tierOf(tierNumber).order),
+        stars = session.stars,
+        moves = session.moves,
+        par = session.level.parMoves,
+        time = formatDuration((session.finishedAt ?: System.currentTimeMillis()) - session.startedAt),
+        hints = session.hintsUsed,
+        player = walletAddress?.let { Base58.shorten(it, 4, 4) },
+        sealKey = sealKey,
+        sealTitle = t.sealTitle(sealKey),
+        daily = daily,
+    )
+}
+
 @Composable
 private fun WinOverlay(
     session: GameSession,
@@ -855,6 +915,7 @@ private fun WinOverlay(
     onMenu: () -> Unit,
     onClaim: () -> Unit,
     onWallet: () -> Unit,
+    onShare: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -1006,6 +1067,11 @@ private fun WinOverlay(
                         color = Grad.InkDim,
                     )
                 }
+
+                Spacer(Modifier.height(10.dp))
+                // Карточка квартала: поле, пломба и результат одним PNG — тем,
+                // чем игрок делится в мессенджере (виральность без спама).
+                OutlinedButton(onClick = onShare, modifier = Modifier.fillMaxWidth()) { Text(t.share) }
 
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

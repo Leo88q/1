@@ -91,6 +91,20 @@ interface UiStrings {
     val toMenu: String
     fun openEntry(id: String, title: String): String
 
+    /* Карточка квартала: ей делятся в мессенджере после смены */
+    val share: String
+    val shareFailed: String
+    /** Текст, который уходит вместе с картинкой. */
+    fun shareCaption(quarter: String): String
+    /** Подписи на самой карточке — короткие, как в диспетчерской сводке. */
+    val cardMoves: String
+    val cardPar: String
+    val cardTime: String
+    val cardHints: String
+    fun cardQuarter(number: Int, name: String): String
+    /** Кто запечатал квартал, если кошелёк не подключён. */
+    val cardNoWallet: String
+
     /* Рейтинг дня */
     val boardTitle: String
     fun boardDay(day: Long): String
@@ -271,6 +285,16 @@ object Ru : UiStrings {
     override val toMenu = "В МЕНЮ"
     override fun openEntry(id: String, title: String) = "Открыта как $id · $title"
 
+    override val share = "ПОДЕЛИТЬСЯ"
+    override val shareFailed = "Не удалось открыть отправку — попробуйте ещё раз"
+    override fun shareCaption(quarter: String) = "АМПЕРГРАД · $quarter запечатан"
+    override val cardMoves = "ХОДЫ"
+    override val cardPar = "ПЛАН"
+    override val cardTime = "ВРЕМЯ"
+    override val cardHints = "ПОДСКАЗКИ"
+    override fun cardQuarter(number: Int, name: String) = "КВАРТАЛ $number · ${name.uppercase()}"
+    override val cardNoWallet = "МАСТЕР СМЕНЫ"
+
     override val boardTitle = "РЕЙТИНГ ДНЯ"
     override fun boardDay(day: Long) = "день $day"
     override val boardNote =
@@ -434,6 +458,16 @@ object En : UiStrings {
     override val again = "AGAIN"
     override val toMenu = "TO MENU"
     override fun openEntry(id: String, title: String) = "Opened as $id · $title"
+
+    override val share = "SHARE"
+    override val shareFailed = "Could not open the share sheet — try again"
+    override fun shareCaption(quarter: String) = "AMPERGRAD · $quarter sealed"
+    override val cardMoves = "MOVES"
+    override val cardPar = "PAR"
+    override val cardTime = "TIME"
+    override val cardHints = "HINTS"
+    override fun cardQuarter(number: Int, name: String) = "QUARTER $number · ${name.uppercase()}"
+    override val cardNoWallet = "SHIFT MASTER"
 
     override val boardTitle = "DAILY BOARD"
     override fun boardDay(day: Long) = "day $day"
