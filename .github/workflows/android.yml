@@ -63,13 +63,13 @@ jobs:
       # перерисовали, листинг уедет с устаревшим видом игры.
       - name: "Витрина: ассеты совпадают с рендерером"
         run: |
-          ls /usr/share/fonts/truetype/dejavu >/dev/null 2>&1 || sudo apt-get install -y fonts-dejavu-core
+          if ! ls /usr/share/fonts/truetype/dejavu/*.ttf >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq fonts-dejavu-core
+          fi
           python3 store/render_assets.py
           python3 store/render_assets.py --lang en
-          git diff --exit-code store/assets store/assets-en || {
-            echo "::error::ассеты витрины отличаются от отрисованных — выполните python3 store/render_assets.py и python3 store/render_assets.py --lang en, закоммитьте store/assets и store/assets-en"
-            exit 1
-          }
+          python3 store/check_assets.py
 
       - name: "Сборка веб-игры"
         run: npm run build
